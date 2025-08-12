@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { usePageTitle } from "../../../../hooks/usePageTitle";
-import { request } from "../../../../utils/api";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { request } from "@/utils/api";
 import {
   IUser,
   useAuthentication,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { IConnection } from "../../components/Connection/Connection";
-import { Title } from "../../components/Title/Title";
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { IConnection } from "@/features/networking/components/Connection/Connection";
+import { Title } from "@/features/networking/components/Title/Title";
 import classes from "./Network.module.scss";
-import { useWebSocket } from "../../../websocket/websocket";
-import { Button } from "../../../authentication/components/Button/Button";
+import { useWebSocket } from "@/features/websocket/websocket";
+import { Button } from "@/features/authentication/components/Button/Button";
 
 export function Network() {
   usePageTitle("Network");

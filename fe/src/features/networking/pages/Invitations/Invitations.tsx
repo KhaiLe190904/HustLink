@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { request } from "../../../../utils/api";
-import { useAuthentication } from "../../../authentication/context/AuthenticationContextProvider";
-import { Connection, IConnection } from "../../components/Connection/Connection";
-import { Title } from "../../components/Title/Title";
+import { request } from "@/utils/api";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
+import { Connection, IConnection } from "@/features/networking/components/Connection/Connection";
+import { Title } from "@/features/networking/components/Title/Title";
 import classes from "./Invitations.module.scss";
-import { useWebSocket } from "../../../websocket/websocket";
+import { useWebSocket } from "@/features/websocket/websocket";
 export function Invitations() {
   const [connexions, setConnections] = useState<IConnection[]>([]);
   const [sent, setSent] = useState(false);

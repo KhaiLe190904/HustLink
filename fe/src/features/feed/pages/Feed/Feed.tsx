@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePageTitle } from "../../../../hooks/usePageTitle.tsx";
-import { request } from "../../../../utils/api.ts";
-import { useAuthentication } from "../../../authentication/context/AuthenticationContextProvider.tsx";
-import { useWebSocket } from "../../../websocket/websocket.tsx";
-import { LeftSidebar } from "../../components/LeftSidebar/LeftSidebar.tsx";
-import { Madal } from "../../components/Modal/Modal.tsx";
-import { IPost, Post } from "../../components/Post/Post.tsx";
-import { RightSidebar } from "../../components/RightSidebar/RightSidebar.tsx";
+import { usePageTitle } from "@/hooks/usePageTitle.tsx";
+import { request } from "@/utils/api.ts";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider.tsx";
+import { useWebSocket } from "@/features/websocket/websocket.tsx";
+import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar.tsx";
+import { Madal } from "@/features/feed/components/Modal/Modal.tsx";
+import { IPost, Post } from "@/features/feed/components/Post/Post.tsx";
+import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar.tsx";
 import classes from "./Feed.module.scss";
-import { Button } from "../../../authentication/components/Button/Button.tsx";
+import { Button } from "@/features/authentication/components/Button/Button.tsx";
 
 export function Feed() {
   usePageTitle("Feed");

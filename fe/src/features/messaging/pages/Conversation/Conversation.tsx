@@ -1,15 +1,15 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Input } from "../../../../components/Input/Input";
-import { request } from "../../../../utils/api";
+import { Input } from "@/components/Input/Input";
+import { request } from "@/utils/api";
 import {
   IUser,
   useAuthentication,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { useWebSocket } from "../../../websocket/websocket";
-import { IConversation } from "../../components/Conversations/Conversations";
-import { IConnection } from "../../../networking/components/Connection/Connection";
-import { Messages } from "../../components/Messages/Messages";
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { useWebSocket } from "@/features/websocket/websocket";
+import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
+import { IConnection } from "@/features/networking/components/Connection/Connection";
+import { Messages } from "@/features/messaging/components/Messages/Messages";
 import classes from "./Conversation.module.scss";
 export function Conversation() {
   const [postingMessage, setPostingMessage] = useState<boolean>(false);

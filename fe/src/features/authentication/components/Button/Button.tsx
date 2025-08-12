@@ -1,6 +1,6 @@
 import { ButtonHTMLAttributes } from 'react';
 import classes from './Button.module.css';
-type ButtonProps = ButtonHTMLAttributes<HTMLInputElement> & {
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
     outline?: boolean;
     size?: "small" | "medium" | "large";
 };

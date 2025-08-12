@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";;
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
-import { IConnection } from "../../../networking/components/Connection/Connection";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { IConnection } from "@/features/networking/components/Connection/Connection";
 import classes from "./RightSidebar.module.scss";
-import { Button } from "../../../authentication/components/Button/Button";
+import { Button } from "@/features/authentication/components/Button/Button";
 export function RightSidebar() {
   const [suggestions, setSuggestions] = useState<IUser[]>([]);
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
-import { Message } from "../Message/Message";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { Message } from "@/features/messaging/components/Message/Message";
 import classes from "./Messages.module.scss";
 
 export interface IMessage {

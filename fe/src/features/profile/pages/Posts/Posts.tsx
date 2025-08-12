@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader } from "../../../../components/Loader/Loader";
-import { usePageTitle } from "../../../../hooks/usePageTitle";
-import { request } from "../../../../utils/api";
+import { Loader } from "@/components/Loader/Loader";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { request } from "@/utils/api";
 import {
   IUser,
   useAuthentication,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { LeftSidebar } from "../../../feed/components/LeftSidebar/LeftSidebar";
-import { IPost, Post } from "../../../feed/components/Post/Post";
-import { RightSidebar } from "../../../feed/components/RightSidebar/RightSidebar";
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar";
+import { IPost, Post } from "@/features/feed/components/Post/Post";
+import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
 import classes from "./Posts.module.scss";
 export function Posts() {
   const { id } = useParams();

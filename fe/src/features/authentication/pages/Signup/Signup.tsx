@@ -1,11 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Box } from "../../components/Box/Box";
-import { Button } from "../../components/Button/Button";
-import { Input } from "../../../../components/Input/Input";
-import { Seperator } from "../../components/Seperator/Seperator";
+import { Box } from "@/features/authentication/components/Box/Box";
+import { Button } from "@/features/authentication/components/Button/Button";
+import { Input } from "@/components/Input/Input";
+import { Seperator } from "@/features/authentication/components/Seperator/Seperator";
 import classes from "./Signup.module.css";
 import { FormEvent, useState } from "react";
-import { useAuthentication } from "../../context/AuthenticationContextProvider";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 

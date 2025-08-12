@@ -1,12 +1,12 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { request } from "../../../../utils/api";
-import { IUser, useAuthentication } from "../../../authentication/context/AuthenticationContextProvider";
-import { LeftSidebar } from "../../components/LeftSidebar/LeftSidebar";
-import { RightSidebar } from "../../components/RightSidebar/RightSidebar";
-import { TimeAgo } from "../../components/TimeAgo/TimeAgo";
+import { request } from "@/utils/api";
+import { IUser, useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
+import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar";
+import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
+import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import classes from "./Notifications.module.scss";
-import { usePageTitle } from "../../../../hooks/usePageTitle";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 enum NotificationType {
   LIKE = "LIKE",

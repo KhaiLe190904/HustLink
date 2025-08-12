@@ -1,13 +1,13 @@
 import { HTMLAttributes, useEffect, useState } from "react";
-import { request } from "../../../../utils/api";
+import { request } from "@/utils/api";
 import {
   IUser,
   useAuthentication,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { IMessage } from "../Messages/Messages";
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { IMessage } from "@/features/messaging/components/Messages/Messages";
 import classes from "./Conversations.module.scss";
-import { Conversation } from "../Conversation/Conversation";
-import { useWebSocket } from "../../../websocket/websocket";
+import { Conversation } from "@/features/messaging/components/Conversation/Conversation";
+import { useWebSocket } from "@/features/websocket/websocket";
 
 export interface IConversation {
   id: number;

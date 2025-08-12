@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Loader } from "../../../../components/Loader/Loader";
-import { usePageTitle } from "../../../../hooks/usePageTitle";
-import { request } from "../../../../utils/api";
+import { Loader } from "@/components/Loader/Loader";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { request } from "@/utils/api";
 import {
   IUser,
   useAuthentication,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { RightSidebar } from "../../../feed/components/RightSidebar/RightSidebar";
-import { About } from "../../components/About/About";
-import { Activity } from "../../components/Activity/Activity";
-import { Header } from "../../components/Header/Header";
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
+import { About } from "@/features/profile/components/About/About";
+import { Activity } from "@/features/profile/components/Activity/Activity";
+import { Header } from "@/features/profile/components/Header/Header";
 import classes from "./Profile.module.scss";
 export function Profile() {
   const { id } = useParams();

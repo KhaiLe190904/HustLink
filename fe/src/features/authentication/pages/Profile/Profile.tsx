@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input } from "../../../../components/Input/Input";
-import { Box } from "../../components/Box/Box";
-import { useAuthentication } from "../../context/AuthenticationContextProvider";
+import { Input } from "@/components/Input/Input";
+import { Box } from "@/features/authentication/components/Box/Box";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import classes from "./Profile.module.scss";
-import { Button } from "../../components/Button/Button";
+import { Button } from "@/features/authentication/components/Button/Button";
 export function Profile() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();

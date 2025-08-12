@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
-import { IPost, Post } from "../../../feed/components/Post/Post";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { IPost, Post } from "@/features/feed/components/Post/Post";
 import classes from "./Activity.module.scss";
 interface IActivityProps {
   user: IUser | null;

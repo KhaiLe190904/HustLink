@@ -1,15 +1,15 @@
 import { Dispatch, FormEvent, SetStateAction, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input } from "../../../../components/Input/Input";
-import { request } from "../../../../utils/api";
+import { Input } from "@/components/Input/Input";
+import { request } from "@/utils/api";
 import {
   IUser,
   useAuthentication,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { useWebSocket } from "../../../websocket/websocket";
-import { Comment, IComment } from "../Comment/Comment";
-import { Madal } from "../Modal/Modal";
-import { TimeAgo } from "../TimeAgo/TimeAgo";
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { useWebSocket } from "@/features/websocket/websocket";
+import { Comment, IComment } from "@/features/feed/components/Comment/Comment";
+import { Madal } from "@/features/feed/components/Modal/Modal";
+import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import classes from "./Post.module.scss";
 
 export interface IPost {

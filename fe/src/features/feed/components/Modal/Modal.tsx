@@ -1,7 +1,7 @@
 import { Dispatch, SetStateAction, useState } from "react";
-import { Input } from "../../../../components/Input/Input";
+import { Input } from "@/components/Input/Input";
 import classes from "./Modal.module.scss";
-import { Button } from "../../../authentication/components/Button/Button";
+import { Button } from "@/features/authentication/components/Button/Button";
 interface PostingMadalProps {
   showModal: boolean;
   content?: string;

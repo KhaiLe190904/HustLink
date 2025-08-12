@@ -1,15 +1,15 @@
 import classes from "./Header.module.css";
-import logo from "../../../public/logo.svg";
+import logo from "/logo.svg";
 import { NavLink } from "react-router-dom";
-import { Input } from "../Input/Input";
-import { useAuthentication } from "../../features/authentication/context/AuthenticationContextProvider";
+import { Input } from "@/components/Input/Input";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useEffect, useState } from "react";
-import { Profile } from "./components/Profile";
-import { useWebSocket } from "../../features/websocket/websocket";
-import { request } from "../../utils/api";
-import { INotification } from "../../features/feed/pages/Notifications/Notifications";
-import { IConversation } from "../../features/messaging/components/Conversations/Conversations";
-import { IConnection } from "../../features/networking/components/Connection/Connection";
+import { Profile } from "@/components/Header/components/Profile";
+import { useWebSocket } from "@/features/websocket/websocket";
+import { request } from "@/utils/api";
+import { INotification } from "@/features/feed/pages/Notifications/Notifications";
+import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
+import { IConnection } from "@/features/networking/components/Connection/Connection";
 export function Header() {
   const { user } = useAuthentication();
   const webSocketClient = useWebSocket();

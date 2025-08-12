@@ -7,8 +7,8 @@ import {
   useState,
 } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { Loader } from "../../../components/Loader/Loader";
-import { request } from "../../../utils/api";
+import { Loader } from "@/components/Loader/Loader";
+import { request } from "@/utils/api";
 
 interface AuthenticationResponse {
   token: string;

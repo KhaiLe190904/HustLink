@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Input } from "../../../../components/Input/Input";
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
+import { Input } from "@/components/Input/Input";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import classes from "./About.module.scss";
 
 interface AboutProps {

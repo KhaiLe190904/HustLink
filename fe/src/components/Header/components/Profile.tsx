@@ -1,11 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useAuthentication } from "../../../features/authentication/context/AuthenticationContextProvider";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import classes from "./Profile.module.css";
-import { Button } from "../../../features/authentication/components/Button/Button";
+import { Button } from "@/features/authentication/components/Button/Button";
+
 interface ProfileProps {
   setShowNavigationMenu: (show: boolean) => void;
   showProfileMenu: boolean;
-  setShowProfileMenu: (show: boolean) => void;
+  setShowProfileMenu: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function Profile({

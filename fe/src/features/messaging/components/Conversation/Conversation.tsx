@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAuthentication } from "../../../authentication/context/AuthenticationContextProvider";
-import { useWebSocket } from "../../../websocket/websocket";
-import { IConversation } from "../Conversations/Conversations";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
+import { useWebSocket } from "@/features/websocket/websocket";
+import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
 import classes from "./Conversation.module.scss";
 
 interface ConversationItemProps {

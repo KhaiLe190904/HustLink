@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { usePageTitle } from "../../../../hooks/usePageTitle";
-import { RightSidebar } from "../../../feed/components/RightSidebar/RightSidebar";
-// import { Conversations } from "../../components/Conversations/Conversations";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
 import classes from "./Messaging.module.scss";
-import { Conversations } from "../../components/Conversations/Conversations";
+import { Conversations } from "@/features/messaging/components/Conversations/Conversations";
 
 export function Messaging() {
   usePageTitle("Messaging");

@@ -1,9 +1,9 @@
 import { Dispatch, SetStateAction, useEffect } from "react";
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 
 import classes from "./Connection.module.scss";
-import { Button } from "../../../authentication/components/Button/Button";
+import { Button } from "@/features/authentication/components/Button/Button";
 import { useNavigate } from "react-router-dom";
 
 export enum Status {

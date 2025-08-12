@@ -1,6 +1,6 @@
 import { HTMLAttributes, useEffect, useState } from "react";
 import classes from "./TimeAgo.module.scss";
-import { timeAgo } from "../../utils/date";
+import { timeAgo } from "@/features/feed/utils/date";
 
 interface TimeAgoProps extends HTMLAttributes<HTMLDivElement> {
     date: string;

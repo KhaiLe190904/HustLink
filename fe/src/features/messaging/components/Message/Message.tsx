@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
-import { IMessage } from "../Messages/Messages";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { IMessage } from "@/features/messaging/components/Messages/Messages";
 import classes from "./Message.module.scss";
-import { TimeAgo } from "../../../feed/components/TimeAgo/TimeAgo";
+import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 
 interface IMessageProps {
   message: IMessage;

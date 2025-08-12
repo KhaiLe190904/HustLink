@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
-import { IConnection } from "../../../networking/components/Connection/Connection";
-import { useWebSocket } from "../../../websocket/websocket";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { IConnection } from "@/features/networking/components/Connection/Connection";
+import { useWebSocket } from "@/features/websocket/websocket";
 import classes from "./LeftSidebar.module.scss";
 import { useNavigate } from "react-router-dom";
 interface ILeftSidebarProps {

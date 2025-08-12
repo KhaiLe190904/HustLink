@@ -1,23 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input } from "../../../../components/Input/Input";
+import { Input } from "@/components/Input/Input";
 import {
   useAuthentication,
-  User,
-} from "../../../authentication/context/AuthenticationContextProvider";
-import { TimeAgo } from "../TimeAgo/TimeAgo";
+  IUser,
+} from "@/features/authentication/context/AuthenticationContextProvider";
+import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import classes from "./Comment.module.scss";
 
-export interface Comment {
+export interface IComment {
   id: number;
   content: string;
-  author: User;
+  author: IUser;
   creationDate: string;
   updatedDate?: string;
 }
 
 interface CommentProps {
-  comment: Comment;
+  comment: IComment;
   deleteComment: (commentId: number) => Promise<void>;
   editComment: (commentId: number, content: string) => Promise<void>;
 }

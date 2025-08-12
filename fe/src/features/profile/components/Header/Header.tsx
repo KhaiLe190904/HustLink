@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Input } from "../../../../components/Input/Input";
-import { request } from "../../../../utils/api";
-import { IUser } from "../../../authentication/context/AuthenticationContextProvider";
-import { IConnection } from "../../../networking/components/Connection/Connection";
+import { Input } from "@/components/Input/Input";
+import { request } from "@/utils/api";
+import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { IConnection } from "@/features/networking/components/Connection/Connection";
 import classes from "./Header.module.scss";
-import { Button } from "../../../authentication/components/Button/Button";
+import { Button } from "@/features/authentication/components/Button/Button";
 interface ITopProps {
   user: IUser | null;
   authUser: IUser | null;
