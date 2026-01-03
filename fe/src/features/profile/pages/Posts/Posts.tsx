@@ -10,7 +10,7 @@ import {
 import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar";
 import { IPost, Post } from "@/features/feed/components/Post/Post";
 import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
-import classes from "./Posts.module.scss";
+
 export function Posts() {
   const { id } = useParams();
   const [posts, setPosts] = useState<IPost[]>([]);
@@ -42,26 +42,39 @@ export function Posts() {
     });
   }, [id]);
 
+  // Cập nhật thông tin author trong posts khi user thay đổi
+  useEffect(() => {
+    if (user) {
+      setPosts((currentPosts) =>
+        currentPosts.map((post) =>
+          post.author.id === user.id ? { ...post, author: user } : post
+        )
+      );
+    }
+  }, [user]);
+
   if (loading) {
     return <Loader />;
   }
   return (
-    <div className={classes.posts}>
-      <div className={classes.left}>
+    <div className="grid gap-8 xl:grid-cols-[14rem_1fr_20rem] xl:items-start">
+      <div className="hidden xl:block">
         <LeftSidebar user={user} />
       </div>
-      <div className={classes.main}>
-        <h1>{user?.firstName + " " + user?.lastName + "'s posts"}</h1>
+      <div className="grid gap-4">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {user?.firstName + " " + user?.lastName + "'s posts"}
+        </h1>
         {posts.map((post) => (
           <Post key={post.id} post={post} setPosts={setPosts} />
         ))}
         {posts.length === 0 && (
-          <div className={classes.empty}>
-            <p>No post to display.</p>
+          <div className="bg-white border border-gray-300 rounded-lg p-8 text-center">
+            <p className="text-gray-500">No post to display.</p>
           </div>
         )}
       </div>
-      <div className={classes.right}>
+      <div className="hidden xl:block">
         <RightSidebar />
       </div>
     </div>

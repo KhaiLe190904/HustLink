@@ -11,11 +11,11 @@ import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSideb
 import { About } from "@/features/profile/components/About/About";
 import { Activity } from "@/features/profile/components/Activity/Activity";
 import { Header } from "@/features/profile/components/Header/Header";
-import classes from "./Profile.module.scss";
+
 export function Profile() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
-  const { user: authUser } = useAuthentication();
+  const { user: authUser, setUser: setAuthUser } = useAuthentication();
   const [user, setUser] = useState<IUser | null>(null);
 
   usePageTitle(user?.firstName + " " + user?.lastName);
@@ -37,27 +37,35 @@ export function Profile() {
     }
   }, [authUser, id]);
 
+  const handleUpdate = (updatedUser: IUser) => {
+    setUser(updatedUser);
+    // Nếu đang xem profile của chính mình, cập nhật cả authUser trong context
+    if (id == authUser?.id) {
+      setAuthUser(updatedUser);
+    }
+  };
+
   if (loading) {
     return <Loader />;
   }
 
   return (
-    <div className={classes.profile}>
-      <section className={classes.main}>
-        <Header user={user} authUser={authUser} onUpdate={(user) => setUser(user)} />
-        <About user={user} authUser={authUser} onUpdate={(user) => setUser(user)} />
+    <div className="grid gap-8 xl:grid-cols-[1fr_20rem] xl:items-start">
+      <section className="grid gap-6">
+        <Header user={user} authUser={authUser} onUpdate={handleUpdate} />
+        <About user={user} authUser={authUser} onUpdate={handleUpdate} />
         <Activity authUser={authUser} user={user} id={id} />
 
-        <div className={classes.experience}>
-          <h2>Experience</h2>
-          <p>TODO()</p>
+        <div className="bg-white border border-gray-300 rounded-lg p-4">
+          <h2 className="font-bold mb-4">Experience</h2>
+          <p className="text-gray-600">TODO()</p>
         </div>
-        <div className={classes.education}>
-          <h2>Education</h2>
-          <p>TODO()</p>
+        <div className="bg-white border border-gray-300 rounded-lg p-4">
+          <h2 className="font-bold mb-4">Education</h2>
+          <p className="text-gray-600">TODO()</p>
         </div>
       </section>
-      <div className={classes.sidebar}>
+      <div className="hidden xl:block">
         <RightSidebar />
       </div>
     </div>

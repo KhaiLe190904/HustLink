@@ -33,7 +33,9 @@ public class Message {
     @ManyToOne(optional = false)
     private Conversation conversation;
 
+    @Column(columnDefinition = "NVARCHAR(MAX)")
     private String content;
+
     @JsonProperty("isRead")
     private boolean isRead;
 

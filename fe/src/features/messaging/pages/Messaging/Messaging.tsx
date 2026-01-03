@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
-import classes from "./Messaging.module.scss";
+
 import { Conversations } from "@/features/messaging/components/Conversations/Conversations";
 
 export function Messaging() {
@@ -20,10 +20,10 @@ export function Messaging() {
   }, []);
 
   return (
-    <div className={classes.root}>
-      <div className={classes.messaging}>
+    <div className="grid gap-8 h-full xl:grid-cols-[1fr_20rem] xl:items-start">
+      <div className="h-full bg-white rounded-lg border border-gray-300 lg:grid lg:grid-cols-[16rem_1fr]">
         <div
-          className={classes.sidebar}
+          className="border-r border-gray-300"
           style={{
             display:
               windowWidth >= 1024 || !creatingNewConversation
@@ -31,13 +31,13 @@ export function Messaging() {
                 : "none",
           }}
         >
-          <div className={classes.header}>
-            <h1>Messaging</h1>
+          <div className="flex justify-between items-center gap-4 p-4 border-b border-gray-300">
+            <h1 className="font-bold text-lg">Messaging</h1>
             <button
               onClick={() => {
                 navigate("conversations/new");
               }}
-              className={classes.new}
+              className="bg-gray-100 w-8 h-8 p-1 rounded-full transition-colors flex items-center justify-center hover:bg-gray-200"
             >
               +
             </button>
@@ -51,7 +51,7 @@ export function Messaging() {
 
         <Outlet />
       </div>
-      <div className={classes.adds}>
+      <div className="hidden xl:block">
         <RightSidebar />
       </div>
     </div>

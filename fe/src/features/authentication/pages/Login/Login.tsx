@@ -7,7 +7,6 @@ import { toast } from "react-toastify";
 import { FormEvent, useState } from "react";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import "react-toastify/dist/ReactToastify.css";
-import classes from "./Login.module.css";
 export function Login() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +37,9 @@ export function Login() {
     }
   };
   return (
-    <div className={classes.root}>
+    <div className="[&_main]:px-16 [&_form]:mt-4">
+      {" "}
+      {/* .root styles */}
       <Box>
         <h1>Đăng nhập</h1>
         <p>Chào mừng bạn đến với HustLink</p>
@@ -46,25 +47,36 @@ export function Login() {
           <Input
             type="email"
             id="email"
+            name="email"
             label="Email"
             onFocus={() => setErrorMessage("")}
+            helperText="Nhập địa chỉ email của bạn"
           />
           <Input
             type="password"
             id="password"
+            name="password"
             label="Password"
+            loading={isLoading}
             onFocus={() => setErrorMessage("")}
+            helperText="Nhập mật khẩu của bạn"
           />
-          {errorMessage && <p className={classes.error}>{errorMessage}</p>}
+          {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}{" "}
+          <div className="text-right mb-4">
+            <Link
+              to="/authentication/request-password-reset"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
-          <Link to="/authentication/request-password-reset">
-            Quên mật khẩu?
-          </Link>
         </form>
         <Seperator>Hoặc</Seperator>
-        <div className={classes.register}>
+        <div className="text-center">
+          {" "}
+          {/* .register styles */}
           Chưa có tài khoản trên HustLink?{" "}
           <Link to="/authentication/signup">Tham gia ngay</Link>
         </div>

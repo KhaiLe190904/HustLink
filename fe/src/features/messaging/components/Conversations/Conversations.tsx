@@ -5,7 +5,7 @@ import {
   useAuthentication,
 } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IMessage } from "@/features/messaging/components/Messages/Messages";
-import classes from "./Conversations.module.scss";
+
 import { Conversation } from "@/features/messaging/components/Conversation/Conversation";
 import { useWebSocket } from "@/features/websocket/websocket";
 
@@ -39,11 +39,15 @@ export function Conversations(props: IConversationsProps) {
       (message) => {
         const conversation = JSON.parse(message.body);
         setConversations((prevConversations) => {
-          const index = prevConversations.findIndex((c) => c.id === conversation.id);
+          const index = prevConversations.findIndex(
+            (c) => c.id === conversation.id
+          );
           if (index === -1) {
             return [conversation, ...prevConversations];
           }
-          return prevConversations.map((c) => (c.id === conversation.id ? conversation : c));
+          return prevConversations.map((c) =>
+            c.id === conversation.id ? conversation : c
+          );
         });
       }
     );
@@ -51,17 +55,14 @@ export function Conversations(props: IConversationsProps) {
   }, [user?.id, websocketClient]);
 
   return (
-    <div className={classes.root} {...props}>
+    <div {...props}>
       {conversations.map((conversation) => {
-        return <Conversation key={conversation.id} conversation={conversation} />;
+        return (
+          <Conversation key={conversation.id} conversation={conversation} />
+        );
       })}
       {conversations.length === 0 && (
-        <div
-          className={classes.welcome}
-          style={{
-            padding: "1rem",
-          }}
-        >
+        <div className="p-4 text-center text-gray-500">
           No conversation to display.
         </div>
       )}

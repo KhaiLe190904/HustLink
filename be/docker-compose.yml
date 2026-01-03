@@ -2,13 +2,13 @@
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2019-latest
-    container_name: gr1_job_search
-    hostname: gr1_job_search
+    container_name: hust_link
+    hostname: hust_link
     ports:
       - '1444:1433'
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=Gr1JobSearch@
+      - MSSQL_SA_PASSWORD=HustLink@
     restart: unless-stopped
 
   mailhog:
