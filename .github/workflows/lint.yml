@@ -1,9 +1,9 @@
 name: Lint and Format Check
 
 on:
-  push:
-    branches: [main, develop, feat/*]
   pull_request:
+    branches: [main, develop, feat/*, fix/*, feature/*]
+  push:
     branches: [main, develop]
 
 jobs:
