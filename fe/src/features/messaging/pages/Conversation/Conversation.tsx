@@ -10,13 +10,14 @@ import { useWebSocket } from "@/features/websocket/websocket";
 import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
 import { Messages } from "@/features/messaging/components/Messages/Messages";
-import classes from "./Conversation.module.scss";
+import { IoSend } from "react-icons/io5";
 export function Conversation() {
   const [postingMessage, setPostingMessage] = useState<boolean>(false);
   const [content, setContent] = useState<string>("");
   const [suggestingUsers, setSuggestingUsers] = useState<IUser[]>([]);
   const [search, setSearch] = useState<string>("");
-  const [slectedUser, setSelectedUser] = useState<IUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const websocketClient = useWebSocket();
@@ -104,8 +105,9 @@ export function Conversation() {
     return () => subscription?.unsubscribe();
   }, [conversation?.id, websocketClient]);
 
-  async function addMessageToConversation(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function addMessageToConversation(e?: FormEvent<HTMLFormElement>) {
+    e?.preventDefault();
+    if (!content.trim()) return;
     setPostingMessage(true);
     await request<void>({
       endpoint: `/api/v1/messaging/conversations/${conversation?.id}/messages`,
@@ -123,11 +125,12 @@ export function Conversation() {
     setPostingMessage(false);
   }
 
-  async function createConversationWithMessage(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function createConversationWithMessage(e?: FormEvent<HTMLFormElement>) {
+    e?.preventDefault();
+    if (!content.trim()) return;
 
     const message = {
-      receiverId: slectedUser?.id,
+      receiverId: selectedUser?.id,
       content,
     };
     await request<IConversation>({
@@ -146,35 +149,41 @@ export function Conversation() {
       : conversation?.recipient;
   return (
     <div
-      className={`${classes.root} ${
-        creatingNewConversation ? classes.new : ""
+      className={`grid h-[calc(100vh-12rem)] lg:h-[calc(100vh-8rem)] ${
+        creatingNewConversation
+          ? "grid-rows-[1fr_auto] lg:grid-rows-[1fr_auto]"
+          : "grid-rows-[auto_auto_1fr_auto] lg:grid-rows-[auto_1fr_auto]"
       }`}
     >
       {(conversation || creatingNewConversation) && (
         <>
-          <div className={classes.header}>
+          <div className="p-4 border-b border-gray-300 lg:hidden">
             <button
-              className={classes.back}
+              className="bg-gray-100 w-8 h-8 p-2 rounded-full transition-colors grid items-center justify-center place-items-center hover:bg-gray-200"
               onClick={() => navigate("/messaging")}
             >
               {"<"}
             </button>
           </div>
           {conversation && (
-            <div className={classes.top}>
-              <button onClick={() => navigate(`/profile/${conversationUserToDisplay?.id}`)}>
-              <img
-                className={classes.avatar}
-                src={conversationUserToDisplay?.profilePicture || "/doc1.png"}
-                alt=""
-              />
+            <div className="p-4 grid items-center grid-cols-[3rem_1fr] gap-2 border-b border-gray-300 rounded-b-lg">
+              <button
+                onClick={() =>
+                  navigate(`/profile/${conversationUserToDisplay?.id}`)
+                }
+              >
+                <img
+                  className="w-12 h-12 rounded-full object-cover"
+                  src={conversationUserToDisplay?.profilePicture || "/doc1.png"}
+                  alt="Profile"
+                />
               </button>
               <div>
-                <div className={classes.name}>
+                <div className="font-bold text-gray-900">
                   {conversationUserToDisplay?.firstName}{" "}
                   {conversationUserToDisplay?.lastName}
                 </div>
-                <div className={classes.title}>
+                <div className="text-gray-600 text-sm">
                   {conversationUserToDisplay?.position} at{" "}
                   {conversationUserToDisplay?.company}
                 </div>
@@ -183,94 +192,118 @@ export function Conversation() {
           )}
           {creatingNewConversation && (
             <form
-              className={`${classes.form} ${classes.new}`}
+              className="px-4 relative"
               onSubmit={(e) => e.preventDefault()}
             >
               <p style={{ marginTop: "1rem" }}>
-                Starting a new conversation {slectedUser && "with:"}
+                Starting a new conversation {selectedUser && "with:"}
               </p>
-              {!slectedUser && (
-                <Input
-                  label=""
-                  type="text"
-                  name="recipient"
-                  placeholder="Type a name"
-                  onChange={(e) => setSearch(e.target.value)}
-                  value={search}
-                />
+              {!selectedUser && (
+                <div className="relative">
+                  <Input
+                    label=""
+                    type="text"
+                    name="recipient"
+                    placeholder="Type a name"
+                    onChange={(e) => setSearch(e.target.value)}
+                    onFocus={() => setShowDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                    value={search}
+                  />
+                  {showDropdown && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-2 max-h-[300px] overflow-y-auto z-50">
+                      {suggestingUsers
+                        .filter(
+                          (user) =>
+                            !search ||
+                            user.firstName
+                              ?.toLowerCase()
+                              .includes(search.toLowerCase()) ||
+                            user.lastName
+                              ?.toLowerCase()
+                              .includes(search.toLowerCase())
+                        )
+                        .map((user) => (
+                          <button
+                            key={user.id}
+                            className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                            onClick={() => {
+                              const conversation = conversations.find(
+                                (c) =>
+                                  c.recipient.id === user.id ||
+                                  c.author.id === user.id
+                              );
+                              if (conversation) {
+                                navigate(
+                                  `/messaging/conversations/${conversation.id}`
+                                );
+                              } else {
+                                setSelectedUser(user);
+                                setSearch("");
+                                setShowDropdown(false);
+                              }
+                            }}
+                          >
+                            <img
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                              src={user.profilePicture || "/doc1.png"}
+                              alt=""
+                            />
+                            <div className="text-left flex-1">
+                              <div className="font-medium text-gray-900">
+                                {user.firstName} {user.lastName}
+                              </div>
+                              <div className="text-gray-600 text-sm">
+                                {user.position} at {user.company}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      {suggestingUsers.filter(
+                        (user) =>
+                          !search ||
+                          user.firstName
+                            ?.toLowerCase()
+                            .includes(search.toLowerCase()) ||
+                          user.lastName
+                            ?.toLowerCase()
+                            .includes(search.toLowerCase())
+                      ).length === 0 && (
+                        <div className="p-4 text-gray-500 text-center">
+                          {search
+                            ? `No users found matching "${search}"`
+                            : "No connections available"}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
-              {slectedUser && (
-                <div className={classes.top}>
+              {selectedUser && (
+                <div className="flex items-center gap-3 mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <img
-                    className={classes.avatar}
-                    src={slectedUser.profilePicture || "/doc1.png"}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                    src={selectedUser.profilePicture || "/doc1.png"}
                     alt=""
                   />
-                  <div>
-                    <div className={classes.name}>
-                      {slectedUser.firstName} {slectedUser.lastName}
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-gray-900">
+                      {selectedUser.firstName} {selectedUser.lastName}
                     </div>
-                    <div className={classes.title}>
-                      {slectedUser.position} at {slectedUser.company}
+                    <div className="text-gray-600 text-sm">
+                      {selectedUser.position} at {selectedUser.company}
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedUser(null)}
-                    className={classes.close}
+                    className="bg-gray-200 w-8 h-8 rounded-full transition-colors flex items-center justify-center hover:bg-red-500 hover:text-white flex-shrink-0"
                   >
                     X
                   </button>
                 </div>
               )}
 
-              {!slectedUser && !conversation && (
-                <div className={classes.suggestions}>
-                  {suggestingUsers
-                    .filter(
-                      (user) =>
-                        user.firstName
-                          ?.toLowerCase()
-                          .includes(search.toLowerCase()) ||
-                        user.lastName
-                          ?.toLowerCase()
-                          .includes(search.toLowerCase())
-                    )
-                    .map((user) => (
-                      <button
-                        key={user.id}
-                        onClick={() => {
-                          const conversation = conversations.find(
-                            (c) =>
-                              c.recipient.id === user.id ||
-                              c.author.id === user.id
-                          );
-                          if (conversation) {
-                            navigate(
-                              `/messaging/conversations/${conversation.id}`
-                            );
-                          } else {
-                            setSelectedUser(user);
-                          }
-                        }}
-                      >
-                        <img
-                          className={classes.avatar}
-                          src={user.profilePicture || "/doc1.png"}
-                          alt=""
-                        />
-                        <div>
-                          <div className={classes.name}>
-                            {user.firstName} {user.lastName}
-                          </div>
-                          <div className={classes.title}>
-                            {user.position} at {user.company}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                </div>
-              )}
               {suggestingUsers.length === 0 && (
                 <div>You need to have connections to start a conversation.</div>
               )}
@@ -280,9 +313,10 @@ export function Conversation() {
             <Messages messages={conversation.messages} user={user} />
           )}
           <form
-            className={classes.form}
+            className="px-4 py-3 bg-white border-t border-gray-200"
             onSubmit={async (e) => {
-              if (!content) return;
+              e.preventDefault();
+              if (!content.trim()) return;
               if (conversation) {
                 await addMessageToConversation(e);
               } else {
@@ -292,28 +326,67 @@ export function Conversation() {
               setSelectedUser(null);
             }}
           >
-            <input
-              onChange={(e) => setContent(e.target.value)}
-              value={content}
-              name="content"
-              className={classes.textarea}
-              placeholder="Write a message..."
-            />
-            <button
-              type="submit"
-              className={classes.send}
-              disabled={
-                postingMessage || !content.trim() || (creatingNewConversation && !slectedUser)
-              }
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 512 512"
-                fill="currentColor"
+            <div className="flex items-end gap-2">
+              <textarea
+                onChange={(e) => setContent(e.target.value)}
+                value={content}
+                name="content"
+                rows={1}
+                className="flex-1 pl-4 pr-4 py-3 border border-gray-300 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-transparent bg-gray-50 hover:bg-white transition-colors resize-none overflow-y-auto min-h-[48px] max-h-32 hide-scrollbar"
+                placeholder="Write a message..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    const form = e.currentTarget.form;
+                    if (form && content.trim()) {
+                      form.requestSubmit();
+                    }
+                  }
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  const scrollHeight = target.scrollHeight;
+                  const maxHeight = 128; // max-h-32 = 8rem = 128px
+
+                  const computedStyle = window.getComputedStyle(target);
+                  const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
+                  const paddingTop = parseFloat(computedStyle.paddingTop) || 12;
+                  const paddingBottom =
+                    parseFloat(computedStyle.paddingBottom) || 12;
+                  const totalPadding = paddingTop + paddingBottom;
+
+                  const contentHeight = scrollHeight - totalPadding;
+                  const sixLinesHeight = 6 * lineHeight;
+
+                  if (scrollHeight <= maxHeight) {
+                    target.style.height = `${scrollHeight}px`;
+                  } else {
+                    target.style.height = `${maxHeight}px`;
+                  }
+
+                  // Show scrollbar only when content exceeds 6 lines
+                  if (contentHeight > sixLinesHeight) {
+                    target.classList.remove("hide-scrollbar");
+                    target.classList.add("styled-scrollbar");
+                  } else {
+                    target.classList.add("hide-scrollbar");
+                    target.classList.remove("styled-scrollbar");
+                  }
+                }}
+              />
+              <button
+                type="submit"
+                className="w-10 h-10 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white hover:bg-[var(--primary-color)]/90 active:scale-95 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:active:scale-100 flex-shrink-0 mb-0.5"
+                disabled={
+                  postingMessage ||
+                  !content.trim() ||
+                  (creatingNewConversation && !selectedUser)
+                }
               >
-                <path d="M16.1 260.2c-22.6 12.9-20.5 47.3 3.6 57.3L160 376l0 103.3c0 18.1 14.6 32.7 32.7 32.7c9.7 0 18.9-4.3 25.1-11.8l62-74.3 123.9 51.6c18.9 7.9 40.8-4.5 43.9-24.7l64-416c1.9-12.1-3.4-24.3-13.5-31.2s-23.3-7.5-34-1.4l-448 256zm52.1 25.5L409.7 90.6 190.1 336l1.2 1L68.2 285.7zM403.3 425.4L236.7 355.9 450.8 116.6 403.3 425.4z" />
-              </svg>
-            </button>
+                <IoSend className="w-5 h-5" />
+              </button>
+            </div>
           </form>
         </>
       )}

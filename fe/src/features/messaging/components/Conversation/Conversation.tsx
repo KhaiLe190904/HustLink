@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useWebSocket } from "@/features/websocket/websocket";
 import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
-import classes from "./Conversation.module.scss";
 
 interface ConversationItemProps {
   conversation: IConversation;
@@ -57,27 +56,29 @@ export function Conversation(props: ConversationItemProps) {
   return (
     <button
       key={conversation.id}
-      className={`${classes.root} ${
-        id && Number(id) === conversation.id ? classes.selected : ""
+      className={`flex gap-4 items-center text-left p-3 w-full text-sm border-b border-gray-300 pb-4 relative hover:bg-gray-50 transition-colors ${
+        id && Number(id) === conversation.id ? "bg-gray-100" : ""
       }`}
       onClick={() => navigate(`/messaging/conversations/${conversation.id}`)}
     >
       <img
-        className={classes.avatar}
+        className="w-12 h-12 flex-shrink-0 rounded-full object-cover"
         src={conversationUserToDisplay.profilePicture || "/doc1.png"}
-        alt=""
+        alt="Profile"
       />
 
       {unreadMessagesCount > 0 && (
-        <div className={classes.unread}>{unreadMessagesCount}</div>
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-red-500 text-white grid place-items-center w-6 h-6 rounded-full text-xs">
+          {unreadMessagesCount}
+        </div>
       )}
 
-      <div>
-        <div className={classes.name}>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-gray-900 truncate">
           {conversationUserToDisplay.firstName}{" "}
           {conversationUserToDisplay.lastName}
         </div>
-        <div className={classes.content}>
+        <div className="line-clamp-1 text-gray-600 overflow-hidden text-ellipsis">
           {conversation.messages[conversation.messages.length - 1]?.content}
         </div>
       </div>

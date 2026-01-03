@@ -1,11 +1,13 @@
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { request } from "@/utils/api";
-import { IUser, useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
+import {
+  IUser,
+  useAuthentication,
+} from "@/features/authentication/context/AuthenticationContextProvider";
 import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar";
 import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
 import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
-import classes from "./Notifications.module.scss";
 import { usePageTitle } from "@/hooks/usePageTitle";
 
 enum NotificationType {
@@ -40,11 +42,11 @@ export function Notifications() {
   }, []);
 
   return (
-    <div className={classes.root}>
-      <div className={classes.left}>
+    <div className="grid gap-8 grid-cols-1 xl:grid-cols-[14rem_1fr_20rem] xl:items-start [&_.left]:hidden [&_.right]:hidden xl:[&_.left]:block xl:[&_.right]:block">
+      <div className="hidden xl:block">
         <LeftSidebar user={user} />
       </div>
-      <div className={classes.center}>
+      <div className="bg-white rounded-lg border border-gray-300">
         {notifications.map((notification) => (
           <INotification
             key={notification.id}
@@ -53,16 +55,10 @@ export function Notifications() {
           />
         ))}
         {notifications.length === 0 && (
-          <p
-            style={{
-              padding: "1rem",
-            }}
-          >
-            No notifications
-          </p>
+          <p className="p-4 text-gray-500 text-center">No notifications</p>
         )}
       </div>
-      <div className={classes.right}>
+      <div className="hidden xl:block">
         <RightSidebar />
       </div>
     </div>
@@ -101,28 +97,26 @@ function INotification({
         markNotificationAsRead(notification.id);
         navigate(`/posts/${notification.resourceId}`);
       }}
-      className={
-        notification.read
-          ? classes.notification
-          : `${classes.notification} ${classes.unread}`
-      }
+      className={`flex items-center gap-2 p-4 w-full text-left last:border-b-0 border-b border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer ${
+        !notification.read ? "bg-gray-100" : ""
+      }`}
     >
       <img
         src={notification.actor.profilePicture || "/doc1.png"}
-        alt=""
-        className={classes.avatar}
+        alt="Profile"
+        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
       />
 
-      <p
-        style={{
-          marginRight: "auto",
-        }}
-      >
-        <strong>
+      <p className="mr-auto text-sm">
+        <strong className="text-gray-900">
           {notification.actor.firstName + " " + notification.actor.lastName}
         </strong>{" "}
-        {notification.type === NotificationType.LIKE ? "liked" : "commented on"}{" "}
-        your post.
+        <span className="text-gray-600">
+          {notification.type === NotificationType.LIKE
+            ? "liked"
+            : "commented on"}{" "}
+          your post.
+        </span>
       </p>
       <TimeAgo date={notification.creationDate} />
     </button>

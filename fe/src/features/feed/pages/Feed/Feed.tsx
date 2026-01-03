@@ -8,7 +8,6 @@ import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar.
 import { Madal } from "@/features/feed/components/Modal/Modal.tsx";
 import { IPost, Post } from "@/features/feed/components/Post/Post.tsx";
 import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar.tsx";
-import classes from "./Feed.module.scss";
 import { Button } from "@/features/authentication/components/Button/Button.tsx";
 
 export function Feed() {
@@ -32,12 +31,26 @@ export function Feed() {
   }, []);
 
   useEffect(() => {
-    const subscription = ws?.subscribe(`/topic/feed/${user?.id}/post`, (data) => {
-      const post = JSON.parse(data.body);
-      setPosts((posts) => [post, ...posts]);
-    });
+    const subscription = ws?.subscribe(
+      `/topic/feed/${user?.id}/post`,
+      (data) => {
+        const post = JSON.parse(data.body);
+        setPosts((posts) => [post, ...posts]);
+      }
+    );
     return () => subscription?.unsubscribe();
   }, [user?.id, ws]);
+
+  // Cập nhật thông tin author trong posts khi user thay đổi
+  useEffect(() => {
+    if (user) {
+      setPosts((currentPosts) =>
+        currentPosts.map((post) =>
+          post.author.id === user.id ? { ...post, author: user } : post
+        )
+      );
+    }
+  }, [user]);
 
   const handlePost = async (content: string, picture: string) => {
     await request<IPost>({
@@ -50,19 +63,28 @@ export function Feed() {
   };
 
   return (
-    <div className={classes.root}>
-      <div className={classes.left}>
+    <div className="h-full grid gap-8 grid-cols-1 xl:grid-cols-[14rem_1fr_20rem] xl:items-start [&_.left]:hidden [&_.right]:hidden xl:[&_.left]:block xl:[&_.right]:block">
+      {" "}
+      {/* .root styles with responsive */}
+      <div className="hidden xl:block">
+        {" "}
+        {/* .left responsive */}
         <LeftSidebar user={user} />
       </div>
-      <div className={classes.center}>
-        <div className={classes.posting}>
+      <div className="grid gap-4 h-full grid-rows-[auto_1fr]">
+        {" "}
+        {/* .center styles */}
+        <div className="bg-white rounded-lg border border-gray-300 p-4 grid grid-cols-[5rem_1fr] gap-4">
+          {" "}
+          {/* .posting styles */}
           <button
+            className="cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all rounded-full"
             onClick={() => {
               navigate(`/profile/${user?.id}`);
             }}
           >
             <img
-              className={`${classes.top} ${classes.avatar}`}
+              className="w-20 h-20 rounded-full" /* .avatar styles */
               src={user?.profilePicture || "/doc1.png"}
               alt=""
             />
@@ -77,18 +99,24 @@ export function Feed() {
             setShowModal={setShowPostingModal}
           />
         </div>
-        {error && <div className={classes.error}>{error}</div>}
-
-        <div className={classes.feed}>
+        {error && <div className="text-red-500">{error}</div>}{" "}
+        {/* .error styles */}
+        <div>
+          {" "}
+          {/* .feed minimal wrapper */}
           {posts.map((post) => (
             <Post key={post.id} post={post} setPosts={setPosts} />
           ))}
           {posts.length === 0 && (
-            <p>Start connecting with poople to build a feed that matters to you.</p>
+            <p>
+              Start connecting with poople to build a feed that matters to you.
+            </p>
           )}
         </div>
       </div>
-      <div className={classes.right}>
+      <div className="hidden xl:block">
+        {" "}
+        {/* .right responsive */}
         <RightSidebar />
       </div>
     </div>

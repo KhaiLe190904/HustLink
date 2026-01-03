@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/Input/Input";
 import { Box } from "@/features/authentication/components/Box/Box";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
-import classes from "./Profile.module.scss";
+
 import { Button } from "@/features/authentication/components/Button/Button";
 export function Profile() {
   const [step, setStep] = useState(0);
@@ -62,12 +62,12 @@ export function Profile() {
     }
   };
   return (
-    <div className={classes.root}>
+    <div className="">
       <Box>
         <h1>Only one last step</h1>
         <p>Tell us a bit about yourself so we can personalize your experience.</p>
         {step === 0 && (
-          <div className={classes.inputs}>
+          <div className="grid grid-cols-2 gap-4">
             <Input
               onFocus={() => setError("")}
               required
@@ -87,7 +87,7 @@ export function Profile() {
           </div>
         )}
         {step === 1 && (
-          <div className={classes.inputs}>
+          <div className="grid grid-cols-2 gap-4">
             <Input
               onFocus={() => setError("")}
               label="Latest company"
@@ -113,8 +113,8 @@ export function Profile() {
             onChange={(e) => setData((prev) => ({ ...prev, location: e.target.value }))}
           ></Input>
         )}
-        {error && <p className={classes.error}>{error}</p>}
-        <div className={classes.buttons}>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div className="flex gap-4 justify-end">
           {step > 0 && (
             <Button outline onClick={() => setStep((prev) => prev - 1)}>
               Back

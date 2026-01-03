@@ -1,9 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IMessage } from "@/features/messaging/components/Messages/Messages";
-import classes from "./Message.module.scss";
-import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
+import { formatTimestamp } from "@/features/feed/utils/date";
 
 interface IMessageProps {
   message: IMessage;
@@ -12,6 +11,8 @@ interface IMessageProps {
 
 export function Message({ message, user }: IMessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
+  const [showTimestamp, setShowTimestamp] = useState(false);
+
   useEffect(() => {
     if (!message.isRead && user?.id === message.receiver.id) {
       request<void>({
@@ -26,49 +27,84 @@ export function Message({ message, user }: IMessageProps) {
   useEffect(() => {
     messageRef.current?.scrollIntoView();
   }, []);
+
+  const isMyMessage = message.sender.id === user?.id;
+  const otherUser = isMyMessage ? message.receiver : message.sender;
+
   return (
     <div
       ref={messageRef}
-      className={`${classes.root} ${
-        message.sender.id === user?.id ? classes.sent : classes.received
+      className={`flex gap-2 items-start w-full relative group ${
+        isMyMessage ? "flex-row-reverse" : "flex-row"
       }`}
+      onMouseEnter={() => setShowTimestamp(true)}
+      onMouseLeave={() => setShowTimestamp(false)}
     >
-      <div className={`${classes.message} `}>
-        <div className={classes.top}>
-          <img
-            className={classes.avatar}
-            src={message.sender.profilePicture || "/doc1.png"}
-            alt={`${message.sender.firstName} ${message.sender.lastName}`}
-          />
-          <div>
-            <div className={classes.name}>
-              {message.sender.firstName} {message.sender.lastName}
-            </div>
+      {/* Avatar */}
+      <img
+        className="w-8 h-8 my-1 rounded-full object-cover flex-shrink-0"
+        src={otherUser.profilePicture || "/doc1.png"}
+        alt={`${otherUser.firstName} ${otherUser.lastName}`}
+      />
 
-            <TimeAgo date={message.creationAt} className={classes.time} />
+      {/* Message bubble and status */}
+      <div
+        className={`flex flex-col ${
+          isMyMessage ? "items-end" : "items-start"
+        } max-w-[70%] min-w-0 relative`}
+      >
+        {/* Timestamp on hover */}
+        {showTimestamp && (
+          <div
+            className={`absolute top-0 ${
+              isMyMessage ? "right-full mr-2" : "left-full ml-2"
+            } text-xs text-gray-700 bg-gray-200 px-2 py-1 rounded-lg whitespace-nowrap pointer-events-none z-10 shadow-sm`}
+          >
+            {formatTimestamp(new Date(message.creationAt))}
+          </div>
+        )}
+
+        <div
+          className={`px-4 py-2 ${
+            isMyMessage
+              ? "bg-[var(--primary-color)] text-white rounded-2xl rounded-br-sm"
+              : "bg-gray-100 text-gray-900 rounded-2xl rounded-bl-sm"
+          }`}
+          style={{
+            wordWrap: "break-word",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
+          }}
+        >
+          <div
+            style={{
+              wordWrap: "break-word",
+              overflowWrap: "break-word",
+              wordBreak: "break-word",
+            }}
+          >
+            {message.content}
           </div>
         </div>
-        <div className={classes.content}>{message.content}</div>
+
+        {/* Status for my messages */}
+        {isMyMessage && (
+          <div className="flex items-center gap-2 mt-1 justify-end w-full">
+            {message.isRead ? (
+              <div className="flex items-center gap-2">
+                <img
+                  className="w-4 h-4 rounded-full object-cover"
+                  src={message.receiver.profilePicture || "/doc1.png"}
+                  alt={`${message.receiver.firstName} ${message.receiver.lastName}`}
+                />
+                <span className="text-xs text-gray-400">Seen</span>
+              </div>
+            ) : (
+              <span className="text-xs text-gray-400">Sent</span>
+            )}
+          </div>
+        )}
       </div>
-      {message.sender.id == user?.id && (
-        <div className={classes.status}>
-          {!message.isRead ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                <path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z" />
-              </svg>
-              <span>Sent</span>
-            </>
-          ) : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
-                <path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z" />
-              </svg>
-              <span>Read</span>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

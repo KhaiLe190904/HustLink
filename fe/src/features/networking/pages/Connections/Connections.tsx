@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { request } from "@/utils/api";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useWebSocket } from "@/features/websocket/websocket";
-import { Connection, IConnection } from "@/features/networking/components/Connection/Connection";
+import {
+  Connection,
+  IConnection,
+} from "@/features/networking/components/Connection/Connection";
 import { Title } from "@/features/networking/components/Title/Title";
-import classes from "./Connections.module.scss";
+
 export function Connections() {
   const [connexions, setConnections] = useState<IConnection[]>([]);
   const { user } = useAuthentication();
@@ -23,7 +26,9 @@ export function Connections() {
       "/topic/users/" + user?.id + "/connections/accepted",
       (data) => {
         const connection = JSON.parse(data.body);
-        setConnections((connections) => connections.filter((c) => c.id !== connection.id));
+        setConnections((connections) =>
+          connections.filter((c) => c.id !== connection.id)
+        );
       }
     );
 
@@ -35,7 +40,9 @@ export function Connections() {
       "/topic/users/" + user?.id + "/connections/remove",
       (data) => {
         const connection = JSON.parse(data.body);
-        setConnections((connections) => connections.filter((c) => c.id !== connection.id));
+        setConnections((connections) =>
+          connections.filter((c) => c.id !== connection.id)
+        );
       }
     );
 
@@ -43,7 +50,7 @@ export function Connections() {
   }, [user?.id, ws]);
 
   return (
-    <div className={classes.connections}>
+    <div className="bg-white rounded-lg border border-gray-300 p-4">
       <Title>Connections ({connexions.length})</Title>
 
       <>
@@ -55,7 +62,11 @@ export function Connections() {
             setConnections={setConnections}
           />
         ))}
-        {connexions.length === 0 && <div className={classes.empty}>No connections yet.</div>}
+        {connexions.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No connections yet.
+          </div>
+        )}
       </>
     </div>
   );

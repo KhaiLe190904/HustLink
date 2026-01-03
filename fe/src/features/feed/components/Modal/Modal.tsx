@@ -1,6 +1,5 @@
 import { Dispatch, SetStateAction, useState } from "react";
 import { Input } from "@/components/Input/Input";
-import classes from "./Modal.module.scss";
 import { Button } from "@/features/authentication/components/Button/Button";
 interface PostingMadalProps {
   showModal: boolean;
@@ -24,11 +23,22 @@ export function Madal({
   if (!showModal) return null;
 
   return (
-    <div className={classes.root}>
-      <div className={classes.modal}>
-        <div className={classes.header}>
-          <h3 className={classes.title}>{title}</h3>
-          <button onClick={() => setShowModal(false)}>X</button>
+    <div className="fixed inset-0 bg-black/50 flex justify-center items-start z-[9999]">
+      {" "}
+      {/* .root styles */}
+      <div className="bg-white rounded-lg border border-gray-300 w-full max-w-3xl mx-4 mt-18 p-4">
+        {" "}
+        {/* .modal styles */}
+        <div className="flex justify-between items-center mb-4">
+          {" "}
+          {/* .header styles */}
+          <h3 className="font-bold">{title}</h3> {/* .title styles */}
+          <button
+            onClick={() => setShowModal(false)}
+            className="bg-gray-200 w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors cursor-pointer" /* header button styles */
+          >
+            X
+          </button>
         </div>
         <form
           onSubmit={async (e) => {
@@ -57,26 +67,31 @@ export function Madal({
             }
           }}
         >
-          <div className={classes.body}>
+          <div>
+            {" "}
+            {/* .body - minimal wrapper */}
             <textarea
               placeholder="What do you want to talk about?"
               onFocus={() => setError("")}
               onChange={() => setError("")}
               name="content"
               defaultValue={content}
+              className="w-full h-80 resize-none border border-gray-300 rounded-lg p-4" /* textarea styles */
             />
             <Input
               label="Image URL (optional)"
               defaultValue={picture}
-              placeholder="Image URL (optional)"
               name="picture"
               style={{
                 marginBlock: 0,
               }}
             />
           </div>
-          {error && <div className={classes.error}>{error}</div>}
-          <div className={classes.footer}>
+          {error && <div className="text-red-500">{error}</div>}{" "}
+          {/* .error styles */}
+          <div>
+            {" "}
+            {/* .footer - minimal wrapper */}
             <Button size="medium" type="submit" disabled={isLoading}>
               Post
             </Button>

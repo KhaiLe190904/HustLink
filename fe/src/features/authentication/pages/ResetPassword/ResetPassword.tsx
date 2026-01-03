@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { Box } from "@/features/authentication/components/Box/Box";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { Input } from "@/components/Input/Input";
-import classes from "./ResetPassword.module.css";
 import { useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -68,7 +67,9 @@ export function ResetPassword() {
   };
 
   return (
-    <div className={classes.root}>
+    <div className="px-16">
+      {" "}
+      {/* .root minimal styles */}
       <Box>
         <h1>Quên mật khẩu</h1>
         {!emailSent ? (
@@ -82,8 +83,8 @@ export function ResetPassword() {
               setIsLoading(false);
             }}
           >
-            <Input type="email" id="email" label="Email" />
-            <p style={{ color: "red" }}>{errorMessage}</p>
+            <Input type="email" id="email" name="email" label="Email" />
+            <p className="text-red-500 mb-4">{errorMessage}</p>
             <p>
               Chúng tôi sẽ gửi mã xác minh tới email hoặc số điện thoại này nếu
               nó khớp với tài khoản HustLink hiện có.
@@ -120,7 +121,7 @@ export function ResetPassword() {
               name="password"
               id="password"
             />
-            <p style={{ color: "red" }}>{errorMessage}</p>
+            <p className="text-red-500 mb-4">{errorMessage}</p>
             <Button type="submit">Xác nhận đổi mật khẩu</Button>
             <Button
               type="button"

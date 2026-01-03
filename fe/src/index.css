@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-    --primary-color: #c50000;         /* Màu đỏ đặc trưng của HUST */
-    --primary-color-dark: #8e0000;    /* Đậm hơn cho hover và header */
-    --container-padding: 1rem;        /* Padding mặc định cho container */
+  --primary-color: #c50000; /* Màu đỏ đặc trưng của HUST */
+  --primary-color-dark: #8e0000; /* Đậm hơn cho hover và header */
+  --container-padding: 1rem; /* Padding mặc định cho container */
 }
 
 /* Base styles for common elements */
@@ -18,51 +18,88 @@ table, caption, tbody, tfoot, thead, tr, th, td {
     color: inherit;
 } */
 
-html, body {
-    height: 100%;
+html,
+body {
+  height: 100%;
 }
 
 html {
-    font-family: Poppins, sans-serif;
-    background-color: #f4f2ee;
-    overflow-x: hidden;
+  font-family: Roboto, sans-serif;
+  background-color: #f4f2ee;
 }
 
 body {
-    min-height: 100vh;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
-    height: 100%;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
-
-img {
-    max-width: 100%;
-    display: block;
-    object-fit: cover;
-}
-
-button {
-    outline: none;
-    border: none;
-    background-color: transparent;
-    cursor: pointer;
-    text-align: left;
+  height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
-    text-decoration: none;
+  text-decoration: none;
 }
 
 ul {
-    list-style: none;
+  list-style: none;
 }
 
 strong {
-    font-weight: 600;
+  font-weight: 600;
+}
+
+/* Animation for modal */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Styled scrollbar for textarea with rounded corners */
+.styled-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.styled-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 12px 4px;
+  border-radius: 3px;
+}
+
+.styled-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.styled-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+  background-clip: padding-box;
+}
+
+.styled-scrollbar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
+  padding-right: 2px; /* Add padding to prevent scrollbar from touching edge */
 }

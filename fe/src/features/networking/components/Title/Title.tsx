@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
-import classes from "./Title.module.scss";
+
 export function Title({ children }: { children: ReactNode }) {
-  return <h2 className={classes.title}>{children}</h2>;
+  return (
+    <h2 className="font-bold mb-2 border-b border-gray-300 pb-2">{children}</h2>
+  );
 }

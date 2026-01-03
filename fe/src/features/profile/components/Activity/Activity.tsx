@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IPost, Post } from "@/features/feed/components/Post/Post";
-import classes from "./Activity.module.scss";
+
 interface IActivityProps {
   user: IUser | null;
   authUser: IUser | null;
@@ -19,9 +19,9 @@ export function Activity({ user, authUser, id }: IActivityProps) {
     });
   }, [id]);
   return (
-    <div className={classes.activity}>
-      <h2>Latest post</h2>
-      <div className={classes.posts}>
+    <div className="bg-white border border-gray-300 rounded-lg p-4">
+      <h2 className="text-xl font-bold text-gray-900 mb-4">Latest post</h2>
+      <div>
         {posts.length > 0 ? (
           <>
             <Post
@@ -30,12 +30,19 @@ export function Activity({ user, authUser, id }: IActivityProps) {
               setPosts={setPosts}
             />
 
-            <Link className={classes.more} to={`/profile/${user?.id}/posts`}>
+            <Link
+              className="inline-block mt-4 text-red-600 hover:text-red-800 font-medium transition-colors"
+              to={`/profile/${user?.id}/posts`}
+            >
               See more
             </Link>
           </>
         ) : (
-          <>{authUser?.id == user?.id ? "You have no posts yet." : "This user has no posts yet."}</>
+          <p className="text-gray-500 text-center py-8">
+            {authUser?.id == user?.id
+              ? "You have no posts yet."
+              : "This user has no posts yet."}
+          </p>
         )}
       </div>
     </div>

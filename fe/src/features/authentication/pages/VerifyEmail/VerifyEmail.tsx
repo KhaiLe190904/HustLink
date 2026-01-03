@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Box } from "@/features/authentication/components/Box/Box";
 import { Input } from "@/components/Input/Input";
-import classes from "./VerifyEmail.module.css";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
@@ -87,7 +86,9 @@ export function VerifyEmail() {
     }
   };
   return (
-    <div className={classes.root}>
+    <div className="px-16">
+      {" "}
+      {/* .root minimal styles */}
       <Box>
         <h1>Xác thực email</h1>
         <form
@@ -105,8 +106,8 @@ export function VerifyEmail() {
             lại.
           </p>
           <Input type="text" label="Mã xác thực" key="code" name="code" />
-          {message && <p style={{ color: "green" }}>{message}</p>}
-          {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+          {message && <p className="text-green-500">{message}</p>}
+          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
           <Button type="submit" disabled={isLoading}>
             Xác thực Email
           </Button>

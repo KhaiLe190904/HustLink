@@ -1,18 +1,18 @@
 import { Outlet } from "react-router-dom";
-import classes from "./ApplicationLayout.module.css";
 import { Header } from "@/components/Header/Header";
 import { WebSocketContextProvider } from "@/features/websocket/websocket";
+
 export function ApplicationLayout() {
   return (
     <WebSocketContextProvider>
-    <div className={classes.root}>
-      <Header />
-      <main className={classes.main}>
-        <div className={classes.container}>
-          <Outlet />
-        </div>
-      </main>
-    </div>
+      <div className="min-h-screen grid gap-4 grid-rows-[auto_1fr]">
+        <Header />
+        <main className="flex flex-col flex-1">
+          <div className="max-w-[74rem] w-full mx-auto px-[var(--container-padding,1rem)] py-[var(--container-padding,1rem)] h-full">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </WebSocketContextProvider>
   );
 }
