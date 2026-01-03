@@ -1,12 +1,14 @@
 # Run be
+```bash
 docker-compose up
-./gradlew build -t-x test
+./gradlew build -t -x test
 ./gradlew bootRun
-
+```
 # Run fe
+```bash
 npm install
 npm run dev
-
+```
 # Format Code
 
 ## Format all code (Frontend + Backend)
