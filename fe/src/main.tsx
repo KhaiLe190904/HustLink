@@ -1,7 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+} from "react-router-dom";
 import { Feed } from "./features/feed/pages/Feed/Feed";
 import { Login } from "./features/authentication/pages/Login/Login";
 import { Signup } from "./features/authentication/pages/Signup/Signup";
@@ -66,7 +70,7 @@ const router = createBrowserRouter([
             children: [
               {
                 path: "conversations/:id",
-                element: <Conversation/>
+                element: <Conversation />,
               },
             ],
           },
@@ -113,7 +117,7 @@ const router = createBrowserRouter([
       {
         path: "*",
         element: <Navigate to="/" />,
-      }
+      },
     ],
   },
 ]);

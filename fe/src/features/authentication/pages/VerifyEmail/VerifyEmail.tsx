@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Box } from "@/features/authentication/components/Box/Box";
 import { Input } from "@/components/Input/Input";
 import { Button } from "@/features/authentication/components/Button/Button";
-import { useNavigate } from "react-router-dom";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
@@ -11,7 +10,6 @@ export function VerifyEmail() {
   const [errorMessage, setErrorMessage] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { setUser } = useAuthentication();
 
   const validateEmail = async (code: string) => {

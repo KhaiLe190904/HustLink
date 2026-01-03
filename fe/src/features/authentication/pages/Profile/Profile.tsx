@@ -65,7 +65,9 @@ export function Profile() {
     <div className="">
       <Box>
         <h1>Only one last step</h1>
-        <p>Tell us a bit about yourself so we can personalize your experience.</p>
+        <p>
+          Tell us a bit about yourself so we can personalize your experience.
+        </p>
         {step === 0 && (
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -74,7 +76,9 @@ export function Profile() {
               label="First Name"
               name="firstName"
               placeholder="Ten"
-              onChange={(e) => setData((prev) => ({ ...prev, firstName: e.target.value }))}
+              onChange={(e) =>
+                setData((prev) => ({ ...prev, firstName: e.target.value }))
+              }
             ></Input>
             <Input
               onFocus={() => setError("")}
@@ -82,7 +86,9 @@ export function Profile() {
               label="Last Name"
               name="lastName"
               placeholder="Ho"
-              onChange={(e) => setData((prev) => ({ ...prev, lastName: e.target.value }))}
+              onChange={(e) =>
+                setData((prev) => ({ ...prev, lastName: e.target.value }))
+              }
             ></Input>
           </div>
         )}
@@ -93,11 +99,15 @@ export function Profile() {
               label="Latest company"
               name="company"
               placeholder="Tên công ty"
-              onChange={(e) => setData((prev) => ({ ...prev, company: e.target.value }))}
+              onChange={(e) =>
+                setData((prev) => ({ ...prev, company: e.target.value }))
+              }
             ></Input>
             <Input
               onFocus={() => setError("")}
-              onChange={(e) => setData((prev) => ({ ...prev, position: e.target.value }))}
+              onChange={(e) =>
+                setData((prev) => ({ ...prev, position: e.target.value }))
+              }
               label="Latest position"
               name="position"
               placeholder="Vị trí"
@@ -110,7 +120,9 @@ export function Profile() {
             label="Location"
             name="location"
             placeholder="Vị trí"
-            onChange={(e) => setData((prev) => ({ ...prev, location: e.target.value }))}
+            onChange={(e) =>
+              setData((prev) => ({ ...prev, location: e.target.value }))
+            }
           ></Input>
         )}
         {error && <p className="text-red-500 text-sm">{error}</p>}

@@ -2,6 +2,7 @@ plugins {
 	java
 	id("org.springframework.boot") version "3.4.5"
 	id("io.spring.dependency-management") version "1.1.7"
+	id("com.diffplug.spotless") version "6.25.0"
 }
 
 group = "com.jobsearch"
@@ -41,4 +42,21 @@ dependencies {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+}
+
+spotless {
+	java {
+		target("src/**/*.java")
+		// Sử dụng file formatter Eclipse (export từ IntelliJ) với indent 2 spaces
+		eclipse().configFile("intellij-formatter.xml")
+		removeUnusedImports()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
+	kotlin {
+		target("**/*.kt")
+		ktfmt()
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
 }

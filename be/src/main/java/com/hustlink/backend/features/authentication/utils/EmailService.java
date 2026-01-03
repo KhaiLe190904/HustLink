@@ -2,30 +2,29 @@ package com.hustlink.backend.features.authentication.utils;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import java.io.UnsupportedEncodingException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
-import java.io.UnsupportedEncodingException;
-
 @Service
 public class EmailService {
-    private final JavaMailSender mailSender;
+  private final JavaMailSender mailSender;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
+  public EmailService(JavaMailSender mailSender) {
+    this.mailSender = mailSender;
+  }
 
-    public void sendEmail(String email, String subject, String content) throws MessagingException, UnsupportedEncodingException {
-        MimeMessage message = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(message);
+  public void sendEmail(String email, String subject, String content) throws MessagingException, UnsupportedEncodingException {
+    MimeMessage message = mailSender.createMimeMessage();
+    MimeMessageHelper helper = new MimeMessageHelper(message);
 
-        helper.setFrom("no-reply-khaile@jobsearch.com", "KhaiLe");
-        helper.setTo(email);
+    helper.setFrom("no-reply-khaile@jobsearch.com", "KhaiLe");
+    helper.setTo(email);
 
-        helper.setSubject(subject);
-        helper.setText(content, true);
+    helper.setSubject(subject);
+    helper.setText(content, true);
 
-        mailSender.send(message);
-    }
+    mailSender.send(message);
+  }
 }

@@ -1,6 +1,5 @@
 package com.hustlink.backend.features.feed.dto;
 
-
 import lombok.*;
 
 @RequiredArgsConstructor
@@ -8,7 +7,6 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class PostDto {
-    private String content;
-    private String picture = null;
-
+  private String content;
+  private String picture = null;
 }

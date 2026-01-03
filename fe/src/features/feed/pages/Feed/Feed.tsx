@@ -109,7 +109,7 @@ export function Feed() {
           ))}
           {posts.length === 0 && (
             <p>
-              Start connecting with poople to build a feed that matters to you.
+              Start connecting with people to build a feed that matters to you.
             </p>
           )}
         </div>

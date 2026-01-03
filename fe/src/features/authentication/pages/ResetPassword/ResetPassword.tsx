@@ -10,7 +10,6 @@ export function ResetPassword() {
   const navigate = useNavigate();
   const [emailSent, setEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const sendPasswordResetToken = async (email: string) => {
     try {
@@ -32,8 +31,6 @@ export function ResetPassword() {
     } catch (e) {
       console.log(e);
       toast.error("Đã xảy ra lỗi không xác định, vui lòng thử lại sau");
-    } finally {
-      setIsLoading(false);
     }
   };
   const resetPassword = async (
@@ -61,8 +58,6 @@ export function ResetPassword() {
     } catch (e) {
       console.log(e);
       toast.error("Đã xảy ra lỗi không xác định, vui lòng thử lại sau");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -76,11 +71,9 @@ export function ResetPassword() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              setIsLoading(true);
               const email = e.currentTarget.email.value;
               await sendPasswordResetToken(email);
               setEmail(email);
-              setIsLoading(false);
             }}
           >
             <Input type="email" id="email" name="email" label="Email" />
@@ -102,11 +95,9 @@ export function ResetPassword() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              setIsLoading(true);
               const code = e.currentTarget.code.value;
               const password = e.currentTarget.password.value;
               await resetPassword(email, code, password);
-              setIsLoading(false);
             }}
           >
             <p>
