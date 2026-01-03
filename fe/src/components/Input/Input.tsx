@@ -97,8 +97,8 @@ export function Input({
     error
       ? variantClasses[variant].error
       : isFocused
-      ? variantClasses[variant].focused
-      : variantClasses[variant].normal,
+        ? variantClasses[variant].focused
+        : variantClasses[variant].normal,
   ].join(" ");
 
   const inputClasses = [
@@ -117,13 +117,13 @@ export function Input({
         ? "-top-6 text-xs"
         : "-top-2 bg-white px-1 text-xs"
       : variant === "standard"
-      ? "top-3"
-      : "top-1/2 -translate-y-1/2",
+        ? "top-3"
+        : "top-1/2 -translate-y-1/2",
     error
       ? "text-red-500"
       : isFocused
-      ? "text-[var(--primary-color)]"
-      : "text-gray-500",
+        ? "text-[var(--primary-color)]"
+        : "text-gray-500",
   ].join(" ");
 
   return (

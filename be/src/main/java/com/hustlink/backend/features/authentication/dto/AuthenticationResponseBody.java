@@ -7,6 +7,6 @@ import lombok.*;
 @NoArgsConstructor
 @Builder
 public class AuthenticationResponseBody {
-    private String token;
-    private String message;
+  private String token;
+  private String message;
 }

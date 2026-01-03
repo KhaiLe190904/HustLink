@@ -6,7 +6,6 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input } from "@/components/Input/Input";
 import { request } from "@/utils/api";
 import {
   IUser,
@@ -411,8 +410,8 @@ export function Post({ post, setPosts }: PostProps) {
               {postLiked == undefined
                 ? "Loading"
                 : postLiked
-                ? "Liked"
-                : "Like"}
+                  ? "Liked"
+                  : "Like"}
             </span>
           </button>
           <button

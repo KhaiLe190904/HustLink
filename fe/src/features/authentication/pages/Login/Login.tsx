@@ -63,9 +63,7 @@ export function Login() {
           />
           {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}{" "}
           <div className="text-right mb-4">
-            <Link
-              to="/authentication/request-password-reset"
-            >
+            <Link to="/authentication/request-password-reset">
               Quên mật khẩu?
             </Link>
           </div>

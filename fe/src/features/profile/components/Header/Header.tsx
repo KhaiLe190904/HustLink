@@ -155,8 +155,8 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                       {connection?.status === "ACCEPTED"
                         ? "Remove connection"
                         : authUser?.id === connection?.author.id
-                        ? "Cancel invitation"
-                        : "Ignore invitation"}
+                          ? "Cancel invitation"
+                          : "Ignore invitation"}
                     </Button>
                   )}
                 </>

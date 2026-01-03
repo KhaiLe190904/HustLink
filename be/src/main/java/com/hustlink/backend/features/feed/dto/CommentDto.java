@@ -10,5 +10,5 @@ import lombok.RequiredArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class CommentDto {
-    private String content;
+  private String content;
 }

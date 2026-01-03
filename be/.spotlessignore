@@ -1,0 +1,9 @@
+build/
+bin/
+.gradle/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+application.properties
