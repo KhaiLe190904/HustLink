@@ -9,7 +9,8 @@ spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.SQLServerDialect
 spring.jpa.properties.hibernate.format_sql=true
-
+spring.jpa.properties.hibernate.search.backend.type=lucene
+spring.jpa.properties.hibernate.search.backend.directory.root=./lucene/indexes
 # Google OAuth Configuration
 oauth.google.client.id=${GOOGLE_CLIENT_ID}
 oauth.google.client.secret=${GOOGLE_CLIENT_SECRET}
