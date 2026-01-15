@@ -1,0 +1,26 @@
+# Database Configuration
+spring.datasource.url=jdbc:sqlserver://localhost:1444;databaseName=HustLink;encrypt=true;trustServerCertificate=true
+spring.datasource.username=sa
+spring.datasource.password=HustLink@
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+# JPA Configuration
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.SQLServerDialect
+spring.jpa.properties.hibernate.format_sql=true
+
+# Google OAuth Configuration
+oauth.google.client.id=${GOOGLE_CLIENT_ID}
+oauth.google.client.secret=${GOOGLE_CLIENT_SECRET}
+
+# Frontend URL (for OAuth redirect)
+# Development: http://localhost:5173
+# Production: https://your-production-domain.com
+frontend.url=${FRONTEND_URL:http://localhost:5173}
+
+# Resend Email Service
+resend.api.key=${RESEND_API_KEY}
+
+# Server Configuration
+server.port=8080

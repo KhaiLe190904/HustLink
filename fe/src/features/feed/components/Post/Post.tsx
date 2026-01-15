@@ -102,22 +102,31 @@ export function Post({ post, setPosts }: PostProps) {
       `/topic/comments/${post.id}`,
       (message) => {
         const comment = JSON.parse(message.body);
-        setCommentsCount((prev) => prev + 1);
+        const isOwnComment = comment.author?.id === user?.id;
 
         if (showCommentModal) {
           setComments((prev) => {
             const index = prev.findIndex((c) => c.id === comment.id);
             if (index === -1) {
-              return [comment, ...prev]; // Add new at top
+              // Only increment if it's not from current user (avoid double counting)
+              if (!isOwnComment) {
+                setCommentsCount((prevCount) => prevCount + 1);
+              }
+              return [comment, ...prev];
             }
             return prev.map((c) => (c.id === comment.id ? comment : c));
           });
+        } else {
+          // Only increment if it's not from current user (avoid double counting)
+          if (!isOwnComment) {
+            setCommentsCount((prevCount) => prevCount + 1);
+          }
         }
       }
     );
 
     return () => subscription?.unsubscribe();
-  }, [post.id, webSocketClient, showCommentModal]);
+  }, [post.id, webSocketClient, showCommentModal, user?.id]);
 
   useEffect(() => {
     const subscription = webSocketClient?.subscribe(
@@ -176,7 +185,10 @@ export function Post({ post, setPosts }: PostProps) {
       endpoint: `/api/v1/feed/posts/${post.id}/comments`,
       method: "POST",
       body: JSON.stringify({ content }),
-      onSuccess: () => setContent(""),
+      onSuccess: () => {
+        setContent("");
+        setCommentsCount((prev) => prev + 1); // Increment count for own comment
+      },
       onFailure: (error) => {
         console.error(error);
       },
