@@ -24,12 +24,10 @@ public class ResendWebhookController {
   @PostMapping
   public ResponseEntity<Void> handleWebhook(@RequestBody Map<String, Object> payload) {
     try {
-      logger.info("Received Resend webhook: {}", payload);
       String type = (String) payload.get("type");
       @SuppressWarnings("unchecked") Map<String, Object> data = (Map<String, Object>) payload.get("data");
 
       if (data == null) {
-        logger.warn("Webhook payload missing 'data' field");
         return ResponseEntity.ok().build();
       }
 
@@ -48,36 +46,28 @@ public class ResendWebhookController {
         }
       }
 
-      logger.info("Webhook event: type={}, messageId={}, to={}", type, messageId, to);
-
       if (messageId == null || to == null) {
-        logger.warn("Webhook payload missing 'email_id' or 'to' field. messageId={}, to={}", messageId, to);
         return ResponseEntity.ok().build();
       }
 
       User user = userRepository.findByEmail(to).orElse(null);
 
       if (user == null) {
-        logger.warn("User not found for email: {}", to);
         return ResponseEntity.ok().build();
       }
 
       // Match messageId to ensure we're updating the correct email verification attempt
       String storedMessageId = user.getEmailVerificationProviderMessageId();
       if (storedMessageId != null && !storedMessageId.equals(messageId)) {
-        logger.warn("MessageId mismatch. Stored: {}, Received: {}. Skipping update.", storedMessageId, messageId);
         return ResponseEntity.ok().build();
       }
 
       if ("email.bounced".equals(type)) {
-        logger.info("Email bounced for user: {} (messageId: {})", to, messageId);
         user.setEmailVerificationDeliveryStatus("bounced");
       } else if ("email.delivered".equals(type)) {
-        logger.info("Email delivered for user: {} (messageId: {})", to, messageId);
         user.setEmailVerificationDeliveryStatus("delivered");
       }
       userRepository.save(user);
-      logger.info("Updated email delivery status for user: {} to {} (messageId: {})", to, user.getEmailVerificationDeliveryStatus(), messageId);
     } catch (Exception e) {
       logger.error("Error handling Resend webhook", e);
     }

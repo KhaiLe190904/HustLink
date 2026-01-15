@@ -47,6 +47,9 @@ dependencies {
 	implementation("org.hibernate.search:hibernate-search-backend-lucene:7.2.2.Final")
 	implementation("org.jboss.logging:jboss-logging:3.6.1.Final")
 
+	// Cache (for ML recommendations)
+	implementation("org.springframework.boot:spring-boot-starter-cache")
+
 	// DevTools
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	annotationProcessor("org.projectlombok:lombok")

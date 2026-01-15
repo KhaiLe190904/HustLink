@@ -31,9 +31,7 @@ public class SearchConfiguration {
   }
 
   private void deleteDirectoryRecursively(Path path) throws IOException {
-    Files.walk(path)
-            .sorted((path1, path2) -> path2.compareTo(path1)) // Sort in reverse order to delete files before directories
-            .map(Path::toFile)
-            .forEach(File::delete);
+    Files.walk(path).sorted((path1, path2) -> path2.compareTo(path1)) // Sort in reverse order to delete files before directories
+            .map(Path::toFile).forEach(File::delete);
   }
 }

@@ -1,6 +1,7 @@
 package com.hustlink.backend.features.networking.controller;
 
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.networking.dto.UserRecommendation;
 import com.hustlink.backend.features.networking.model.Connection;
 import com.hustlink.backend.features.networking.model.Status;
 import com.hustlink.backend.features.networking.service.ConnectionService;
@@ -44,7 +45,17 @@ public class ConnectionController {
   }
 
   @GetMapping("/suggestions")
-  public List<User> getConnectionSuggestions(@RequestAttribute("authenticationUser") User user) {
-    return connectionService.getConnectionSuggestions(user);
+  public Object getConnectionSuggestions(@RequestAttribute("authenticationUser") User user, @RequestParam(required = false) Integer limit, @RequestParam(required = false, defaultValue = "false") Boolean detailed) {
+
+    if (Boolean.TRUE.equals(detailed)) {
+      return connectionService.getConnectionSuggestionsML(user, limit);
+    } else {
+      return connectionService.getConnectionSuggestionsSimple(user, limit);
+    }
+  }
+
+  @GetMapping("/suggestions/detailed")
+  public List<UserRecommendation> getDetailedRecommendations(@RequestAttribute("authenticationUser") User user, @RequestParam(required = false, defaultValue = "10") Integer limit) {
+    return connectionService.getConnectionSuggestionsML(user, limit);
   }
 }
