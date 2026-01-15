@@ -19,12 +19,7 @@ public class SearchService {
   public List<User> searchUsers(String query) {
     SearchSession searchSession = Search.session(entityManager);
 
-    return searchSession.search(User.class)
-            .where(f -> f.match()
-                    .fields("firstName", "lastName", "position", "company")
-                    .matching(query)
-                    .fuzzy(2) // sẽ thêm ML vào đây còn hiện tại dùng như này
-            )
-            .fetchAllHits();
+    return searchSession.search(User.class).where(f -> f.match().fields("firstName", "lastName", "position", "company").matching(query).fuzzy(2) // sẽ thêm ML vào đây còn hiện tại dùng như này
+    ).fetchAllHits();
   }
 }

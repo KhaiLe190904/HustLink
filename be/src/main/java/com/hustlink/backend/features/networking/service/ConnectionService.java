@@ -1,7 +1,9 @@
 package com.hustlink.backend.features.networking.service;
 
+import com.hustlink.backend.configuration.CacheConfigImproved.CacheEvictionHelper;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.repository.UserRepository;
+import com.hustlink.backend.features.networking.dto.UserRecommendation;
 import com.hustlink.backend.features.networking.model.Connection;
 import com.hustlink.backend.features.networking.model.Status;
 import com.hustlink.backend.features.networking.repository.ConnectionRepository;
@@ -20,6 +22,8 @@ public class ConnectionService {
   private final ConnectionRepository connectionRepository;
   private final UserRepository userRepository;
   private final NotificationService notificationService;
+  private final RecommendationService recommendationService;
+  private final CacheEvictionHelper cacheEvictionHelper;
 
   public Connection sendConnectionRequest(User sender, Long recipientId) {
     User recipient = userRepository.findById(recipientId).orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
@@ -30,6 +34,10 @@ public class ConnectionService {
 
     Connection connection = connectionRepository.save(new Connection(sender, recipient));
     notificationService.sendNewInvitationToUsers(sender.getId(), recipient.getId(), connection);
+
+    cacheEvictionHelper.clearUserCache(sender.getId());
+    cacheEvictionHelper.clearUserCache(recipient.getId());
+
     return connection;
   }
 
@@ -46,6 +54,10 @@ public class ConnectionService {
 
     connection.setStatus(Status.ACCEPTED);
     notificationService.sendInvitationAcceptedToUsers(connection.getAuthor().getId(), connection.getRecipient().getId(), connection);
+
+    cacheEvictionHelper.clearUserCache(connection.getAuthor().getId());
+    cacheEvictionHelper.clearUserCache(connection.getRecipient().getId());
+
     return connectionRepository.save(connection);
   }
 
@@ -57,6 +69,10 @@ public class ConnectionService {
     }
     connectionRepository.deleteById(connectionId);
     notificationService.sendRemoveConnectionToUsers(connection.getAuthor().getId(), connection.getRecipient().getId(), connection);
+
+    cacheEvictionHelper.clearUserCache(connection.getAuthor().getId());
+    cacheEvictionHelper.clearUserCache(connection.getRecipient().getId());
+
     return connection;
   }
 
@@ -69,6 +85,7 @@ public class ConnectionService {
     return connectionRepository.findConnectionsByUserAndStatus(user, status != null ? status : Status.ACCEPTED);
   }
 
+  @Deprecated
   public List<User> getConnectionSuggestions(User user) {
     List<User> allUsers = userRepository.findAllByIdNot(user.getId());
     List<Connection> userConnections = connectionRepository.findAllByAuthorOrRecipient(user, user);
@@ -76,6 +93,15 @@ public class ConnectionService {
     Set<Long> connectedUserIds = userConnections.stream().flatMap(connection -> Stream.of(connection.getAuthor().getId(), connection.getRecipient().getId())).collect(Collectors.toSet());
 
     return allUsers.stream().filter(u -> !connectedUserIds.contains(u.getId())).collect(Collectors.toList());
+  }
+
+  public List<UserRecommendation> getConnectionSuggestionsML(User user, Integer limit) {
+    int maxResults = (limit != null && limit > 0) ? limit : 20;
+    return recommendationService.getRecommendations(user, maxResults);
+  }
+
+  public List<User> getConnectionSuggestionsSimple(User user, Integer limit) {
+    return getConnectionSuggestionsML(user, limit).stream().map(UserRecommendation::getUser).collect(Collectors.toList());
   }
 
   public Connection markConnectionAsSeen(User user, Long id) {

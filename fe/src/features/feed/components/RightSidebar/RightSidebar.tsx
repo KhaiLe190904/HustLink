@@ -3,18 +3,29 @@ import { useNavigate, useParams } from "react-router-dom";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
+
+interface IUserRecommendation {
+  user: IUser;
+  score: number;
+  reasons: {
+    mutualConnections: number;
+    sameCompany: boolean;
+    samePosition: boolean;
+    sameLocation: boolean;
+    isSecondDegreeConnection: boolean;
+    activitySimilarity: number;
+  };
+}
+
 export function RightSidebar() {
-  const [suggestions, setSuggestions] = useState<IUser[]>([]);
+  const [suggestions, setSuggestions] = useState<IUserRecommendation[]>([]);
   const navigate = useNavigate();
   const { id } = useParams();
 
   useEffect(() => {
-    request<IUser[]>({
-      endpoint: "/api/v1/networking/suggestions",
-      onSuccess: (data) => {
-        const shuffled = data.sort(() => 0.5 - Math.random());
-        setSuggestions(shuffled.slice(0, 2));
-      },
+    request<IUserRecommendation[]>({
+      endpoint: "/api/v1/networking/suggestions?limit=2&detailed=true",
+      onSuccess: (data) => setSuggestions(data),
       onFailure: (error) => console.log(error),
     });
   }, []);
@@ -37,43 +48,81 @@ export function RightSidebar() {
         </div>
         <div className="p-4 space-y-4">
           {suggestions
-            .filter((s) => s.id != id)
-            .map((suggestion) => {
+            .filter((s) => s.user.id != id)
+            .map((recommendation) => {
+              const { user, reasons } = recommendation;
+              const reasonTexts: string[] = [];
+
+              if (reasons.mutualConnections > 0) {
+                reasonTexts.push(
+                  `${reasons.mutualConnections} mutual connection${reasons.mutualConnections > 1 ? "s" : ""}`
+                );
+              }
+              if (reasons.sameCompany) {
+                reasonTexts.push("Same company");
+              }
+              if (reasons.samePosition) {
+                reasonTexts.push("Same position");
+              }
+              if (reasons.sameLocation) {
+                reasonTexts.push("Same location");
+              }
+              if (
+                reasons.isSecondDegreeConnection &&
+                reasonTexts.length === 0
+              ) {
+                reasonTexts.push("Friend of friend");
+              }
+
               return (
-                <div className="flex gap-3" key={suggestion.id}>
+                <div className="flex gap-3" key={user.id}>
                   <button
                     className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-red-500 transition-all cursor-pointer"
-                    onClick={() => navigate("/profile/" + suggestion.id)}
+                    onClick={() => navigate("/profile/" + user.id)}
                   >
                     <img
-                      src={suggestion.profilePicture || "/doc1.png"}
+                      src={user.profilePicture || "/doc1.png"}
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
                   </button>
                   <div className="flex-1 min-w-0">
                     <button
-                      onClick={() => navigate("/profile/" + suggestion.id)}
+                      onClick={() => navigate("/profile/" + user.id)}
                       className="text-left w-full group"
                     >
                       <div className="font-semibold text-sm text-gray-900 truncate group-hover:text-red-600 group-hover:underline transition-colors">
-                        {suggestion.firstName} {suggestion.lastName}
+                        {user.firstName} {user.lastName}
                       </div>
                       <div className="text-xs text-gray-600 truncate mt-0.5">
-                        {suggestion.position} at {suggestion.company}
+                        {user.position} at {user.company}
                       </div>
+                      {reasonTexts.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M11 6a3 3 0 11-6 0 3 3 0 016 0zM14 17a6 6 0 00-12 0h12zM13 8a1 1 0 100 2h4a1 1 0 100-2h-4z" />
+                          </svg>
+                          <span className="truncate">
+                            {reasonTexts.join(" • ")}
+                          </span>
+                        </div>
+                      )}
                     </button>
                     <button
-                      className="mt-2 px-4 py-1.5 border-2 border-gray-700 text-gray-700 rounded-full font-semibold text-sm hover:bg-gray-50 hover:border-gray-900 transition-all"
+                      className="mt-2 px-4 py-1.5 bg-[var(--primary-color)] text-white rounded-full font-semibold text-sm hover:bg-red-700 hover:scale-105 hover:shadow-md active:scale-95 transition-all w-full flex items-center justify-center gap-1"
                       onClick={() => {
                         request<IConnection>({
                           endpoint:
                             "/api/v1/networking/connections?recipientId=" +
-                            suggestion.id,
+                            user.id,
                           method: "POST",
                           onSuccess: () => {
-                            setSuggestions(
-                              suggestions.filter((s) => s.id !== suggestion.id)
+                            setSuggestions((prev) =>
+                              prev.filter((s) => s.user.id !== user.id)
                             );
                           },
                           onFailure: (error) => console.log(error),
@@ -81,7 +130,7 @@ export function RightSidebar() {
                       }}
                     >
                       <svg
-                        className="w-4 h-4 inline-block mr-1 -mt-0.5"
+                        className="w-4 h-4"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
