@@ -11,6 +11,12 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity(name = "comments")
+@Table(indexes = {
+    @Index(name = "idx_comments_post_id", columnList = "post_id"),
+    @Index(name = "idx_comments_author_id", columnList = "author_id"),
+    @Index(name = "idx_comments_creation_date", columnList = "creationDate DESC"),
+    @Index(name = "idx_comments_post_creation", columnList = "post_id, creationDate DESC")
+})
 @Builder
 @Data
 @AllArgsConstructor

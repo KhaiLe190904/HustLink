@@ -14,6 +14,11 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity(name = "posts")
+@Table(indexes = {
+    @Index(name = "idx_posts_author_id", columnList = "author_id"),
+    @Index(name = "idx_posts_creation_date", columnList = "creationDate DESC"),
+    @Index(name = "idx_posts_author_creation", columnList = "author_id, creationDate DESC")
+})
 @Builder
 @Data
 @AllArgsConstructor
@@ -39,7 +44,7 @@ public class Post {
 
   @JsonIgnore
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<Comment> comments;
+  private List<Comment>   comments;
 
   @JsonIgnore
   @ManyToMany

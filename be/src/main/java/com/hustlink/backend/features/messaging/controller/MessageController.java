@@ -8,6 +8,10 @@ import com.hustlink.backend.features.messaging.model.Message;
 import com.hustlink.backend.features.messaging.service.MessageService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -40,5 +44,13 @@ public class MessageController {
   public Response markMessageAsRead(@RequestAttribute("authenticationUser") User user, @PathVariable Long messageId) {
     messageService.markMessageAsRead(user, messageId);
     return new Response("Message marked as read");
+  }
+
+  @GetMapping("/conversations/{conversationId}/messages")
+  public ResponseEntity<Page<Message>> getMessages(
+      @RequestAttribute("authenticationUser") User user,
+      @PathVariable Long conversationId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(messageService.getMessages(user, conversationId, pageable));
   }
 }

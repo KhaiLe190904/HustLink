@@ -10,10 +10,15 @@ import {
 import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar";
 import { IPost, Post } from "@/features/feed/components/Post/Post";
 import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar";
+import { Page } from "@/utils/pagination";
+import { throttle } from "@/utils/throttle";
 
 export function Posts() {
   const { id } = useParams();
   const [posts, setPosts] = useState<IPost[]>([]);
+  const [postsPage, setPostsPage] = useState<number>(0);
+  const [hasMorePosts, setHasMorePosts] = useState<boolean>(true);
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(false);
   const { user: authUser } = useAuthentication();
   const [user, setUser] = useState<IUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,12 +40,48 @@ export function Posts() {
   }, [authUser, id]);
 
   useEffect(() => {
-    request<IPost[]>({
-      endpoint: `/api/v1/feed/posts/user/${id}`,
-      onSuccess: (data) => setPosts(data),
+    setLoadingPosts(true);
+    request<Page<IPost>>({
+      endpoint: `/api/v1/feed/posts/user/${id}/paginated?page=0&size=20`,
+      onSuccess: (data) => {
+        setPosts(data.content);
+        setHasMorePosts(!data.last);
+        setPostsPage(0);
+      },
       onFailure: (error) => console.log(error),
-    });
+    }).finally(() => setLoadingPosts(false));
   }, [id]);
+
+  useEffect(() => {
+    const handleScroll = throttle(() => {
+      if (loadingPosts || !hasMorePosts) return;
+
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const clientHeight = window.innerHeight;
+
+      // Load more within 200px from bottom
+      if (scrollHeight - scrollTop - clientHeight < 200) {
+        const nextPage = postsPage + 1;
+        setLoadingPosts(true);
+        request<Page<IPost>>({
+          endpoint: `/api/v1/feed/posts/user/${id}/paginated?page=${nextPage}&size=20`,
+          onSuccess: (data) => {
+            setPosts((prev) => [...prev, ...data.content]);
+            setHasMorePosts(!data.last);
+            setPostsPage(nextPage);
+          },
+          onFailure: (error) => console.log(error),
+        }).finally(() => setLoadingPosts(false));
+      }
+    }, 200); // Max 1 call per 200ms
+
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      handleScroll.cancel();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [id, postsPage, hasMorePosts, loadingPosts]);
 
   // Cập nhật thông tin author trong posts khi user thay đổi
   useEffect(() => {
@@ -68,7 +109,12 @@ export function Posts() {
         {posts.map((post) => (
           <Post key={post.id} post={post} setPosts={setPosts} />
         ))}
-        {posts.length === 0 && (
+        {loadingPosts && (
+          <div className="p-4 text-center text-gray-500">
+            Loading more posts...
+          </div>
+        )}
+        {posts.length === 0 && !loadingPosts && (
           <div className="bg-white border border-gray-300 rounded-lg p-8 text-center">
             <p className="text-gray-500">No post to display.</p>
           </div>

@@ -21,7 +21,7 @@ interface IMessagesProps {
 
 export function Messages({ messages, user }: IMessagesProps) {
   return (
-    <div className="p-4 flex flex-col items-start gap-4 overflow-y-auto">
+    <div className="p-4 flex flex-col items-start gap-4">
       {messages.map((message, index) => {
         const currentDate = new Date(message.creationAt);
         const prevMessage = index > 0 ? messages[index - 1] : null;
