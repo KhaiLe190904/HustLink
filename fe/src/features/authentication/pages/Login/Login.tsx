@@ -3,8 +3,9 @@ import { Box } from "@/features/authentication/components/Box/Box";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { Input } from "@/components/Input/Input";
 import { Seperator } from "@/features/authentication/components/Seperator/Seperator";
+import { GoogleLoginButton } from "@/features/authentication/components/GoogleLoginButton/GoogleLoginButton";
 import { toast } from "react-toastify";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import "react-toastify/dist/ReactToastify.css";
 export function Login() {
@@ -13,6 +14,34 @@ export function Login() {
   const authentication = useAuthentication();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Handle Google OAuth callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get("code");
+
+    if (code && authentication && authentication.googleLogin) {
+      // Clear URL params IMMEDIATELY to prevent re-trigger
+      window.history.replaceState({}, "", "/authentication/login");
+
+      setIsLoading(true);
+      authentication
+        .googleLogin(code, "login")
+        .then(() => {
+          const destination = location.state?.from?.pathname || "/";
+          navigate(destination);
+        })
+        .catch((error) => {
+          toast.error(
+            error.message || "Đăng nhập với Google thất bại. Vui lòng thử lại."
+          );
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const doLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
@@ -72,6 +101,7 @@ export function Login() {
           </Button>
         </form>
         <Seperator>Hoặc</Seperator>
+        <GoogleLoginButton page="login" />
         <div className="text-center">
           {" "}
           {/* .register styles */}

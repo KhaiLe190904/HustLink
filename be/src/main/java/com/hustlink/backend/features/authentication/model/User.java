@@ -27,6 +27,8 @@ public class User {
   private Boolean emailVerified = false;
   private String emailVerificationToken = null;
   private LocalDateTime emailVerificationTokenExpiryDate = null;
+  private String emailVerificationDeliveryStatus = null;
+  private String emailVerificationProviderMessageId = null;
 
   @JsonIgnore
   private String password;

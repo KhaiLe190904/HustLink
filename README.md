@@ -3,7 +3,8 @@
 docker-compose up
 ./gradlew build -t -x test
 ./gradlew bootRun
-```
+ngrok http 8080 # Khi dùng để test email bounce
+
 # Run fe
 ```bash
 npm install

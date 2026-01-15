@@ -1,5 +1,6 @@
 package com.hustlink.backend.features.authentication.controller;
 
+import com.hustlink.backend.features.authentication.dto.AuthenticationOauthRequestBody;
 import com.hustlink.backend.features.authentication.dto.AuthenticationRequestBody;
 import com.hustlink.backend.features.authentication.dto.AuthenticationResponseBody;
 import com.hustlink.backend.features.authentication.model.User;
@@ -25,10 +26,20 @@ public class AuthenticationController {
     return user;
   }
 
+  @GetMapping("/email-status")
+  public String getEmailStatus(@RequestAttribute("authenticationUser") User user) {
+    return user.getEmailVerificationDeliveryStatus();
+  }
+
   @DeleteMapping("/delete")
   public String deleteUser(@RequestAttribute("authenticationUser") User user) {
     authenticationService.deleteUser(user.getId());
     return "User deleted successfully";
+  }
+
+  @PostMapping("/oauth/google/login")
+  public AuthenticationResponseBody googleLogin(@RequestBody AuthenticationOauthRequestBody oauth2RequestBody) {
+    return authenticationService.googleLoginOrSignup(oauth2RequestBody.code(), oauth2RequestBody.page());
   }
 
   @PostMapping("/login")

@@ -220,7 +220,9 @@ export function Feed() {
             <Post key={post.id} post={post} setPosts={setPosts} />
           ))}
           {loadingPosts && (
-            <div className="p-4 text-center text-gray-500">Loading more posts...</div>
+            <div className="p-4 text-center text-gray-500">
+              Loading more posts...
+            </div>
           )}
           {posts.length === 0 && !loadingPosts && (
             <p>
