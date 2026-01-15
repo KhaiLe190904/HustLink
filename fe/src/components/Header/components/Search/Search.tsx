@@ -13,9 +13,10 @@ export function Search() {
     const fetchSuggestions = async () => {
       if (searchTerm.length > 0) {
         request<IUser[]>({
-          endpoint: "/api/v1/search/users?query=" + searchTerm,
+          endpoint:
+            "/api/v1/search/users?query=" + encodeURIComponent(searchTerm),
           onSuccess: (data) => setSuggestions(data),
-          onFailure: (error) => console.log("Search error:", error),
+          onFailure: () => setSuggestions([]),
         });
       } else {
         setSuggestions([]);
