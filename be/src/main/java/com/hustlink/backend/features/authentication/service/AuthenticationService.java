@@ -44,6 +44,8 @@ public class AuthenticationService {
   private String googleClientId;
   @Value("${oauth.google.client.secret}")
   private String googleClientSecret;
+  @Value("${frontend.url}")
+  private String frontendUrl;
 
   public AuthenticationService(JsonWebToken jsonWebToken, Encoder encoder, UserRepository userRepository, EmailService emailService, RestTemplate restTemplate) {
     this.jsonWebToken = jsonWebToken;
@@ -156,7 +158,7 @@ public class AuthenticationService {
 
   public AuthenticationResponseBody googleLoginOrSignup(String code, String page) {
     String tokenEndpoint = "https://oauth2.googleapis.com/token";
-    String redirectUri = "http://localhost:5173/authentication/" + page;
+    String redirectUri = frontendUrl + "/authentication/" + page;
     MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
 
     body.add("code", code);

@@ -3,7 +3,8 @@ import { FcGoogle } from "react-icons/fc";
 export function GoogleLoginButton({ page }: { page: "login" | "signup" }) {
   const handleGoogleLogin = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    const redirectUri = `http://localhost:5173/authentication/${page}`;
+    const baseUrl = import.meta.env.VITE_BASE_URL || window.location.origin;
+    const redirectUri = `${baseUrl}/authentication/${page}`;
     const scope = "openid email profile";
     const responseType = "code";
     const accessType = "offline";
