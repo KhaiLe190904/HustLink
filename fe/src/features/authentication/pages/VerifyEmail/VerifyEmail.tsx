@@ -64,7 +64,7 @@ export function VerifyEmail() {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [logout, navigate]);
+  }, [logout, navigate, showBouncedModal]);
 
   const validateEmail = async (code: string) => {
     setMessage("");
