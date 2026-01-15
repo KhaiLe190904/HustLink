@@ -30,8 +30,7 @@ public class FeedController {
 
   @GetMapping("/paginated")
   public ResponseEntity<Page<PostResponseDto>> getFeedPostsPaginated(
-      @RequestAttribute("authenticationUser") User user,
-      @PageableDefault(size = 20) Pageable pageable) {
+                                                                     @RequestAttribute("authenticationUser") User user, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(feedService.getFeedPostDto(user.getId(), pageable));
   }
 
@@ -73,9 +72,7 @@ public class FeedController {
 
   @GetMapping("/posts/user/{userId}/paginated")
   public ResponseEntity<Page<PostResponseDto>> getPostByUserIdPaginated(
-      @RequestAttribute("authenticationUser") User user,
-      @PathVariable Long userId,
-      @PageableDefault(size = 20) Pageable pageable) {
+                                                                        @RequestAttribute("authenticationUser") User user, @PathVariable Long userId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(feedService.getPostByUserIdDto(userId, user.getId(), pageable));
   }
 
@@ -105,8 +102,7 @@ public class FeedController {
 
   @GetMapping("/posts/{postId}/comments/paginated")
   public ResponseEntity<Page<Comment>> getCommentsPaginated(
-      @PathVariable Long postId,
-      @PageableDefault(size = 20) Pageable pageable) {
+                                                            @PathVariable Long postId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(feedService.getPostComments(postId, pageable));
   }
 

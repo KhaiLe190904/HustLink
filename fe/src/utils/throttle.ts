@@ -16,10 +16,13 @@ export function throttle<T extends (...args: any[]) => any>(
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      timeoutId = setTimeout(() => {
-        func.apply(this, args);
-        lastRan = Date.now();
-      }, delay - (now - lastRan));
+      timeoutId = setTimeout(
+        () => {
+          func.apply(this, args);
+          lastRan = Date.now();
+        },
+        delay - (now - lastRan)
+      );
     }
   } as T & { cancel: () => void };
 

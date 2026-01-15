@@ -1,30 +1,29 @@
 package com.hustlink.backend.features.authentication.utils;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
-import java.io.UnsupportedEncodingException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
+import com.resend.services.emails.model.CreateEmailResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
-  private final JavaMailSender mailSender;
+  private final Resend resend;
 
-  public EmailService(JavaMailSender mailSender) {
-    this.mailSender = mailSender;
+  public EmailService(@Value("${resend.api.key}") String apiKey) {
+    this.resend = new Resend(apiKey);
   }
 
-  public void sendEmail(String email, String subject, String content) throws MessagingException, UnsupportedEncodingException {
-    MimeMessage message = mailSender.createMimeMessage();
-    MimeMessageHelper helper = new MimeMessageHelper(message);
+  public String sendEmail(String email, String subject, String content) {
+    CreateEmailOptions params = CreateEmailOptions.builder().from("HustLink <no-reply@lekhai.id.vn>").to(email).subject(subject).html(content).build();
 
-    helper.setFrom("no-reply-khaile@jobsearch.com", "KhaiLe");
-    helper.setTo(email);
-
-    helper.setSubject(subject);
-    helper.setText(content, true);
-
-    mailSender.send(message);
+    try {
+      CreateEmailResponse response = resend.emails().send(params);
+      return response.getId();
+    } catch (ResendException e) {
+      throw new RuntimeException("Failed to send email via Resend", e);
+    }
   }
 }
