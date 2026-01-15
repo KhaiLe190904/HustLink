@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Input } from "@/components/Input/Input";
 import { request } from "@/utils/api";
@@ -9,8 +9,12 @@ import {
 import { useWebSocket } from "@/features/websocket/websocket";
 import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
-import { Messages } from "@/features/messaging/components/Messages/Messages";
+import {
+  Messages,
+  IMessage,
+} from "@/features/messaging/components/Messages/Messages";
 import { IoSend } from "react-icons/io5";
+import { Page } from "@/utils/pagination";
 export function Conversation() {
   const [postingMessage, setPostingMessage] = useState<boolean>(false);
   const [content, setContent] = useState<string>("");
@@ -20,6 +24,11 @@ export function Conversation() {
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [conversations, setConversations] = useState<IConversation[]>([]);
+  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [messagesPage, setMessagesPage] = useState<number>(0);
+  const [hasMoreMessages, setHasMoreMessages] = useState<boolean>(true);
+  const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const websocketClient = useWebSocket();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -59,6 +68,9 @@ export function Conversation() {
   useEffect(() => {
     if (id == "new") {
       setConversation(null);
+      setMessages([]);
+      setMessagesPage(0);
+      setHasMoreMessages(true);
       request<IConnection[]>({
         endpoint: "/api/v1/networking/connections",
         onSuccess: (data) =>
@@ -70,40 +82,76 @@ export function Conversation() {
     } else {
       request<IConversation>({
         endpoint: `/api/v1/messaging/conversations/${id}`,
-        onSuccess: (data) => setConversation(data),
+        onSuccess: (data) => {
+          setConversation(data);
+          setMessages([]);
+          setMessagesPage(0);
+          setHasMoreMessages(true);
+        },
         onFailure: () => navigate("/messaging"),
       });
     }
-  }, [id, navigate]);
+  }, [id, navigate, user?.id]);
+
+  // Fetch messages with pagination
+  useEffect(() => {
+    if (!conversation?.id) {
+      setMessages([]);
+      return;
+    }
+
+    const fetchMessages = async () => {
+      setLoadingMessages(true);
+      await request<Page<IMessage>>({
+        endpoint: `/api/v1/messaging/conversations/${conversation.id}/messages?page=0&size=20`,
+        onSuccess: (data) => {
+          // Backend returns newest first (DESC), reverse to get oldest first
+          setMessages([...data.content].reverse());
+          setHasMoreMessages(!data.last);
+          setMessagesPage(0);
+        },
+        onFailure: (error) => console.log(error),
+      });
+      setLoadingMessages(false);
+    };
+
+    fetchMessages();
+  }, [conversation?.id]);
 
   useEffect(() => {
     const subscription = websocketClient?.subscribe(
       `/topic/conversations/${conversation?.id}/messages`,
       (data) => {
         const message = JSON.parse(data.body);
-
-        setConversation((prevConversation) => {
-          if (!prevConversation) return null;
-          const index = prevConversation.messages.findIndex(
-            (m) => m.id === message.id
-          );
+        setMessages((prev) => {
+          const index = prev.findIndex((m) => m.id === message.id);
           if (index === -1) {
-            return {
-              ...prevConversation,
-              messages: [...prevConversation.messages, message],
-            };
+            return [...prev, message];
           }
-          return {
-            ...prevConversation,
-            messages: prevConversation?.messages.map((m) =>
-              m.id === message.id ? message : m
-            ),
-          };
+          return prev.map((m) => (m.id === message.id ? message : m));
         });
       }
     );
     return () => subscription?.unsubscribe();
   }, [conversation?.id, websocketClient]);
+
+  const loadMoreMessages = async () => {
+    if (!conversation?.id || loadingMessages || !hasMoreMessages) return;
+
+    const nextPage = messagesPage + 1;
+    setLoadingMessages(true);
+    await request<Page<IMessage>>({
+      endpoint: `/api/v1/messaging/conversations/${conversation.id}/messages?page=${nextPage}&size=20`,
+      onSuccess: (data) => {
+        // Prepend older messages (backend returns newest first, we reverse to get oldest first)
+        setMessages((prev) => [...data.content].reverse().concat(prev));
+        setHasMoreMessages(!data.last);
+        setMessagesPage(nextPage);
+      },
+      onFailure: (error) => console.log(error),
+    });
+    setLoadingMessages(false);
+  };
 
   async function addMessageToConversation(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
@@ -310,7 +358,38 @@ export function Conversation() {
             </form>
           )}
           {conversation && (
-            <Messages messages={conversation.messages} user={user} />
+            <div
+              ref={messagesContainerRef}
+              className="overflow-y-auto"
+              onScroll={(e) => {
+                const target = e.currentTarget;
+                // Load older messages within 100px from top
+                if (
+                  target.scrollTop < 100 &&
+                  hasMoreMessages &&
+                  !loadingMessages
+                ) {
+                  const currentScrollHeight = target.scrollHeight;
+                  loadMoreMessages().then(() => {
+                    setTimeout(() => {
+                      if (messagesContainerRef.current) {
+                        const newScrollHeight =
+                          messagesContainerRef.current.scrollHeight;
+                        messagesContainerRef.current.scrollTop =
+                          newScrollHeight - currentScrollHeight; // Preserve position
+                      }
+                    }, 0);
+                  });
+                }
+              }}
+            >
+              <Messages messages={messages} user={user} />
+              {loadingMessages && (
+                <div className="p-4 text-center text-gray-500">
+                  Loading more messages...
+                </div>
+              )}
+            </div>
           )}
           <form
             className="px-4 py-3 bg-white border-t border-gray-200"

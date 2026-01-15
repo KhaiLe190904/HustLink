@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IPost, Post } from "@/features/feed/components/Post/Post";
+import { Page } from "@/utils/pagination";
 
 interface IActivityProps {
   user: IUser | null;
@@ -12,9 +13,9 @@ interface IActivityProps {
 export function Activity({ user, authUser, id }: IActivityProps) {
   const [posts, setPosts] = useState<IPost[]>([]);
   useEffect(() => {
-    request<IPost[]>({
-      endpoint: `/api/v1/feed/posts/user/${id}`,
-      onSuccess: (data) => setPosts(data),
+    request<Page<IPost>>({
+      endpoint: `/api/v1/feed/posts/user/${id}/paginated?page=0&size=10`,
+      onSuccess: (data) => setPosts(data.content),
       onFailure: (error) => console.log(error),
     });
   }, [id]);
