@@ -12,10 +12,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity(name = "messages")
-@Table(indexes = {
-    @Index(name = "idx_messages_conversation_id", columnList = "conversation_id"),
-    @Index(name = "idx_messages_creation_at", columnList = "creationAt DESC"),
-    @Index(name = "idx_messages_conversation_creation", columnList = "conversation_id, creationAt DESC")
+@Table(indexes = {@Index(name = "idx_messages_conversation_id", columnList = "conversation_id"), @Index(name = "idx_messages_creation_at", columnList = "creationAt DESC"), @Index(name = "idx_messages_conversation_creation", columnList = "conversation_id, creationAt DESC")
 })
 @Builder
 @Data

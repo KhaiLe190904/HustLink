@@ -195,8 +195,8 @@ export function Header() {
   }, [user?.id, webSocketClient]);
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm text-gray-600 text-sm sticky top-0 z-[100] backdrop-blur-sm">
-      <div className="max-w-6xl px-4 mx-auto w-full grid grid-cols-[1fr_auto] relative gap-6 py-2">
+    <header className="bg-white border-b border-gray-200 shadow-sm text-gray-600 text-sm fixed top-0 left-0 right-0 z-[100]">
+      <div className="max-w-[1400px] px-6 mx-auto w-full grid grid-cols-[1fr_auto] relative gap-4 py-0.1">
         <div className="grid gap-4 grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto] items-center">
           <NavLink to="/" className="flex items-center">
             <img
@@ -205,7 +205,7 @@ export function Header() {
               className="w-30 h-15 transition-transform hover:scale-105"
             />
           </NavLink>
-          <div className="max-w-md mt-3 hidden lg:block">
+          <div className="max-w-xs mt-1 hidden lg:block">
             <Input
               type="text"
               placeholder="🔍 Find people, posts..."

@@ -17,11 +17,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @RequiredArgsConstructor
 public class LoadDatabaseConfig {
-  private static final int NUM_USERS = 20;
-  private static final int MIN_POSTS_PER_USER = 1;
-  private static final int MAX_POSTS_PER_USER = 3;
-  private static final int MIN_CONNECTIONS_PER_USER = 0;
-  private static final int MAX_CONNECTIONS_PER_USER = 3;
+  private static final int NUM_USERS = 50;
+  private static final int MIN_POSTS_PER_USER = 5;
+  private static final int MAX_POSTS_PER_USER = 30;
+  private static final int MIN_CONNECTIONS_PER_USER = 2;
+  private static final int MAX_CONNECTIONS_PER_USER = 10;
   private final Encoder encoder;
   private final Random random = new Random();
 
@@ -57,7 +57,7 @@ public class LoadDatabaseConfig {
     }
 
     users.addAll(List.of(
-            createUser("khai@gmail.com", "khai", "Khai", "Le", positions.get(random.nextInt(positions.size())), companies.get(random.nextInt(companies.size())), locations.get(random.nextInt(locations.size())), null), createUser("hieu@gmail.com", "hieu", "Hieu", "Le", positions.get(random.nextInt(positions.size())), companies.get(random.nextInt(companies.size())), locations.get(random.nextInt(locations.size())), null), createUser("huy@gmail.com", "huy", "Huy", "Nguyen", positions.get(random.nextInt(positions.size())), companies.get(random.nextInt(companies.size())), locations.get(random.nextInt(locations.size())), null)));
+            createUser("khai@gmail.com", "12345678", "Khai", "Le", positions.get(random.nextInt(positions.size())), companies.get(random.nextInt(companies.size())), locations.get(random.nextInt(locations.size())), null), createUser("hieu@gmail.com", "12345678", "Hieu", "Le", positions.get(random.nextInt(positions.size())), companies.get(random.nextInt(companies.size())), locations.get(random.nextInt(locations.size())), null), createUser("huy@gmail.com", "12345678", "Huy", "Nguyen", positions.get(random.nextInt(positions.size())), companies.get(random.nextInt(companies.size())), locations.get(random.nextInt(locations.size())), null)));
 
     return userRepository.saveAll(users);
   }

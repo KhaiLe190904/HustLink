@@ -128,7 +128,7 @@ export function Input({
 
   return (
     <div
-      className={wrapperClassName || "mb-4"}
+      className={`${wrapperClassName || "mb-4"} mt-4`}
       style={{ width: width ? `${width}px` : "100%" }}
     >
       <div className={containerClasses}>

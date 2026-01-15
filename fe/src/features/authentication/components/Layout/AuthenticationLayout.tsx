@@ -23,7 +23,7 @@ export function AuthenticationLayout() {
       <footer className="text-xs bg-white border border-gray-300 [&_a]:text-black/60 [&_a]:font-normal [&_img]:w-36 [&_img]:h-auto">
         {" "}
         {/* footer styles with nested selectors */}
-        <ul className="max-w-[90rem] w-full mx-auto p-2 flex items-center gap-4 mt-8 flex-wrap p-0 [&_li]:flex [&_li]:gap-2 [&_li]:items-center">
+        <ul className="max-w-[90rem] w-full mx-auto px-2 py-2 flex items-center gap-4 flex-wrap [&_li]:flex [&_li]:gap-2 [&_li]:items-center">
           {" "}
           {/* footer ul + li styles */}
           <li>

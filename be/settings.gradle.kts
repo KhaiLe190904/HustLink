@@ -1,1 +1,1 @@
-rootProject.name = "linkedin"
+rootProject.name = "hustlink"
