@@ -18,6 +18,10 @@ interface CommentModalProps {
   onSubmitComment: (e: FormEvent<HTMLFormElement>) => Promise<void>;
   deleteComment: (id: number) => Promise<void>;
   editComment: (id: number, content: string) => Promise<void>;
+  loadMoreComments?: () => Promise<void>;
+  hasMoreComments?: boolean;
+  loadingComments?: boolean;
+  commentsCount: number;
 }
 
 export function CommentModal({
@@ -31,17 +35,21 @@ export function CommentModal({
   onSubmitComment,
   deleteComment,
   editComment,
+  loadMoreComments,
+  hasMoreComments,
+  loadingComments,
+  commentsCount,
 }: CommentModalProps) {
   const navigate = useNavigate();
-  const commentsEndRef = useRef<HTMLDivElement>(null);
+  const commentsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (showModal && comments.length > 0) {
+    if (showModal && commentsContainerRef.current) {
       setTimeout(() => {
-        commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        commentsContainerRef.current!.scrollTop = 0; // Scroll to newest
       }, 100);
     }
-  }, [showModal, comments.length]);
+  }, [showModal]);
 
   if (!showModal) return null;
 
@@ -108,7 +116,7 @@ export function CommentModal({
                   </div>
                   <TimeAgo
                     date={post.creationDate}
-                    edited={!!post.updatedDate}
+                    edited={!!post.updateDate}
                     className="text-xs"
                   />
                 </div>
@@ -146,7 +154,7 @@ export function CommentModal({
           {/* Header - Desktop only */}
           <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200">
             <h3 className="font-bold text-lg text-gray-900">
-              Comments ({comments.length})
+              Comments ({commentsCount})
             </h3>
             <button
               onClick={() => setShowModal(false)}
@@ -168,8 +176,51 @@ export function CommentModal({
             </button>
           </div>
 
+          {/* Comment Input - Fixed at top */}
+          <div className="border-b border-gray-200 p-2 bg-white">
+            <form
+              onSubmit={onSubmitComment}
+              className="flex gap-2 items-center"
+            >
+              <div className="flex-1 bg-gray-100 rounded-lg">
+                <Input
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Write a comment..."
+                  className="!mb-0"
+                  wrapperClassName="!mb-0 !mt-0"
+                  size="small"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!content.trim()}
+                className="flex-shrink-0 bg-blue-600 text-white w-10 h-10 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
+                title="Post comment"
+              >
+                <IoSend className="w-5 h-5" />
+              </button>
+            </form>
+          </div>
+
           {/* Comments List - Scrollable */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div
+            ref={commentsContainerRef}
+            className="flex-1 overflow-y-auto p-4"
+            onScroll={(e) => {
+              const target = e.currentTarget;
+              // Load older comments within 200px from bottom
+              if (
+                target.scrollHeight - target.scrollTop - target.clientHeight <
+                  200 &&
+                hasMoreComments &&
+                !loadingComments &&
+                loadMoreComments
+              ) {
+                loadMoreComments();
+              }
+            }}
+          >
             {comments.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <svg
@@ -192,6 +243,11 @@ export function CommentModal({
               </div>
             ) : (
               <>
+                {loadingComments && (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Loading more comments...
+                  </div>
+                )}
                 {comments.map((comment) => (
                   <Comment
                     key={comment.id}
@@ -200,36 +256,8 @@ export function CommentModal({
                     editComment={editComment}
                   />
                 ))}
-                <div ref={commentsEndRef} />
               </>
             )}
-          </div>
-
-          {/* Comment Input - Fixed at bottom */}
-          <div className="border-t border-gray-200 p-2 bg-white">
-            <form
-              onSubmit={onSubmitComment}
-              className="flex gap-2 items-center"
-            >
-              <div className="flex-1 bg-gray-100 rounded-lg">
-                <Input
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write a comment..."
-                  className="!mb-0"
-                  wrapperClassName="!mb-0"
-                  size="small"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!content.trim()}
-                className="flex-shrink-0 bg-blue-600 text-white w-10 h-10 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
-                title="Post comment"
-              >
-                <IoSend className="w-5 h-5" />
-              </button>
-            </form>
           </div>
         </div>
       </div>
