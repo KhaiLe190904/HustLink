@@ -3,6 +3,7 @@ package com.hustlink.backend.features.feed.service;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.repository.UserRepository;
 import com.hustlink.backend.features.feed.dto.PostDto;
+import com.hustlink.backend.features.feed.dto.PostResponseDto;
 import com.hustlink.backend.features.feed.model.Comment;
 import com.hustlink.backend.features.feed.model.Post;
 import com.hustlink.backend.features.feed.repository.CommentRepository;
@@ -15,6 +16,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -128,5 +132,59 @@ public class FeedService {
   public Set<User> getPostLikes(Long postId) {
     Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
     return post.getLikes();
+  }
+
+  public Page<Post> getFeedPost(Long authenticatedUserId, Pageable pageable) {
+    List<Connection> connections = connectionRepository.findByAuthorIdAndStatusOrRecipientIdAndStatus(
+            authenticatedUserId, Status.ACCEPTED, authenticatedUserId, Status.ACCEPTED);
+
+    Set<Long> connectedUserIds = connections.stream().map(connection -> connection.getAuthor().getId().equals(authenticatedUserId) ? connection.getRecipient().getId() : connection.getAuthor().getId()).collect(Collectors.toSet());
+
+    return postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, pageable);
+  }
+
+  public Page<PostResponseDto> getFeedPostDto(Long authenticatedUserId, Pageable pageable) {
+    List<Connection> connections = connectionRepository.findByAuthorIdAndStatusOrRecipientIdAndStatus(
+            authenticatedUserId, Status.ACCEPTED, authenticatedUserId, Status.ACCEPTED);
+
+    Set<Long> connectedUserIds = connections.stream().map(connection -> connection.getAuthor().getId().equals(authenticatedUserId) ? connection.getRecipient().getId() : connection.getAuthor().getId()).collect(Collectors.toSet());
+
+    Page<Post> posts = postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, pageable);
+    
+    List<PostResponseDto> postDtos = posts.getContent().stream()
+            .map(post -> PostResponseDto.from(post, authenticatedUserId))
+            .collect(Collectors.toList());
+    
+    return new PageImpl<>(postDtos, pageable, posts.getTotalElements());
+  }
+
+  public Page<PostResponseDto> getAllPostDto(Long currentUserId, Pageable pageable) {
+    Page<Post> posts = postRepository.findAllByOrderByCreationDateDesc(pageable);
+    
+    List<PostResponseDto> postDtos = posts.getContent().stream()
+            .map(post -> PostResponseDto.from(post, currentUserId))
+            .collect(Collectors.toList());
+    
+    return new PageImpl<>(postDtos, pageable, posts.getTotalElements());
+  }
+
+  public Page<PostResponseDto> getPostByUserIdDto(Long userId, Long currentUserId, Pageable pageable) {
+    Page<Post> posts = postRepository.findByAuthorIdOrderByCreationDateDesc(userId, pageable);
+    
+    List<PostResponseDto> postDtos = posts.getContent().stream()
+            .map(post -> PostResponseDto.from(post, currentUserId))
+            .collect(Collectors.toList());
+    
+    return new PageImpl<>(postDtos, pageable, posts.getTotalElements());
+  }
+
+  public Page<Comment> getPostComments(Long postId, Pageable pageable) {
+    Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    return commentRepository.findByPostOrderByCreationDateDesc(post, pageable);
+  }
+
+  public long getPostCommentsCount(Long postId) {
+    Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    return commentRepository.countByPost(post);
   }
 }

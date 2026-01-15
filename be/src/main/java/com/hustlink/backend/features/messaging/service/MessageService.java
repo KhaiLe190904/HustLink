@@ -10,6 +10,8 @@ import com.hustlink.backend.features.notifications.service.NotificationService;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -85,5 +87,13 @@ public class MessageService {
     message.setRead(true);
     messageRepository.save(message);
     notificationService.sendMessageToConversation(message.getConversation().getId(), message);
+  }
+
+  public Page<Message> getMessages(User user, Long conversationId, Pageable pageable) {
+    Conversation conversation = conversationRepository.findById(conversationId).orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+    if (!conversation.getAuthor().getId().equals(user.getId()) && !conversation.getRecipient().getId().equals(user.getId())) {
+      throw new IllegalArgumentException("You are not allowed to access this conversation");
+    }
+    return messageRepository.findByConversationOrderByCreationAtDesc(conversation, pageable);
   }
 }

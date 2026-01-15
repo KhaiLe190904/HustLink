@@ -3,12 +3,16 @@ package com.hustlink.backend.features.feed.controller;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.feed.dto.CommentDto;
 import com.hustlink.backend.features.feed.dto.PostDto;
+import com.hustlink.backend.features.feed.dto.PostResponseDto;
 import com.hustlink.backend.features.feed.model.Comment;
 import com.hustlink.backend.features.feed.model.Post;
 import com.hustlink.backend.features.feed.service.FeedService;
 import java.util.List;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +26,13 @@ public class FeedController {
   public ResponseEntity<List<Post>> getFeedPosts(@RequestAttribute("authenticationUser") User user) {
     List<Post> posts = feedService.getFeedPost(user.getId());
     return ResponseEntity.ok(posts);
+  }
+
+  @GetMapping("/paginated")
+  public ResponseEntity<Page<PostResponseDto>> getFeedPostsPaginated(
+      @RequestAttribute("authenticationUser") User user,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(feedService.getFeedPostDto(user.getId(), pageable));
   }
 
   @GetMapping("/posts")
@@ -60,6 +71,14 @@ public class FeedController {
     return ResponseEntity.ok(posts);
   }
 
+  @GetMapping("/posts/user/{userId}/paginated")
+  public ResponseEntity<Page<PostResponseDto>> getPostByUserIdPaginated(
+      @RequestAttribute("authenticationUser") User user,
+      @PathVariable Long userId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(feedService.getPostByUserIdDto(userId, user.getId(), pageable));
+  }
+
   @PutMapping("/posts/{postId}/like")
   public ResponseEntity<Post> likePost(@PathVariable Long postId, @RequestAttribute("authenticationUser") User user) {
     Post post = feedService.likePost(postId, user.getId());
@@ -82,6 +101,18 @@ public class FeedController {
   public ResponseEntity<List<Comment>> getComments(@PathVariable Long postId) {
     List<Comment> comments = feedService.getPostComments(postId);
     return ResponseEntity.ok(comments);
+  }
+
+  @GetMapping("/posts/{postId}/comments/paginated")
+  public ResponseEntity<Page<Comment>> getCommentsPaginated(
+      @PathVariable Long postId,
+      @PageableDefault(size = 20) Pageable pageable) {
+    return ResponseEntity.ok(feedService.getPostComments(postId, pageable));
+  }
+
+  @GetMapping("/posts/{postId}/comments/count")
+  public ResponseEntity<Long> getCommentsCount(@PathVariable Long postId) {
+    return ResponseEntity.ok(feedService.getPostCommentsCount(postId));
   }
 
   @DeleteMapping("/comments/{commentId}")
