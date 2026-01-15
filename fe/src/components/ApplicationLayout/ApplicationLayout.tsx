@@ -5,10 +5,10 @@ import { WebSocketContextProvider } from "@/features/websocket/websocket";
 export function ApplicationLayout() {
   return (
     <WebSocketContextProvider>
-      <div className="min-h-screen grid gap-4 grid-rows-[auto_1fr]">
+      <div className="min-h-screen">
         <Header />
-        <main className="flex flex-col flex-1">
-          <div className="max-w-[74rem] w-full mx-auto px-[var(--container-padding,1rem)] py-[var(--container-padding,1rem)] h-full">
+        <main className="pt-25">
+          <div className="max-w-[1400px] w-full mx-auto px-6 py-4">
             <Outlet />
           </div>
         </main>

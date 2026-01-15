@@ -48,9 +48,7 @@ public class MessageController {
 
   @GetMapping("/conversations/{conversationId}/messages")
   public ResponseEntity<Page<Message>> getMessages(
-      @RequestAttribute("authenticationUser") User user,
-      @PathVariable Long conversationId,
-      @PageableDefault(size = 20) Pageable pageable) {
+                                                   @RequestAttribute("authenticationUser") User user, @PathVariable Long conversationId, @PageableDefault(size = 20) Pageable pageable) {
     return ResponseEntity.ok(messageService.getMessages(user, conversationId, pageable));
   }
 }

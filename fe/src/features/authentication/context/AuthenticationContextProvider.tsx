@@ -35,6 +35,7 @@ interface AuthenticationContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   signup: (email: string, password: string) => Promise<void>;
+  googleLogin: (code: string, page: string) => Promise<void>;
 }
 
 const AuthenticationContext = createContext<AuthenticationContextType | null>(
@@ -86,6 +87,20 @@ export function AuthenticationContextProvider() {
   const logout = async () => {
     localStorage.removeItem("token");
     setUser(null);
+  };
+
+  const googleLogin = async (code: string, page: string) => {
+    await request<AuthenticationResponse>({
+      endpoint: "/api/v1/authentication/oauth/google/login",
+      method: "POST",
+      body: JSON.stringify({ code, page }),
+      onSuccess: ({ token }) => {
+        localStorage.setItem("token", token);
+      },
+      onFailure: (error) => {
+        throw new Error(error);
+      },
+    });
   };
 
   useEffect(() => {
@@ -160,6 +175,7 @@ export function AuthenticationContextProvider() {
         login,
         logout,
         signup,
+        googleLogin,
         setUser,
       }}
     >

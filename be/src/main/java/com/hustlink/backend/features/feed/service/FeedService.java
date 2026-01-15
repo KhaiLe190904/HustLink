@@ -150,31 +150,25 @@ public class FeedService {
     Set<Long> connectedUserIds = connections.stream().map(connection -> connection.getAuthor().getId().equals(authenticatedUserId) ? connection.getRecipient().getId() : connection.getAuthor().getId()).collect(Collectors.toSet());
 
     Page<Post> posts = postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, pageable);
-    
-    List<PostResponseDto> postDtos = posts.getContent().stream()
-            .map(post -> PostResponseDto.from(post, authenticatedUserId))
-            .collect(Collectors.toList());
-    
+
+    List<PostResponseDto> postDtos = posts.getContent().stream().map(post -> PostResponseDto.from(post, authenticatedUserId)).collect(Collectors.toList());
+
     return new PageImpl<>(postDtos, pageable, posts.getTotalElements());
   }
 
   public Page<PostResponseDto> getAllPostDto(Long currentUserId, Pageable pageable) {
     Page<Post> posts = postRepository.findAllByOrderByCreationDateDesc(pageable);
-    
-    List<PostResponseDto> postDtos = posts.getContent().stream()
-            .map(post -> PostResponseDto.from(post, currentUserId))
-            .collect(Collectors.toList());
-    
+
+    List<PostResponseDto> postDtos = posts.getContent().stream().map(post -> PostResponseDto.from(post, currentUserId)).collect(Collectors.toList());
+
     return new PageImpl<>(postDtos, pageable, posts.getTotalElements());
   }
 
   public Page<PostResponseDto> getPostByUserIdDto(Long userId, Long currentUserId, Pageable pageable) {
     Page<Post> posts = postRepository.findByAuthorIdOrderByCreationDateDesc(userId, pageable);
-    
-    List<PostResponseDto> postDtos = posts.getContent().stream()
-            .map(post -> PostResponseDto.from(post, currentUserId))
-            .collect(Collectors.toList());
-    
+
+    List<PostResponseDto> postDtos = posts.getContent().stream().map(post -> PostResponseDto.from(post, currentUserId)).collect(Collectors.toList());
+
     return new PageImpl<>(postDtos, pageable, posts.getTotalElements());
   }
 

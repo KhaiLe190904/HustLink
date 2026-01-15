@@ -75,7 +75,6 @@ export function Profile() {
               required
               label="First Name"
               name="firstName"
-              placeholder="Ten"
               onChange={(e) =>
                 setData((prev) => ({ ...prev, firstName: e.target.value }))
               }
@@ -85,7 +84,6 @@ export function Profile() {
               required
               label="Last Name"
               name="lastName"
-              placeholder="Ho"
               onChange={(e) =>
                 setData((prev) => ({ ...prev, lastName: e.target.value }))
               }
@@ -98,7 +96,6 @@ export function Profile() {
               onFocus={() => setError("")}
               label="Latest company"
               name="company"
-              placeholder="Tên công ty"
               onChange={(e) =>
                 setData((prev) => ({ ...prev, company: e.target.value }))
               }
@@ -110,7 +107,6 @@ export function Profile() {
               }
               label="Latest position"
               name="position"
-              placeholder="Vị trí"
             ></Input>
           </div>
         )}
@@ -119,7 +115,6 @@ export function Profile() {
             onFocus={() => setError("")}
             label="Location"
             name="location"
-            placeholder="Vị trí"
             onChange={(e) =>
               setData((prev) => ({ ...prev, location: e.target.value }))
             }
