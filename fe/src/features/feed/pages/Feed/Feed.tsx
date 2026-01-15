@@ -8,7 +8,6 @@ import { LeftSidebar } from "@/features/feed/components/LeftSidebar/LeftSidebar.
 import { Madal } from "@/features/feed/components/Modal/Modal.tsx";
 import { IPost, Post } from "@/features/feed/components/Post/Post.tsx";
 import { RightSidebar } from "@/features/feed/components/RightSidebar/RightSidebar.tsx";
-import { Button } from "@/features/authentication/components/Button/Button.tsx";
 import { Page } from "@/utils/pagination.ts";
 import { throttle } from "@/utils/throttle.ts";
 
