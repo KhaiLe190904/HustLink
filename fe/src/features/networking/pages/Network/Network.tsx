@@ -48,7 +48,7 @@ export function Network() {
     });
 
     request<IUserRecommendation[]>({
-      endpoint: "/api/v1/networking/suggestions?limit=10&detailed=true",
+      endpoint: "/api/v1/networking/suggestions?limit=10",
       onSuccess: (data) => setSuggestions(data),
       onFailure: (error) => console.log(error),
     });

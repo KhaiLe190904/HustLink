@@ -1,6 +1,7 @@
 package com.hustlink.backend.features.networking.controller;
 
 import com.hustlink.backend.configuration.CacheConfigImproved.CacheEvictionHelper;
+import com.hustlink.backend.features.authentication.model.User;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ public class CacheMonitoringController {
   private final CacheEvictionHelper cacheEvictionHelper;
 
   @GetMapping("/stats")
-  public ResponseEntity<Map<String, Object>> getCacheStats() {
+  public ResponseEntity<Map<String, Object>> getCacheStats(@RequestAttribute("authenticationUser") User user) {
     Cache cache = cacheManager.getCache("userRecommendations");
 
     Map<String, Object> stats = new HashMap<>();
@@ -39,13 +40,13 @@ public class CacheMonitoringController {
   }
 
   @PostMapping("/clear")
-  public ResponseEntity<Map<String, String>> clearCache() {
+  public ResponseEntity<Map<String, String>> clearCache(@RequestAttribute("authenticationUser") User user) {
     cacheEvictionHelper.clearAllCache();
     return ResponseEntity.ok(Map.of("status", "success", "message", "Cache cleared"));
   }
 
   @PostMapping("/clear/user/{userId}")
-  public ResponseEntity<Map<String, String>> clearUserCache(@PathVariable Long userId) {
+  public ResponseEntity<Map<String, String>> clearUserCache(@RequestAttribute("authenticationUser") User user, @PathVariable Long userId) {
     cacheEvictionHelper.clearUserCache(userId);
     return ResponseEntity.ok(Map.of("status", "success", "message", "User cache cleared for userId: " + userId));
   }
