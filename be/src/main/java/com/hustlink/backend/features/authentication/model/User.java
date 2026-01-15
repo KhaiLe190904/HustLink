@@ -9,8 +9,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.*;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
 @Entity(name = "users")
+@Indexed(index = "users")
 @Builder
 @Data
 @AllArgsConstructor
@@ -35,9 +38,13 @@ public class User {
   private String passwordResetToken = null;
   private LocalDateTime passwordResetTokenExpiryDate = null;
 
+  @FullTextField(analyzer = "standard")
   private String firstName = null;
+  @FullTextField(analyzer = "standard")
   private String lastName = null;
+  @FullTextField(analyzer = "standard")
   private String company = null;
+  @FullTextField(analyzer = "standard")
   private String position = null;
   private String location = null;
   private Boolean profileComplete = false;

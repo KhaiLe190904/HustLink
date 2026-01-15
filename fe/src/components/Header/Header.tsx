@@ -1,9 +1,9 @@
 import logo from "/logo.svg";
 import { NavLink } from "react-router-dom";
-import { Input } from "@/components/Input/Input";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useEffect, useState } from "react";
 import { Profile } from "@/components/Header/components/Profile";
+import { Search } from "@/components/Header/components/Search/Search";
 import { useWebSocket } from "@/features/websocket/websocket";
 import { request } from "@/utils/api";
 import { INotification } from "@/features/feed/pages/Notifications/Notifications";
@@ -206,11 +206,7 @@ export function Header() {
             />
           </NavLink>
           <div className="max-w-xs mt-1 hidden lg:block">
-            <Input
-              type="text"
-              placeholder="🔍 Find people, posts..."
-              className="!my-0"
-            />
+            <Search />
           </div>
         </div>
         <div className="flex items-center gap-2 lg:gap-6">

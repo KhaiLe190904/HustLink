@@ -51,6 +51,19 @@ export function CommentModal({
     }
   }, [showModal]);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showModal]);
+
   if (!showModal) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -64,11 +77,11 @@ export function CommentModal({
       className="fixed inset-0 bg-black/70 flex justify-center items-center z-[9999] p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] shadow-2xl animate-[slideUp_0.3s_ease-out] flex flex-col lg:flex-row overflow-hidden">
+      <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] shadow-2xl animate-[slideUp_0.3s_ease-out] flex flex-col lg:flex-row overflow-hidden">
         {/* Left Side - Post Content */}
-        <div className="lg:w-1/2 flex flex-col border-r border-gray-200 bg-gray-50">
+        <div className="lg:w-1/2 flex flex-col border-r border-gray-200 bg-gray-50 max-h-[45vh] lg:max-h-full">
           {/* Header - Mobile only */}
-          <div className="flex lg:hidden justify-between items-center p-4 border-b border-gray-200 bg-white">
+          <div className="flex lg:hidden justify-between items-center p-4 border-b border-gray-200 bg-white flex-shrink-0">
             <h3 className="font-bold text-lg text-gray-900">
               {post.author.firstName}'s post
             </h3>
@@ -93,7 +106,7 @@ export function CommentModal({
           </div>
 
           {/* Post Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <div className="p-4">
               <button
                 className="flex gap-3 items-center mb-3 hover:bg-white/50 p-2 rounded-lg transition-colors w-full text-left"
@@ -150,9 +163,9 @@ export function CommentModal({
         </div>
 
         {/* Right Side - Comments Section */}
-        <div className="lg:w-1/2 flex flex-col bg-white">
+        <div className="lg:w-1/2 flex flex-col bg-white flex-1 lg:flex-none min-h-0">
           {/* Header - Desktop only */}
-          <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200">
+          <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200 flex-shrink-0">
             <h3 className="font-bold text-lg text-gray-900">
               Comments ({commentsCount})
             </h3>
@@ -177,7 +190,7 @@ export function CommentModal({
           </div>
 
           {/* Comment Input - Fixed at top */}
-          <div className="border-b border-gray-200 p-2 bg-white">
+          <div className="border-b border-gray-200 p-2 bg-white flex-shrink-0">
             <form
               onSubmit={onSubmitComment}
               className="flex gap-2 items-center"
@@ -206,7 +219,7 @@ export function CommentModal({
           {/* Comments List - Scrollable */}
           <div
             ref={commentsContainerRef}
-            className="flex-1 overflow-y-auto p-4"
+            className="flex-1 overflow-y-auto p-4 min-h-0"
             onScroll={(e) => {
               const target = e.currentTarget;
               // Load older comments within 200px from bottom
