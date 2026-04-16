@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useWebSocket } from "@/features/websocket/websocket";
+import { resolveMediaUrl } from "@/utils/storage";
 import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
 
 interface ConversationItemProps {
@@ -24,6 +25,27 @@ export function Conversation(props: ConversationItemProps) {
   const unreadMessagesCount = conversation.messages.filter(
     (message) => message.receiver.id === user?.id && !message.isRead
   ).length;
+  const latestMessage = conversation.messages[conversation.messages.length - 1];
+
+  const getConversationPreview = () => {
+    if (!latestMessage) {
+      return "No messages yet";
+    }
+
+    if (latestMessage.content?.trim()) {
+      return latestMessage.content;
+    }
+
+    switch (latestMessage.attachmentKind) {
+      case "IMAGE":
+        return "Image sent";
+      case "VIDEO":
+        return "Video sent";
+      case "FILE":
+      default:
+        return "File sent";
+    }
+  };
 
   useEffect(() => {
     const subscription = ws?.subscribe(
@@ -63,7 +85,10 @@ export function Conversation(props: ConversationItemProps) {
     >
       <img
         className="w-12 h-12 flex-shrink-0 rounded-full object-cover"
-        src={conversationUserToDisplay.profilePicture || "/doc1.png"}
+        src={
+          resolveMediaUrl(conversationUserToDisplay.profilePicture) ||
+          "/doc1.png"
+        }
         alt="Profile"
       />
 
@@ -79,7 +104,7 @@ export function Conversation(props: ConversationItemProps) {
           {conversationUserToDisplay.lastName}
         </div>
         <div className="line-clamp-1 text-gray-600 overflow-hidden text-ellipsis">
-          {conversation.messages[conversation.messages.length - 1]?.content}
+          {getConversationPreview()}
         </div>
       </div>
     </button>

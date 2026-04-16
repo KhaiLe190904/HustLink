@@ -1,18 +1,26 @@
-import { Dispatch, FormEvent, SetStateAction, useEffect, useRef } from "react";
+import {
+  Dispatch,
+  FormEvent,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { IoSend } from "react-icons/io5";
+import { AiFillLike, AiOutlineLike } from "react-icons/ai";
+import { FaRegComment } from "react-icons/fa";
 import { Input } from "@/components/Input/Input";
 import { Comment, IComment } from "@/features/feed/components/Comment/Comment";
 import { IPost } from "@/features/feed/components/Post/Post";
 import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
-import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
+import { isVideoFile, resolveMediaUrl } from "@/utils/storage";
 
 interface CommentModalProps {
   showModal: boolean;
   setShowModal: Dispatch<SetStateAction<boolean>>;
   post: IPost;
   comments: IComment[];
-  likes: IUser[];
   content: string;
   setContent: Dispatch<SetStateAction<string>>;
   onSubmitComment: (e: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -22,6 +30,10 @@ interface CommentModalProps {
   hasMoreComments?: boolean;
   loadingComments?: boolean;
   commentsCount: number;
+  likesCount: number;
+  likedByCurrentUser: boolean;
+  onLike: () => Promise<void>;
+  likeDisabled?: boolean;
 }
 
 export function CommentModal({
@@ -29,7 +41,6 @@ export function CommentModal({
   setShowModal,
   post,
   comments,
-  likes,
   content,
   setContent,
   onSubmitComment,
@@ -39,9 +50,24 @@ export function CommentModal({
   hasMoreComments,
   loadingComments,
   commentsCount,
+  likesCount,
+  likedByCurrentUser,
+  onLike,
+  likeDisabled,
 }: CommentModalProps) {
   const navigate = useNavigate();
   const commentsContainerRef = useRef<HTMLDivElement>(null);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const postMediaUrls =
+    post.mediaUrls && post.mediaUrls.length > 0
+      ? post.mediaUrls
+      : post.picture
+        ? [post.picture]
+        : [];
+
+  useEffect(() => {
+    setCurrentMediaIndex(0);
+  }, [post.id, post.picture, post.mediaUrls, showModal]);
 
   useEffect(() => {
     if (showModal && commentsContainerRef.current) {
@@ -77,9 +103,9 @@ export function CommentModal({
       className="fixed inset-0 bg-black/70 flex justify-center items-center z-[9999] p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] shadow-2xl animate-[slideUp_0.3s_ease-out] flex flex-col lg:flex-row overflow-hidden">
+      <div className="bg-white rounded-2xl w-full max-w-[95vw] h-[94vh] shadow-2xl animate-[slideUp_0.3s_ease-out] flex flex-col lg:flex-row overflow-hidden">
         {/* Left Side - Post Content */}
-        <div className="lg:w-1/2 flex flex-col border-r border-gray-200 bg-gray-50 max-h-[45vh] lg:max-h-full">
+        <div className="lg:w-[62%] flex flex-col border-r border-gray-200 bg-gray-50 max-h-[45vh] lg:max-h-full">
           {/* Header - Mobile only */}
           <div className="flex lg:hidden justify-between items-center p-4 border-b border-gray-200 bg-white flex-shrink-0">
             <h3 className="font-bold text-lg text-gray-900">
@@ -106,8 +132,8 @@ export function CommentModal({
           </div>
 
           {/* Post Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="p-4">
+          <div className="flex flex-1 flex-col min-h-0">
+            <div className="p-4 flex-shrink-0">
               <button
                 className="flex gap-3 items-center mb-3 hover:bg-white/50 p-2 rounded-lg transition-colors w-full text-left"
                 onClick={() => {
@@ -139,31 +165,60 @@ export function CommentModal({
               </p>
             </div>
 
-            {/* Post Image */}
-            {post.picture && (
-              <div className="bg-black flex items-center justify-center">
-                <img
-                  src={post.picture}
-                  alt=""
-                  className="w-full h-auto object-contain max-h-[60vh]"
-                />
-              </div>
-            )}
-
-            {/* Likes count */}
-            {likes.length > 0 && (
-              <div className="p-4">
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">{likes.length}</span>{" "}
-                  {likes.length === 1 ? "person likes" : "people like"} this
-                </div>
+            {/* Post Media */}
+            {postMediaUrls.length > 0 && (
+              <div className="relative flex flex-1 min-h-0 items-center justify-center bg-black">
+                {isVideoFile(postMediaUrls[currentMediaIndex]) ? (
+                  <video
+                    src={resolveMediaUrl(postMediaUrls[currentMediaIndex])}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="max-h-full max-w-full bg-black object-contain"
+                  />
+                ) : (
+                  <img
+                    src={resolveMediaUrl(postMediaUrls[currentMediaIndex])}
+                    alt=""
+                    className="max-h-full max-w-full object-contain"
+                  />
+                )}
+                {postMediaUrls.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentMediaIndex((prev) =>
+                          prev === 0 ? postMediaUrls.length - 1 : prev - 1
+                        )
+                      }
+                      className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white transition hover:bg-black/80"
+                    >
+                      {"<"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCurrentMediaIndex((prev) =>
+                          prev === postMediaUrls.length - 1 ? 0 : prev + 1
+                        )
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white transition hover:bg-black/80"
+                    >
+                      {">"}
+                    </button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
+                      {currentMediaIndex + 1}/{postMediaUrls.length}
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
         </div>
 
         {/* Right Side - Comments Section */}
-        <div className="lg:w-1/2 flex flex-col bg-white flex-1 lg:flex-none min-h-0">
+        <div className="lg:w-[38%] flex flex-col bg-white flex-1 lg:flex-none min-h-0">
           {/* Header - Desktop only */}
           <div className="hidden lg:flex justify-between items-center p-4 border-b border-gray-200 flex-shrink-0">
             <h3 className="font-bold text-lg text-gray-900">
@@ -190,6 +245,36 @@ export function CommentModal({
           </div>
 
           {/* Comment Input - Fixed at top */}
+          <div className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 bg-white flex-shrink-0">
+            <button
+              type="button"
+              disabled={likeDisabled}
+              onClick={() => void onLike()}
+              className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-colors ${
+                likedByCurrentUser
+                  ? "bg-blue-50 text-blue-600"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              } disabled:cursor-wait`}
+            >
+              {likedByCurrentUser ? (
+                <AiFillLike className="h-4 w-4" />
+              ) : (
+                <AiOutlineLike className="h-4 w-4" />
+              )}
+              <span>{likedByCurrentUser ? "Liked" : "Like"}</span>
+            </button>
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <AiFillLike className="h-4 w-4 text-blue-500" />
+                {likesCount}
+              </span>
+              <span className="flex items-center gap-1">
+                <FaRegComment className="h-4 w-4" />
+                {commentsCount}
+              </span>
+            </div>
+          </div>
+
           <div className="border-b border-gray-200 p-2 bg-white flex-shrink-0">
             <form
               onSubmit={onSubmitComment}

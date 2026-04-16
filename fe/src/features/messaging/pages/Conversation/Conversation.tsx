@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState, useRef } from "react";
+import { toast } from "react-toastify";
 import { useNavigate, useParams } from "react-router-dom";
 import { Input } from "@/components/Input/Input";
 import { request } from "@/utils/api";
@@ -15,13 +16,21 @@ import {
 } from "@/features/messaging/components/Messages/Messages";
 import { IoSend } from "react-icons/io5";
 import { Page } from "@/utils/pagination";
+import {
+  isOversizedUpload,
+  MAX_UPLOAD_SIZE_LABEL,
+  resolveMediaUrl,
+  uploadToStorage,
+} from "@/utils/storage";
 export function Conversation() {
   const [postingMessage, setPostingMessage] = useState<boolean>(false);
+  const [uploadStage, setUploadStage] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [suggestingUsers, setSuggestingUsers] = useState<IUser[]>([]);
   const [search, setSearch] = useState<string>("");
   const [selectedUser, setSelectedUser] = useState<IUser | null>(null);
   const [showDropdown, setShowDropdown] = useState<boolean>(false);
+  const [attachment, setAttachment] = useState<File | null>(null);
   const [conversation, setConversation] = useState<IConversation | null>(null);
   const [conversations, setConversations] = useState<IConversation[]>([]);
   const [messages, setMessages] = useState<IMessage[]>([]);
@@ -29,6 +38,7 @@ export function Conversation() {
   const [hasMoreMessages, setHasMoreMessages] = useState<boolean>(true);
   const [loadingMessages, setLoadingMessages] = useState<boolean>(false);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const websocketClient = useWebSocket();
   const { id } = useParams();
   const navigate = useNavigate();
@@ -155,8 +165,32 @@ export function Conversation() {
 
   async function addMessageToConversation(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !attachment) return;
     setPostingMessage(true);
+    setUploadStage(
+      attachment ? "Uploading attachment..." : "Sending message..."
+    );
+    let attachmentObjectId: number | undefined;
+    let attachmentKind: string | undefined;
+    if (attachment) {
+      const storedObject = await uploadToStorage({
+        file: attachment,
+        scope: attachment.type.startsWith("image/")
+          ? "MESSAGE_IMAGE"
+          : attachment.type.startsWith("video/")
+            ? "MESSAGE_VIDEO"
+            : "MESSAGE_FILE",
+        ownerType: "CONVERSATION",
+        ownerId: conversation?.id,
+      });
+      attachmentObjectId = storedObject.id;
+      attachmentKind = attachment.type.startsWith("image/")
+        ? "IMAGE"
+        : attachment.type.startsWith("video/")
+          ? "VIDEO"
+          : "FILE";
+    }
+    setUploadStage("Sending message...");
     await request<void>({
       endpoint: `/api/v1/messaging/conversations/${conversation?.id}/messages`,
       method: "POST",
@@ -166,20 +200,48 @@ export function Conversation() {
             ? conversation?.author.id
             : conversation?.recipient.id,
         content,
+        attachmentObjectId,
+        attachmentKind,
       }),
       onSuccess: () => {},
       onFailure: (error) => console.log(error),
     });
     setPostingMessage(false);
+    setUploadStage("");
   }
 
   async function createConversationWithMessage(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !attachment) return;
+    setPostingMessage(true);
+    setUploadStage(
+      attachment ? "Uploading attachment..." : "Creating conversation..."
+    );
+    let attachmentObjectId: number | undefined;
+    let attachmentKind: string | undefined;
+    if (attachment) {
+      const storedObject = await uploadToStorage({
+        file: attachment,
+        scope: attachment.type.startsWith("image/")
+          ? "MESSAGE_IMAGE"
+          : attachment.type.startsWith("video/")
+            ? "MESSAGE_VIDEO"
+            : "MESSAGE_FILE",
+        ownerType: "CONVERSATION",
+      });
+      attachmentObjectId = storedObject.id;
+      attachmentKind = attachment.type.startsWith("image/")
+        ? "IMAGE"
+        : attachment.type.startsWith("video/")
+          ? "VIDEO"
+          : "FILE";
+    }
 
     const message = {
       receiverId: selectedUser?.id,
       content,
+      attachmentObjectId,
+      attachmentKind,
     };
     await request<IConversation>({
       endpoint: "/api/v1/messaging/conversations",
@@ -189,6 +251,8 @@ export function Conversation() {
         navigate(`/messaging/conversations/${conversation.id}`),
       onFailure: (error) => console.log(error),
     });
+    setPostingMessage(false);
+    setUploadStage("");
   }
 
   const conversationUserToDisplay =
@@ -222,7 +286,11 @@ export function Conversation() {
               >
                 <img
                   className="w-12 h-12 rounded-full object-cover"
-                  src={conversationUserToDisplay?.profilePicture || "/doc1.png"}
+                  src={
+                    resolveMediaUrl(
+                      conversationUserToDisplay?.profilePicture
+                    ) || "/doc1.png"
+                  }
                   alt="Profile"
                 />
               </button>
@@ -294,7 +362,10 @@ export function Conversation() {
                           >
                             <img
                               className="w-10 h-10 rounded-full object-cover flex-shrink-0"
-                              src={user.profilePicture || "/doc1.png"}
+                              src={
+                                resolveMediaUrl(user.profilePicture) ||
+                                "/doc1.png"
+                              }
                               alt=""
                             />
                             <div className="text-left flex-1">
@@ -332,7 +403,10 @@ export function Conversation() {
                 <div className="flex items-center gap-3 mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <img
                     className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                    src={selectedUser.profilePicture || "/doc1.png"}
+                    src={
+                      resolveMediaUrl(selectedUser.profilePicture) ||
+                      "/doc1.png"
+                    }
                     alt=""
                   />
                   <div className="flex-1 min-w-0">
@@ -395,13 +469,17 @@ export function Conversation() {
             className="px-4 py-3 bg-white border-t border-gray-200"
             onSubmit={async (e) => {
               e.preventDefault();
-              if (!content.trim()) return;
+              if (!content.trim() && !attachment) return;
               if (conversation) {
                 await addMessageToConversation(e);
               } else {
                 await createConversationWithMessage(e);
               }
               setContent("");
+              setAttachment(null);
+              if (attachmentInputRef.current) {
+                attachmentInputRef.current.value = "";
+              }
               setSelectedUser(null);
             }}
           >
@@ -454,18 +532,69 @@ export function Conversation() {
                   }
                 }}
               />
+              <label className="mb-0.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-50">
+                <input
+                  ref={attachmentInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="image/*,video/*,.pdf,.doc,.docx,.zip,.txt"
+                  onChange={(e) => {
+                    const nextAttachment = e.target.files?.[0] ?? null;
+                    if (nextAttachment && isOversizedUpload(nextAttachment)) {
+                      toast.error(
+                        `${nextAttachment.name} exceeds the ${MAX_UPLOAD_SIZE_LABEL} upload limit.`
+                      );
+                      e.currentTarget.value = "";
+                      setAttachment(null);
+                      return;
+                    }
+                    setAttachment(nextAttachment);
+                  }}
+                />
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M12 5v14m-7-7h14"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </label>
               <button
                 type="submit"
                 className="w-10 h-10 rounded-full bg-[var(--primary-color)] flex items-center justify-center text-white hover:bg-[var(--primary-color)]/90 active:scale-95 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300 disabled:active:scale-100 flex-shrink-0 mb-0.5"
                 disabled={
                   postingMessage ||
-                  !content.trim() ||
+                  (!content.trim() && !attachment) ||
                   (creatingNewConversation && !selectedUser)
                 }
               >
                 <IoSend className="w-5 h-5" />
               </button>
             </div>
+            {attachment ? (
+              <div className="mt-2 text-xs text-gray-500">
+                Attached: {attachment.name}
+                <button
+                  type="button"
+                  className="ml-2 text-red-600 hover:underline"
+                  onClick={() => setAttachment(null)}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : null}
+            {postingMessage && uploadStage ? (
+              <div className="mt-2">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{uploadStage}</span>
+                  <span>Please wait</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                  <div className="h-full w-1/2 animate-pulse rounded-full bg-[var(--primary-color)]" />
+                </div>
+              </div>
+            ) : null}
           </form>
         </>
       )}

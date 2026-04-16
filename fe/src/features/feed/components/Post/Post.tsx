@@ -19,12 +19,14 @@ import { CommentModal } from "@/features/feed/components/CommentModal/CommentMod
 import { AiOutlineLike, AiFillLike } from "react-icons/ai";
 import { FaRegComment } from "react-icons/fa";
 import { Page } from "@/utils/pagination";
+import { isVideoFile, resolveMediaUrl, uploadToStorage } from "@/utils/storage";
 
 export interface IPost {
   id: number;
   content: string;
   author: IUser;
   picture?: string;
+  mediaUrls?: string[];
   creationDate: string;
   updateDate?: string;
   likesCount: number;
@@ -38,6 +40,12 @@ interface PostProps {
 }
 
 export function Post({ post, setPosts }: PostProps) {
+  const postMediaUrls =
+    post.mediaUrls && post.mediaUrls.length > 0
+      ? post.mediaUrls
+      : post.picture
+        ? [post.picture]
+        : [];
   const [comments, setComments] = useState<IComment[]>([]);
   const [commentsPage, setCommentsPage] = useState<number>(0);
   const [hasMoreComments, setHasMoreComments] = useState<boolean>(true);
@@ -46,16 +54,26 @@ export function Post({ post, setPosts }: PostProps) {
     post.commentsCount
   );
   const [showCommentModal, setShowCommentModal] = useState(false);
-  const [likes, setLikes] = useState<IUser[]>([]);
   const [likesCount, setLikesCount] = useState<number>(post.likesCount);
   const [content, setContent] = useState("");
   const navigate = useNavigate();
   const { user } = useAuthentication();
   const [showMenu, setShowMenu] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const webSocketClient = useWebSocket();
 
   const [postLiked, setPostLiked] = useState<boolean>(post.likedByCurrentUser);
+
+  useEffect(() => {
+    setLikesCount(post.likesCount ?? 0);
+    setCommentsCount(post.commentsCount ?? 0);
+    setPostLiked(post.likedByCurrentUser ?? false);
+  }, [post.commentsCount, post.likedByCurrentUser, post.likesCount]);
+
+  useEffect(() => {
+    setCurrentMediaIndex(0);
+  }, [post.id, post.picture, post.mediaUrls]);
 
   // Fetch comments only when modal opens
   useEffect(() => {
@@ -89,7 +107,6 @@ export function Post({ post, setPosts }: PostProps) {
       `/topic/likes/${post.id}`,
       (message) => {
         const likes = JSON.parse(message.body);
-        setLikes(likes);
         setLikesCount(likes.length);
         setPostLiked(likes.some((like: IUser) => like.id === user?.id));
       }
@@ -261,11 +278,32 @@ export function Post({ post, setPosts }: PostProps) {
     });
   };
 
-  const editPost = async (content: string, picture: string) => {
+  const editPost = async (
+    content: string,
+    mediaUrls: string[],
+    mediaFiles: File[]
+  ) => {
+    const nextMediaUrls = [...mediaUrls];
+    for (const mediaFile of mediaFiles.slice(0, 3 - nextMediaUrls.length)) {
+      const storedObject = await uploadToStorage({
+        file: mediaFile,
+        scope: mediaFile.type.startsWith("video/")
+          ? "FEED_VIDEO"
+          : "FEED_IMAGE",
+        ownerType: "POST",
+        ownerId: post.id,
+      });
+      nextMediaUrls.push(storedObject.accessUrl);
+    }
+
     await request<IPost>({
       endpoint: `/api/v1/feed/posts/${post.id}`,
       method: "PUT",
-      body: JSON.stringify({ content, picture }),
+      body: JSON.stringify({
+        content,
+        picture: nextMediaUrls[0] || null,
+        mediaUrls: nextMediaUrls,
+      }),
       onSuccess: (data) => {
         setPosts((prev) =>
           prev.map((p) => {
@@ -289,7 +327,7 @@ export function Post({ post, setPosts }: PostProps) {
         <Madal
           title="Editing your post"
           content={post.content}
-          picture={post.picture}
+          mediaUrls={post.mediaUrls}
           onSubmit={editPost}
           showModal={editing}
           setShowModal={setEditing}
@@ -312,7 +350,7 @@ export function Post({ post, setPosts }: PostProps) {
             >
               <img
                 className="w-16 h-16 rounded-full" /* .avatar styles */
-                src={post.author.profilePicture || "/doc1.png"}
+                src={resolveMediaUrl(post.author.profilePicture) || "/doc1.png"}
                 alt=""
               />
             </button>
@@ -386,8 +424,55 @@ export function Post({ post, setPosts }: PostProps) {
           {post.content}
         </div>{" "}
         {/* .content styles */}
-        {post.picture && (
-          <img src={post.picture} alt="" className="w-full" />
+        {postMediaUrls.length > 0 && (
+          <div className="relative bg-black">
+            {isVideoFile(postMediaUrls[currentMediaIndex]) ? (
+              <video
+                src={resolveMediaUrl(postMediaUrls[currentMediaIndex])}
+                controls
+                playsInline
+                preload="metadata"
+                onClick={() => setShowCommentModal(true)}
+                className="w-full bg-black cursor-pointer"
+              />
+            ) : (
+              <img
+                src={resolveMediaUrl(postMediaUrls[currentMediaIndex])}
+                alt=""
+                onClick={() => setShowCommentModal(true)}
+                className="w-full object-cover cursor-pointer"
+              />
+            )}
+            {postMediaUrls.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentMediaIndex((prev) =>
+                      prev === 0 ? postMediaUrls.length - 1 : prev - 1
+                    )
+                  }
+                  className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white transition hover:bg-black/80"
+                >
+                  {"<"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCurrentMediaIndex((prev) =>
+                      prev === postMediaUrls.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 px-3 py-2 text-white transition hover:bg-black/80"
+                >
+                  {">"}
+                </button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white">
+                  {currentMediaIndex + 1}/{postMediaUrls.length}
+                </div>
+              </>
+            )}
+          </div>
         )}{" "}
         {/* .picture styles */}
         <div className="flex justify-between items-center px-4 py-1">
@@ -464,7 +549,6 @@ export function Post({ post, setPosts }: PostProps) {
         setShowModal={setShowCommentModal}
         post={post}
         comments={comments}
-        likes={likes}
         content={content}
         setContent={setContent}
         onSubmitComment={postComment}
@@ -474,6 +558,10 @@ export function Post({ post, setPosts }: PostProps) {
         hasMoreComments={hasMoreComments}
         loadingComments={loadingComments}
         commentsCount={commentsCount}
+        likesCount={likesCount}
+        likedByCurrentUser={postLiked ?? false}
+        onLike={like}
+        likeDisabled={postLiked == undefined}
       />
     </>
   );

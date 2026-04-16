@@ -32,12 +32,14 @@ public class MessageController {
 
   @PostMapping("/conversations")
   public Conversation createConversation(@RequestAttribute("authenticationUser") User sender, @RequestBody MessageDto messageDto) {
-    return messageService.createConversationAndAddMessage(sender, messageDto.receiverId(), messageDto.content());
+    return messageService.createConversationAndAddMessage(
+            sender, messageDto.receiverId(), messageDto.content(), messageDto.attachmentObjectId(), messageDto.attachmentKind());
   }
 
   @PostMapping("/conversations/{conversationId}/messages")
   public Message addMessageToConversation(@RequestAttribute("authenticationUser") User sender, @RequestBody MessageDto messageDto, @PathVariable Long conversationId) {
-    return messageService.addMessageToConversation(conversationId, sender, messageDto.receiverId(), messageDto.content());
+    return messageService.addMessageToConversation(
+            conversationId, sender, messageDto.receiverId(), messageDto.content(), messageDto.attachmentObjectId(), messageDto.attachmentKind());
   }
 
   @PutMapping("/conversations/messages/{messageId}")

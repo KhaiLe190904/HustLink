@@ -7,6 +7,8 @@ import com.hustlink.backend.features.messaging.model.Message;
 import com.hustlink.backend.features.messaging.repository.ConversationRepository;
 import com.hustlink.backend.features.messaging.repository.MessageRepository;
 import com.hustlink.backend.features.notifications.service.NotificationService;
+import com.hustlink.backend.features.storage.model.StoredObject;
+import com.hustlink.backend.features.storage.service.ObjectStorageService;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class MessageService {
   private final MessageRepository messageRepository;
   private final NotificationService notificationService;
   private final SimpMessagingTemplate messagingTemplate;
+  private final ObjectStorageService objectStorageService;
 
   public List<Conversation> getConversationOfUser(User user) {
     return conversationRepository.findByAuthorOrRecipient(user, user);
@@ -37,7 +40,8 @@ public class MessageService {
   }
 
   @Transactional
-  public Conversation createConversationAndAddMessage(User sender, Long receiverId, String content) {
+  public Conversation createConversationAndAddMessage(
+                                                      User sender, Long receiverId, String content, Long attachmentObjectId, String attachmentKind) {
     User receiver = authenticationService.getUserById(receiverId);
     conversationRepository.findByAuthorAndRecipient(sender, receiver).ifPresentOrElse(conversation -> {
       throw new IllegalArgumentException(
@@ -52,14 +56,15 @@ public class MessageService {
     });
 
     Conversation conversation = conversationRepository.save(new Conversation(sender, receiver));
-    Message message = new Message(sender, receiver, conversation, content);
+    Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind);
     messageRepository.save(message);
     conversation.getMessages().add(message);
     notificationService.sendConversationToUsers(sender.getId(), receiver.getId(), conversation);
     return conversation;
   }
 
-  public Message addMessageToConversation(Long conversationId, User sender, Long receiverId, String content) {
+  public Message addMessageToConversation(
+                                          Long conversationId, User sender, Long receiverId, String content, Long attachmentObjectId, String attachmentKind) {
     User receiver = authenticationService.getUserById(receiverId);
     Conversation conversation = conversationRepository.findById(conversationId).orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
@@ -71,7 +76,7 @@ public class MessageService {
       throw new IllegalArgumentException("Receiver doesn't belong to this conversation");
     }
 
-    Message message = new Message(sender, receiver, conversation, content);
+    Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind);
     messageRepository.save(message);
     conversation.getMessages().add(message);
     notificationService.sendMessageToConversation(conversation.getId(), message);
@@ -95,5 +100,16 @@ public class MessageService {
       throw new IllegalArgumentException("You are not allowed to access this conversation");
     }
     return messageRepository.findByConversationOrderByCreationAtDesc(conversation, pageable);
+  }
+
+  private Message createMessage(
+                                User sender, User receiver, Conversation conversation, String content, Long attachmentObjectId, String attachmentKind) {
+    if (attachmentObjectId == null) {
+      return new Message(sender, receiver, conversation, content);
+    }
+
+    StoredObject storedObject = objectStorageService.getStoredObject(attachmentObjectId);
+    return new Message(
+            sender, receiver, conversation, content, storedObject.getId(), attachmentKind, storedObject.getOriginalFileName(), storedObject.getContentType());
   }
 }

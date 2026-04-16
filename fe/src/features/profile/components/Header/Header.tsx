@@ -3,6 +3,7 @@ import { Input } from "@/components/Input/Input";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
+import { resolveMediaUrl, uploadToStorage } from "@/utils/storage";
 
 import { Button } from "@/features/authentication/components/Button/Button";
 interface ITopProps {
@@ -18,7 +19,11 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
     position: user?.position,
     company: user?.company,
     location: user?.location,
+    profilePicture: user?.profilePicture,
+    coverPicture: user?.coverPicture,
   });
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [connexions, setConnections] = useState<IConnection[]>([]);
   const [invitations, setInvitations] = useState<IConnection[]>([]);
   const connection =
@@ -36,6 +41,8 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
       position: user?.position,
       company: user?.company,
       location: user?.location,
+      profilePicture: user?.profilePicture,
+      coverPicture: user?.coverPicture,
     });
   }, [user]);
 
@@ -56,12 +63,37 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
   }, [user?.id]);
 
   async function updateInfo() {
+    let profilePicture = info.profilePicture;
+    let coverPicture = info.coverPicture;
+
+    if (profileImageFile) {
+      const storedObject = await uploadToStorage({
+        file: profileImageFile,
+        scope: "PROFILE_IMAGE",
+        ownerType: "USER",
+        ownerId: user?.id,
+      });
+      profilePicture = storedObject.accessUrl;
+    }
+
+    if (coverImageFile) {
+      const storedObject = await uploadToStorage({
+        file: coverImageFile,
+        scope: "PROFILE_COVER",
+        ownerType: "USER",
+        ownerId: user?.id,
+      });
+      coverPicture = storedObject.accessUrl;
+    }
+
     await request<IUser>({
-      endpoint: `/api/v1/authentication/profile/${user?.id}?firstName=${info.firstName}&lastName=${info.lastName}&position=${info.position}&company=${info.company}&location=${info.location}`,
+      endpoint: `/api/v1/authentication/profile/${user?.id}?firstName=${encodeURIComponent(info.firstName || "")}&lastName=${encodeURIComponent(info.lastName || "")}&position=${encodeURIComponent(info.position || "")}&company=${encodeURIComponent(info.company || "")}&location=${encodeURIComponent(info.location || "")}&profilePicture=${encodeURIComponent(profilePicture || "")}&coverPicture=${encodeURIComponent(coverPicture || "")}`,
       method: "PUT",
       onSuccess: (data) => {
         onUpdate(data);
         setEditingInfo(false);
+        setProfileImageFile(null);
+        setCoverImageFile(null);
       },
       onFailure: (error) => console.log(error),
     });
@@ -71,14 +103,14 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
     <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
       <img
         className="w-full h-48 object-cover"
-        src={user?.coverPicture || "/cover.jpeg"}
+        src={resolveMediaUrl(user?.coverPicture) || "/cover.jpeg"}
         alt="Cover"
       />
 
       <div className="relative -mt-16 ml-6 mb-4">
         <img
           className="w-32 h-32 rounded-full border-4 border-white object-cover"
-          src={user?.profilePicture || "/doc1.png"}
+          src={resolveMediaUrl(user?.profilePicture) || "/doc1.png"}
           alt="Profile"
         />
       </div>
@@ -175,6 +207,8 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                       company: user?.company || "",
                       position: user?.position || "",
                       location: user?.location || "",
+                      profilePicture: user?.profilePicture || "",
+                      coverPicture: user?.coverPicture || "",
                     });
                   }}
                 >
@@ -238,6 +272,34 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                 onChange={(e) => setInfo({ ...info, location: e.target.value })}
                 placeholder="Location"
               />
+              <div className="grid grid-cols-1 gap-4 mt-2 md:grid-cols-2">
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
+                  <label className="text-sm font-medium text-gray-700">
+                    Profile image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="mt-2 block w-full text-sm text-gray-600"
+                    onChange={(e) =>
+                      setProfileImageFile(e.target.files?.[0] ?? null)
+                    }
+                  />
+                </div>
+                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
+                  <label className="text-sm font-medium text-gray-700">
+                    Cover image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="mt-2 block w-full text-sm text-gray-600"
+                    onChange={(e) =>
+                      setCoverImageFile(e.target.files?.[0] ?? null)
+                    }
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>

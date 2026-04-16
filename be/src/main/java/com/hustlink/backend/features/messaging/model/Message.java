@@ -37,6 +37,14 @@ public class Message {
   @Column(columnDefinition = "NVARCHAR(MAX)")
   private String content;
 
+  private Long attachmentObjectId;
+
+  private String attachmentKind;
+
+  private String attachmentFileName;
+
+  private String attachmentContentType;
+
   @JsonProperty("isRead")
   private boolean isRead;
 
@@ -48,5 +56,17 @@ public class Message {
     this.receiver = receiver;
     this.conversation = conversation;
     this.content = content;
+  }
+
+  public Message(
+                 User sender, User receiver, Conversation conversation, String content, Long attachmentObjectId, String attachmentKind, String attachmentFileName, String attachmentContentType) {
+    this.sender = sender;
+    this.receiver = receiver;
+    this.conversation = conversation;
+    this.content = content;
+    this.attachmentObjectId = attachmentObjectId;
+    this.attachmentKind = attachmentKind;
+    this.attachmentFileName = attachmentFileName;
+    this.attachmentContentType = attachmentContentType;
   }
 }

@@ -4,17 +4,20 @@ import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.feed.dto.CommentDto;
 import com.hustlink.backend.features.feed.dto.PostDto;
 import com.hustlink.backend.features.feed.dto.PostResponseDto;
+import com.hustlink.backend.features.feed.dto.ViewedPostsRequestDto;
 import com.hustlink.backend.features.feed.model.Comment;
 import com.hustlink.backend.features.feed.model.Post;
 import com.hustlink.backend.features.feed.service.FeedService;
-import java.util.List;
-import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,15 +26,22 @@ public class FeedController {
   private final FeedService feedService;
 
   @GetMapping("")
-  public ResponseEntity<List<Post>> getFeedPosts(@RequestAttribute("authenticationUser") User user) {
+  public ResponseEntity<List<PostResponseDto>> getFeedPosts(@RequestAttribute("authenticationUser") User user) {
     List<Post> posts = feedService.getFeedPost(user.getId());
-    return ResponseEntity.ok(posts);
+    return ResponseEntity.ok(posts.stream().map(post -> PostResponseDto.from(post, user.getId())).collect(Collectors.toList()));
   }
 
   @GetMapping("/paginated")
   public ResponseEntity<Page<PostResponseDto>> getFeedPostsPaginated(
-                                                                     @RequestAttribute("authenticationUser") User user, @PageableDefault(size = 20) Pageable pageable) {
+                                                                     @RequestAttribute("authenticationUser") User user, @PageableDefault(size = 5) Pageable pageable) {
     return ResponseEntity.ok(feedService.getFeedPostDto(user.getId(), pageable));
+  }
+
+  @PostMapping("/impressions/viewed")
+  public ResponseEntity<Void> markFeedPostsViewed(
+                                                  @RequestAttribute("authenticationUser") User user, @RequestBody ViewedPostsRequestDto requestDto) {
+    feedService.markPostsAsViewed(user.getId(), requestDto);
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping("/posts")
@@ -41,21 +51,21 @@ public class FeedController {
   }
 
   @PostMapping("/posts")
-  public ResponseEntity<Post> createPost(@RequestBody PostDto postDto, @RequestAttribute("authenticationUser") User user) {
+  public ResponseEntity<PostResponseDto> createPost(@RequestBody PostDto postDto, @RequestAttribute("authenticationUser") User user) {
     Post post = feedService.createPost(postDto, user.getId());
-    return ResponseEntity.ok(post);
+    return ResponseEntity.ok(PostResponseDto.from(post, user.getId()));
   }
 
   @PutMapping("/posts/{postId}")
-  public ResponseEntity<Post> editPost(@PathVariable Long postId, @RequestBody PostDto postDto, @RequestAttribute("authenticationUser") User user) {
+  public ResponseEntity<PostResponseDto> editPost(@PathVariable Long postId, @RequestBody PostDto postDto, @RequestAttribute("authenticationUser") User user) {
     Post post = feedService.editPost(postId, user.getId(), postDto);
-    return ResponseEntity.ok(post);
+    return ResponseEntity.ok(PostResponseDto.from(post, user.getId()));
   }
 
   @GetMapping("/posts/{postId}")
-  public ResponseEntity<Post> getPost(@PathVariable Long postId) {
+  public ResponseEntity<PostResponseDto> getPost(@PathVariable Long postId, @RequestAttribute("authenticationUser") User user) {
     Post post = feedService.getPost(postId);
-    return ResponseEntity.ok(post);
+    return ResponseEntity.ok(PostResponseDto.from(post, user.getId()));
   }
 
   @DeleteMapping("/posts/{postId}")
@@ -65,9 +75,9 @@ public class FeedController {
   }
 
   @GetMapping("/posts/user/{userId}")
-  public ResponseEntity<List<Post>> getPostByUserId(@PathVariable Long userId) {
+  public ResponseEntity<List<PostResponseDto>> getPostByUserId(@PathVariable Long userId, @RequestAttribute("authenticationUser") User user) {
     List<Post> posts = feedService.getPostByUserId(userId);
-    return ResponseEntity.ok(posts);
+    return ResponseEntity.ok(posts.stream().map(post -> PostResponseDto.from(post, user.getId())).collect(Collectors.toList()));
   }
 
   @GetMapping("/posts/user/{userId}/paginated")
@@ -77,9 +87,9 @@ public class FeedController {
   }
 
   @PutMapping("/posts/{postId}/like")
-  public ResponseEntity<Post> likePost(@PathVariable Long postId, @RequestAttribute("authenticationUser") User user) {
+  public ResponseEntity<PostResponseDto> likePost(@PathVariable Long postId, @RequestAttribute("authenticationUser") User user) {
     Post post = feedService.likePost(postId, user.getId());
-    return ResponseEntity.ok(post);
+    return ResponseEntity.ok(PostResponseDto.from(post, user.getId()));
   }
 
   @GetMapping("/posts/{postId}/likes")
