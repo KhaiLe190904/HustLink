@@ -23,5 +23,47 @@ frontend.url=${FRONTEND_URL:http://localhost:5173}
 # Resend Email Service
 resend.api.key=${RESEND_API_KEY}
 
+# Object Storage (MinIO / S3-compatible)
+storage.enabled=${STORAGE_ENABLED:false}
+storage.endpoint=${STORAGE_ENDPOINT:http://127.0.0.1:9000}
+storage.region=${STORAGE_REGION:us-east-1}
+storage.access-key=${STORAGE_ACCESS_KEY:}
+storage.secret-key=${STORAGE_SECRET_KEY:}
+storage.path-style-access=${STORAGE_PATH_STYLE_ACCESS:true}
+storage.public-base-url=${STORAGE_PUBLIC_BASE_URL:}
+storage.public-bucket=${STORAGE_PUBLIC_BUCKET:hustlink-public}
+storage.private-bucket=${STORAGE_PRIVATE_BUCKET:hustlink-private}
+storage.media-bucket=${STORAGE_MEDIA_BUCKET:hustlink-media}
+storage.presign-expiration-minutes=${STORAGE_PRESIGN_EXPIRATION_MINUTES:30}
+storage.max-upload-size-bytes=${STORAGE_MAX_UPLOAD_SIZE_BYTES:26214400}
+storage.ffmpeg-bin=${STORAGE_FFMPEG_BIN:ffmpeg}
+storage.video-max-width=${STORAGE_VIDEO_MAX_WIDTH:1280}
+storage.video-crf=${STORAGE_VIDEO_CRF:32}
+storage.video-audio-bitrate=${STORAGE_VIDEO_AUDIO_BITRATE:96k}
+
+# Multipart upload limits
+spring.servlet.multipart.max-file-size=25MB
+spring.servlet.multipart.max-request-size=25MB
+
+# Gemini AI
+gemini.api.key=${GEMINI_API_KEY:}
+gemini.model=${GEMINI_MODEL:gemini-1.5-flash}
+gemini.base-url=${GEMINI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/models}
+
 # Server Configuration
 server.port=8080
+
+# Feed ranking
+feed.ranking.batch-size=${FEED_RANKING_BATCH_SIZE:5}
+feed.ranking.candidate-pool-size=${FEED_RANKING_CANDIDATE_POOL_SIZE:50}
+feed.ranking.max-candidate-pool-size=${FEED_RANKING_MAX_CANDIDATE_POOL_SIZE:100}
+feed.ranking.fresh-window-hours=${FEED_RANKING_FRESH_WINDOW_HOURS:6}
+feed.ranking.very-fresh-post-score=${FEED_RANKING_VERY_FRESH_POST_SCORE:50}
+feed.ranking.author-affinity-score=${FEED_RANKING_AUTHOR_AFFINITY_SCORE:30}
+feed.ranking.engagement-score=${FEED_RANKING_ENGAGEMENT_SCORE:20}
+feed.ranking.hot-post-engagement-threshold=${FEED_RANKING_HOT_POST_ENGAGEMENT_THRESHOLD:3}
+feed.ranking.viewed-window-hours=${FEED_RANKING_VIEWED_WINDOW_HOURS:24}
+feed.ranking.recently-viewed-penalty=${FEED_RANKING_RECENTLY_VIEWED_PENALTY:100}
+feed.ranking.served-window-hours=${FEED_RANKING_SERVED_WINDOW_HOURS:12}
+feed.ranking.recently-served-penalty=${FEED_RANKING_RECENTLY_SERVED_PENALTY:30}
+feed.ranking.same-author-streak-penalty=${FEED_RANKING_SAME_AUTHOR_STREAK_PENALTY:50}

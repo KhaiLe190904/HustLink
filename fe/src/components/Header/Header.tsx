@@ -247,6 +247,33 @@ export function Header() {
                       setShowNavigationMenu(false);
                     }
                   }}
+                  to="/ai/cv"
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
+                      isActive
+                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`
+                  }
+                >
+                  <svg
+                    className="w-6 h-6 lg:w-5 lg:h-5"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm8 1.5V9h4.5M8 13h8M8 17h8M8 9h3" />
+                  </svg>
+                  <span className="text-sm font-medium lg:text-xs">AI CV</span>
+                </NavLink>
+              </li>
+              <li className="relative">
+                <NavLink
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    if (window.innerWidth <= 1080) {
+                      setShowNavigationMenu(false);
+                    }
+                  }}
                   to="/network"
                   className={({ isActive }) =>
                     `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${

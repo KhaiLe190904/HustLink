@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { Button } from "@/features/authentication/components/Button/Button";
+import { resolveMediaUrl } from "@/utils/storage";
 
 interface ProfileProps {
   setShowNavigationMenu: (show: boolean) => void;
@@ -33,13 +34,7 @@ export function Profile({
       >
         <img
           className="w-6 h-6 lg:w-5 lg:h-5 rounded-full"
-          src={
-            user?.profilePicture
-              ? `${import.meta.env.VITE_API_URL}/api/v1/storage/${
-                  user?.profilePicture
-                }`
-              : "/doc1.png"
-          }
+          src={resolveMediaUrl(user?.profilePicture) || "/doc1.png"}
           alt=""
         />
         <span className="text-sm font-medium lg:text-xs whitespace-nowrap">
@@ -51,13 +46,7 @@ export function Profile({
           <div className="grid gap-3 grid-cols-[3rem_1fr] items-center">
             <img
               className="w-12 h-12 rounded-full"
-              src={
-                user?.profilePicture
-                  ? `${import.meta.env.VITE_API_URL}/api/v1/storage/${
-                      user?.profilePicture
-                    }`
-                  : "/doc1.png"
-              }
+              src={resolveMediaUrl(user?.profilePicture) || "/doc1.png"}
               alt=""
             />
             <div>
@@ -80,6 +69,17 @@ export function Profile({
               }}
             >
               View Profile
+            </Button>
+            <Button
+              size="small"
+              className="mb-0 w-full"
+              outline
+              onClick={() => {
+                setShowProfileMenu(false);
+                navigate("/ai/cv");
+              }}
+            >
+              AI CV
             </Button>
             <Link
               to="/logout"

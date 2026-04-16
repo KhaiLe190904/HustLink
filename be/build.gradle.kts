@@ -50,6 +50,13 @@ dependencies {
 	// Cache (for ML recommendations)
 	implementation("org.springframework.boot:spring-boot-starter-cache")
 
+	// PDF Processing
+	implementation("org.apache.pdfbox:pdfbox:3.0.3")
+	implementation("net.coobird:thumbnailator:0.4.20")
+
+	// Object storage (MinIO via S3 API)
+	implementation("software.amazon.awssdk:s3:2.30.38")
+
 	// DevTools
 	developmentOnly("org.springframework.boot:spring-boot-devtools")
 	annotationProcessor("org.projectlombok:lombok")

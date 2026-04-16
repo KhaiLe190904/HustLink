@@ -16,12 +16,17 @@ export const request = async <T>({
   onFailure,
 }: RequestParams<T>): Promise<void> => {
   try {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    };
+
+    if (!(body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method,
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-        "Content-Type": "application/json",
-      },
+      headers,
       body,
     });
 

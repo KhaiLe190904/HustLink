@@ -5,6 +5,7 @@ import com.hustlink.backend.features.authentication.model.User;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,11 @@ public class Post {
   @NotEmpty
   private String content;
   private String picture;
+
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "post_media_urls", joinColumns = @JoinColumn(name = "post_id"))
+  @Column(name = "media_url", nullable = false, length = 1000)
+  private List<String> mediaUrls = new ArrayList<>();
 
   @ManyToOne
   @JoinColumn(name = "author_id", nullable = false)

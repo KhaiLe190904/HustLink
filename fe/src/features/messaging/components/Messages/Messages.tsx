@@ -10,6 +10,10 @@ export interface IMessage {
   sender: IUser;
   receiver: IUser;
   content: string;
+  attachmentObjectId?: number;
+  attachmentKind?: string;
+  attachmentFileName?: string;
+  attachmentContentType?: string;
   isRead: boolean;
   creationAt: string;
 }
@@ -20,6 +24,10 @@ interface IMessagesProps {
 }
 
 export function Messages({ messages, user }: IMessagesProps) {
+  const latestMyMessageId = [...messages]
+    .reverse()
+    .find((message) => message.sender.id === user?.id)?.id;
+
   return (
     <div className="p-4 flex flex-col items-start gap-4">
       {messages.map((message, index) => {
@@ -38,7 +46,11 @@ export function Messages({ messages, user }: IMessagesProps) {
                 </span>
               </div>
             )}
-            <Message message={message} user={user} />
+            <Message
+              message={message}
+              user={user}
+              showDeliveryStatus={message.id === latestMyMessageId}
+            />
           </div>
         );
       })}

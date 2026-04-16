@@ -26,6 +26,7 @@ import { Connections } from "./features/networking/pages/Connections/Connections
 import { Invitations } from "./features/networking/pages/Invitations/Invitations";
 import { Posts } from "./features/profile/pages/Posts/Posts";
 import { Profile } from "./features/profile/pages/Profile/Profile";
+import { CVUpload } from "./features/ai/pages/CVUpload/CVUpload";
 const router = createBrowserRouter([
   {
     element: <AuthenticationContextProvider />,
@@ -63,6 +64,10 @@ const router = createBrowserRouter([
           {
             path: "jobs",
             element: <div>Jobs</div>,
+          },
+          {
+            path: "ai/cv",
+            element: <CVUpload />,
           },
           {
             path: "messaging",

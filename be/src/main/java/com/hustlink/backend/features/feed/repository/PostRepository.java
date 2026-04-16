@@ -33,4 +33,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
   @Query("SELECT COUNT(p) FROM posts p WHERE p.author.id = :userId")
   long countByAuthorId(@Param("userId") Long userId);
+
+  @Query(
+    "SELECT p.author.id, COUNT(l) " + "FROM posts p JOIN p.likes l " + "WHERE l.id = :userId AND p.author.id IN :authorIds " + "GROUP BY p.author.id")
+  List<Object[]> countLikedPostsByUserForAuthors(@Param("userId") Long userId, @Param("authorIds") Set<Long> authorIds);
+
+  @Query(
+    "SELECT p.id, COUNT(l) " + "FROM posts p LEFT JOIN p.likes l " + "WHERE p.id IN :postIds " + "GROUP BY p.id")
+  List<Object[]> countLikesForPostIds(@Param("postIds") List<Long> postIds);
 }
