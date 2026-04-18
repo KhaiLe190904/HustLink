@@ -93,7 +93,7 @@ public class MinioObjectStorageService implements ObjectStorageService {
     if (!storedObject.getPublicRead()) {
       return null;
     }
-    return "public/" + storedObject.getId();
+    return "/api/v1/storage/public/" + storedObject.getId();
   }
 
   @Override
