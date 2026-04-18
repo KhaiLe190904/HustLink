@@ -20,6 +20,18 @@ public record StorageProperties(
                                 int videoMaxWidth,
                                 int videoCrf,
                                 String videoAudioBitrate) {
+
+  private static final String DEFAULT_STORAGE_ENDPOINT = "http://192.168.2.36:9000";
+  private static final String FALLBACK_STORAGE_ENDPOINT = "http://s3.hustlink.lekhai.id.vn";
+
+  public String endpointOrDefault() {
+    return firstNonBlank(endpoint, DEFAULT_STORAGE_ENDPOINT, FALLBACK_STORAGE_ENDPOINT);
+  }
+
+  public String publicBaseUrlOrDefault() {
+    return firstNonBlank(publicBaseUrl, DEFAULT_STORAGE_ENDPOINT, FALLBACK_STORAGE_ENDPOINT);
+  }
+
   public String regionOrDefault() {
     return isBlank(region) ? "us-east-1" : region;
   }
@@ -58,6 +70,15 @@ public record StorageProperties(
 
   public String videoAudioBitrateOrDefault() {
     return isBlank(videoAudioBitrate) ? "96k" : videoAudioBitrate;
+  }
+
+  private String firstNonBlank(String... values) {
+    for (String value : values) {
+      if (!isBlank(value)) {
+        return value;
+      }
+    }
+    return "";
   }
 
   private boolean isBlank(String value) {

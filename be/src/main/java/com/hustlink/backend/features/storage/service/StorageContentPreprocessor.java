@@ -79,7 +79,7 @@ public class StorageContentPreprocessor {
       Files.write(inputFile, originalBytes);
 
       List<String> command = List.of(
-              storageProperties.ffmpegBin(), "-y", "-i", inputFile.toString(), "-vf", "scale='min(%d,iw)':-2".formatted(storageProperties.videoMaxWidthOrDefault()), "-c:v", "libx264", "-preset", "veryslow", "-crf", String.valueOf(storageProperties.videoCrfOrDefault()), "-movflags", "+faststart", "-c:a", "aac", "-b:a", storageProperties.videoAudioBitrateOrDefault(), outputFile.toString());
+              storageProperties.ffmpegBinOrDefault(), "-y", "-i", inputFile.toString(), "-vf", "scale=min(%d\\,iw):-2".formatted(storageProperties.videoMaxWidthOrDefault()), "-c:v", "libx264", "-preset", "veryslow", "-crf", String.valueOf(storageProperties.videoCrfOrDefault()), "-movflags", "+faststart", "-c:a", "aac", "-b:a", storageProperties.videoAudioBitrateOrDefault(), outputFile.toString());
 
       Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
       process.getInputStream().transferTo(OutputStream.nullOutputStream());

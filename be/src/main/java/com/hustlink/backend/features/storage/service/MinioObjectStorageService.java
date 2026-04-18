@@ -1,6 +1,8 @@
 package com.hustlink.backend.features.storage.service;
 
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.messaging.model.Conversation;
+import com.hustlink.backend.features.messaging.repository.ConversationRepository;
 import com.hustlink.backend.features.storage.configuration.StorageProperties;
 import com.hustlink.backend.features.storage.model.StorageScope;
 import com.hustlink.backend.features.storage.model.StoredObject;
@@ -11,11 +13,14 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriUtils;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
@@ -25,7 +30,6 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +42,7 @@ public class MinioObjectStorageService implements ObjectStorageService {
   private final StoredObjectRepository storedObjectRepository;
   private final StorageProperties storageProperties;
   private final StorageContentPreprocessor storageContentPreprocessor;
+  private final ConversationRepository conversationRepository;
 
   @Override
   public StoredObject upload(
@@ -48,7 +53,6 @@ public class MinioObjectStorageService implements ObjectStorageService {
     }
 
     String bucketName = resolveBucket(scope);
-    ensureBucketExists(bucketName);
 
     String originalName = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
 
@@ -57,6 +61,7 @@ public class MinioObjectStorageService implements ObjectStorageService {
       String objectKey = buildObjectKey(scope, ownerId, preparedUpload.objectFileName());
       PutObjectRequest request = PutObjectRequest.builder().bucket(bucketName).key(objectKey).contentType(preparedUpload.contentType()).build();
 
+      ensureBucketExists(bucketName);
       s3Client.putObject(request, RequestBody.fromBytes(preparedUpload.bytes()));
 
       StoredObject storedObject = new StoredObject();
@@ -96,8 +101,43 @@ public class MinioObjectStorageService implements ObjectStorageService {
     return storedObjectRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Stored object not found."));
   }
 
+  @Override
+  public void assertCanAccess(User user, StoredObject storedObject) {
+    if (Boolean.TRUE.equals(storedObject.getPublicRead())) {
+      return;
+    }
+
+    if (user == null) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Stored object not found.");
+    }
+
+    if (storedObject.getUploadedBy() != null && user.getId().equals(storedObject.getUploadedBy().getId())) {
+      return;
+    }
+
+    if ("USER".equalsIgnoreCase(storedObject.getOwnerType()) && storedObject.getOwnerId() != null && storedObject.getOwnerId().equals(user.getId())) {
+      return;
+    }
+
+    if ("CONVERSATION".equalsIgnoreCase(storedObject.getOwnerType()) && storedObject.getOwnerId() != null) {
+      Conversation conversation = conversationRepository.findById(storedObject.getOwnerId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Stored object not found."));
+      if (conversation.getAuthor().getId().equals(user.getId()) || conversation.getRecipient().getId().equals(user.getId())) {
+        return;
+      }
+    }
+
+    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Stored object not found.");
+  }
+
+  @Override
+  public StoredObject assignOwner(StoredObject storedObject, String ownerType, Long ownerId) {
+    storedObject.setOwnerType(ownerType);
+    storedObject.setOwnerId(ownerId);
+    return storedObjectRepository.save(storedObject);
+  }
+
   private void ensureConfigured() {
-    if (!storageProperties.enabled() || isBlank(storageProperties.endpoint()) || isBlank(storageProperties.accessKey()) || isBlank(storageProperties.secretKey())) {
+    if (!storageProperties.enabled() || isBlank(storageProperties.accessKey()) || isBlank(storageProperties.secretKey())) {
       throw new IllegalStateException("Object storage is not configured. Please set the MinIO storage properties.");
     }
   }
@@ -144,7 +184,7 @@ public class MinioObjectStorageService implements ObjectStorageService {
   }
 
   private String buildPublicUrl(StoredObject storedObject) {
-    String baseUrl = !isBlank(storageProperties.publicBaseUrl()) ? storageProperties.publicBaseUrl() : storageProperties.endpoint();
+    String baseUrl = !isBlank(storageProperties.publicBaseUrl()) ? storageProperties.publicBaseUrl() : storageProperties.publicBaseUrlOrDefault();
     return appendPath(baseUrl, storedObject.getBucketName(), storedObject.getObjectKey());
   }
 

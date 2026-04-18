@@ -14,13 +14,21 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 public class StorageConfiguration {
   @Bean
   public S3Client s3Client(StorageProperties properties) {
-    return S3Client.builder().endpointOverride(URI.create(properties.endpoint())).region(Region.of(properties.regionOrDefault())).credentialsProvider(StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(properties.accessKey(), properties.secretKey()))).serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(properties.pathStyleAccess()).build()).build();
+    return S3Client.builder().endpointOverride(URI.create(properties.endpointOrDefault())).region(Region.of(properties.regionOrDefault())).credentialsProvider(StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(accessKeyOrDefault(properties), secretKeyOrDefault(properties)))).serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(properties.pathStyleAccess()).build()).build();
   }
 
   @Bean
   public S3Presigner s3Presigner(StorageProperties properties) {
-    return S3Presigner.builder().endpointOverride(URI.create(properties.endpoint())).region(Region.of(properties.regionOrDefault())).credentialsProvider(StaticCredentialsProvider.create(
-            AwsBasicCredentials.create(properties.accessKey(), properties.secretKey()))).serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(properties.pathStyleAccess()).build()).build();
+    return S3Presigner.builder().endpointOverride(URI.create(properties.endpointOrDefault())).region(Region.of(properties.regionOrDefault())).credentialsProvider(StaticCredentialsProvider.create(
+            AwsBasicCredentials.create(accessKeyOrDefault(properties), secretKeyOrDefault(properties)))).serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(properties.pathStyleAccess()).build()).build();
+  }
+
+  private String accessKeyOrDefault(StorageProperties properties) {
+    return properties.accessKey() == null || properties.accessKey().isBlank() ? "disabled-access-key" : properties.accessKey();
+  }
+
+  private String secretKeyOrDefault(StorageProperties properties) {
+    return properties.secretKey() == null || properties.secretKey().isBlank() ? "disabled-secret-key" : properties.secretKey();
   }
 }

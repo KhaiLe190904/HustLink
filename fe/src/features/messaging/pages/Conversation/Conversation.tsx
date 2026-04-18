@@ -170,44 +170,58 @@ export function Conversation() {
     setUploadStage(
       attachment ? "Uploading attachment..." : "Sending message..."
     );
-    let attachmentObjectId: number | undefined;
-    let attachmentKind: string | undefined;
-    if (attachment) {
-      const storedObject = await uploadToStorage({
-        file: attachment,
-        scope: attachment.type.startsWith("image/")
-          ? "MESSAGE_IMAGE"
+    try {
+      let succeeded = false;
+      let attachmentObjectId: number | undefined;
+      let attachmentKind: string | undefined;
+      if (attachment) {
+        const storedObject = await uploadToStorage({
+          file: attachment,
+          scope: attachment.type.startsWith("image/")
+            ? "MESSAGE_IMAGE"
+            : attachment.type.startsWith("video/")
+              ? "MESSAGE_VIDEO"
+              : "MESSAGE_FILE",
+          ownerType: "CONVERSATION",
+          ownerId: conversation?.id,
+        });
+        attachmentObjectId = storedObject.id;
+        attachmentKind = attachment.type.startsWith("image/")
+          ? "IMAGE"
           : attachment.type.startsWith("video/")
-            ? "MESSAGE_VIDEO"
-            : "MESSAGE_FILE",
-        ownerType: "CONVERSATION",
-        ownerId: conversation?.id,
+            ? "VIDEO"
+            : "FILE";
+      }
+      setUploadStage("Sending message...");
+      await request<void>({
+        endpoint: `/api/v1/messaging/conversations/${conversation?.id}/messages`,
+        method: "POST",
+        body: JSON.stringify({
+          receiverId:
+            conversation?.recipient.id == user?.id
+              ? conversation?.author.id
+              : conversation?.recipient.id,
+          content,
+          attachmentObjectId,
+          attachmentKind,
+        }),
+        onSuccess: () => {
+          succeeded = true;
+        },
+        onFailure: (error) => {
+          toast.error(error);
+        },
       });
-      attachmentObjectId = storedObject.id;
-      attachmentKind = attachment.type.startsWith("image/")
-        ? "IMAGE"
-        : attachment.type.startsWith("video/")
-          ? "VIDEO"
-          : "FILE";
+      return succeeded;
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send message."
+      );
+      return false;
+    } finally {
+      setPostingMessage(false);
+      setUploadStage("");
     }
-    setUploadStage("Sending message...");
-    await request<void>({
-      endpoint: `/api/v1/messaging/conversations/${conversation?.id}/messages`,
-      method: "POST",
-      body: JSON.stringify({
-        receiverId:
-          conversation?.recipient.id == user?.id
-            ? conversation?.author.id
-            : conversation?.recipient.id,
-        content,
-        attachmentObjectId,
-        attachmentKind,
-      }),
-      onSuccess: () => {},
-      onFailure: (error) => console.log(error),
-    });
-    setPostingMessage(false);
-    setUploadStage("");
   }
 
   async function createConversationWithMessage(e?: FormEvent<HTMLFormElement>) {
@@ -217,42 +231,58 @@ export function Conversation() {
     setUploadStage(
       attachment ? "Uploading attachment..." : "Creating conversation..."
     );
-    let attachmentObjectId: number | undefined;
-    let attachmentKind: string | undefined;
-    if (attachment) {
-      const storedObject = await uploadToStorage({
-        file: attachment,
-        scope: attachment.type.startsWith("image/")
-          ? "MESSAGE_IMAGE"
+    try {
+      let succeeded = false;
+      let attachmentObjectId: number | undefined;
+      let attachmentKind: string | undefined;
+      if (attachment) {
+        const storedObject = await uploadToStorage({
+          file: attachment,
+          scope: attachment.type.startsWith("image/")
+            ? "MESSAGE_IMAGE"
+            : attachment.type.startsWith("video/")
+              ? "MESSAGE_VIDEO"
+              : "MESSAGE_FILE",
+          ownerType: "CONVERSATION",
+        });
+        attachmentObjectId = storedObject.id;
+        attachmentKind = attachment.type.startsWith("image/")
+          ? "IMAGE"
           : attachment.type.startsWith("video/")
-            ? "MESSAGE_VIDEO"
-            : "MESSAGE_FILE",
-        ownerType: "CONVERSATION",
-      });
-      attachmentObjectId = storedObject.id;
-      attachmentKind = attachment.type.startsWith("image/")
-        ? "IMAGE"
-        : attachment.type.startsWith("video/")
-          ? "VIDEO"
-          : "FILE";
-    }
+            ? "VIDEO"
+            : "FILE";
+      }
 
-    const message = {
-      receiverId: selectedUser?.id,
-      content,
-      attachmentObjectId,
-      attachmentKind,
-    };
-    await request<IConversation>({
-      endpoint: "/api/v1/messaging/conversations",
-      method: "POST",
-      body: JSON.stringify(message),
-      onSuccess: (conversation) =>
-        navigate(`/messaging/conversations/${conversation.id}`),
-      onFailure: (error) => console.log(error),
-    });
-    setPostingMessage(false);
-    setUploadStage("");
+      const message = {
+        receiverId: selectedUser?.id,
+        content,
+        attachmentObjectId,
+        attachmentKind,
+      };
+      await request<IConversation>({
+        endpoint: "/api/v1/messaging/conversations",
+        method: "POST",
+        body: JSON.stringify(message),
+        onSuccess: (conversation) => {
+          succeeded = true;
+          navigate(`/messaging/conversations/${conversation.id}`);
+        },
+        onFailure: (error) => {
+          toast.error(error);
+        },
+      });
+      return succeeded;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create conversation."
+      );
+      return false;
+    } finally {
+      setPostingMessage(false);
+      setUploadStage("");
+    }
   }
 
   const conversationUserToDisplay =
@@ -470,10 +500,14 @@ export function Conversation() {
             onSubmit={async (e) => {
               e.preventDefault();
               if (!content.trim() && !attachment) return;
+              let succeeded = false;
               if (conversation) {
-                await addMessageToConversation(e);
+                succeeded = (await addMessageToConversation(e)) ?? false;
               } else {
-                await createConversationWithMessage(e);
+                succeeded = (await createConversationWithMessage(e)) ?? false;
+              }
+              if (!succeeded) {
+                return;
               }
               setContent("");
               setAttachment(null);

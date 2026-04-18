@@ -24,9 +24,13 @@ interface IMessagesProps {
 }
 
 export function Messages({ messages, user }: IMessagesProps) {
-  const latestMyMessageId = [...messages]
-    .reverse()
-    .find((message) => message.sender.id === user?.id)?.id;
+  let latestMyMessageId: number | undefined;
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index].sender.id === user?.id) {
+      latestMyMessageId = messages[index].id;
+      break;
+    }
+  }
 
   return (
     <div className="p-4 flex flex-col items-start gap-4">

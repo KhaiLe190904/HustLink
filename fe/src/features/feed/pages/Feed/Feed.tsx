@@ -12,6 +12,7 @@ import { Page } from "@/utils/pagination.ts";
 import { resolveMediaUrl, uploadToStorage } from "@/utils/storage";
 
 const FEED_BATCH_SIZE = 5;
+const VIEWED_POSTS_RETRY_DELAY_MS = 2000;
 
 export function Feed() {
   usePageTitle("Feed");
@@ -32,6 +33,18 @@ export function Feed() {
   const viewedPostIdsRef = useRef<Set<number>>(new Set());
   const pendingViewedIdsRef = useRef<Set<number>>(new Set());
   const markViewedInFlightRef = useRef(false);
+  const viewedPostsRetryTimeoutRef = useRef<number | null>(null);
+
+  const scheduleViewedPostsRetry = () => {
+    if (viewedPostsRetryTimeoutRef.current !== null) {
+      return;
+    }
+
+    viewedPostsRetryTimeoutRef.current = window.setTimeout(() => {
+      viewedPostsRetryTimeoutRef.current = null;
+      void flushViewedPosts();
+    }, VIEWED_POSTS_RETRY_DELAY_MS);
+  };
 
   const flushViewedPosts = async () => {
     if (
@@ -52,14 +65,11 @@ export function Feed() {
       onSuccess: () => {},
       onFailure: () => {
         postIds.forEach((postId) => pendingViewedIdsRef.current.add(postId));
+        scheduleViewedPostsRetry();
       },
     });
 
     markViewedInFlightRef.current = false;
-
-    if (pendingViewedIdsRef.current.size > 0) {
-      void flushViewedPosts();
-    }
   };
 
   const markPostAsViewed = (postId: number) => {
@@ -185,6 +195,10 @@ export function Feed() {
 
   useEffect(() => {
     return () => {
+      if (viewedPostsRetryTimeoutRef.current !== null) {
+        window.clearTimeout(viewedPostsRetryTimeoutRef.current);
+      }
+
       if (pendingViewedIdsRef.current.size === 0) {
         return;
       }
