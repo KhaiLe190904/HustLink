@@ -79,7 +79,7 @@ public class StorageContentPreprocessor {
       Files.write(inputFile, originalBytes);
 
       List<String> command = List.of(
-              storageProperties.ffmpegBinOrDefault(), "-y", "-i", inputFile.toString(), "-vf", "scale=min(%d\\,iw):-2".formatted(storageProperties.videoMaxWidthOrDefault()), "-c:v", "libx264", "-preset", "veryslow", "-crf", String.valueOf(storageProperties.videoCrfOrDefault()), "-movflags", "+faststart", "-c:a", "aac", "-b:a", storageProperties.videoAudioBitrateOrDefault(), outputFile.toString());
+              storageProperties.ffmpegBinOrDefault(), "-y", "-i", inputFile.toString(), "-vf", "scale=min(%d,iw):-2".formatted(storageProperties.videoMaxWidthOrDefault()), "-c:v", "libx264", "-preset", "veryslow", "-crf", String.valueOf(storageProperties.videoCrfOrDefault()), "-movflags", "+faststart", "-c:a", "aac", "-b:a", storageProperties.videoAudioBitrateOrDefault(), outputFile.toString());
 
       Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
       process.getInputStream().transferTo(OutputStream.nullOutputStream());
@@ -108,10 +108,27 @@ public class StorageContentPreprocessor {
   }
 
   private void validateSize(long sizeInBytes, String fileName) {
-    if (sizeInBytes > storageProperties.maxUploadSizeBytesOrDefault()) {
+    long maxBytes = storageProperties.maxUploadSizeBytesOrDefault();
+    if (sizeInBytes > maxBytes) {
       throw new IllegalArgumentException(
-              "File '%s' is too large. Maximum allowed size is 25MB.".formatted(fileName == null ? "upload" : fileName));
+              "File '%s' is too large. Maximum allowed size is %s.".formatted(
+                      fileName == null ? "upload" : fileName, humanReadableSize(maxBytes)));
     }
+  }
+
+  private static final long BYTES_PER_KB = 1024L;
+
+  private static String humanReadableSize(long bytes) {
+    if (bytes >= BYTES_PER_KB * BYTES_PER_KB * BYTES_PER_KB) {
+      return "%.1fGB".formatted((double) bytes / (BYTES_PER_KB * BYTES_PER_KB * BYTES_PER_KB));
+    }
+    if (bytes >= BYTES_PER_KB * BYTES_PER_KB) {
+      return "%.1fMB".formatted((double) bytes / (BYTES_PER_KB * BYTES_PER_KB));
+    }
+    if (bytes >= BYTES_PER_KB) {
+      return "%.0fKB".formatted((double) bytes / BYTES_PER_KB);
+    }
+    return bytes + "B";
   }
 
   private BufferedImage forceRgb(BufferedImage sourceImage) {
