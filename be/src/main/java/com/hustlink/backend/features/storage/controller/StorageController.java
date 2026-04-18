@@ -30,6 +30,7 @@ public class StorageController {
   public ResponseEntity<StoredObjectResponse> getObject(
                                                         @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {
     StoredObject storedObject = objectStorageService.getStoredObject(id);
+    objectStorageService.assertCanAccess(user, storedObject);
     return ResponseEntity.ok(toResponse(storedObject));
   }
 
@@ -37,6 +38,7 @@ public class StorageController {
   public ResponseEntity<Map<String, String>> getDownloadUrl(
                                                             @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {
     StoredObject storedObject = objectStorageService.getStoredObject(id);
+    objectStorageService.assertCanAccess(user, storedObject);
     return ResponseEntity.ok(Map.of("url", objectStorageService.getAccessUrl(storedObject)));
   }
 

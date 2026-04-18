@@ -48,7 +48,11 @@ export function Message({
   }, []);
 
   useEffect(() => {
-    if (!message.attachmentObjectId || attachmentUrl) {
+    if (
+      !message.attachmentObjectId ||
+      attachmentUrl ||
+      (message.attachmentKind !== "IMAGE" && message.attachmentKind !== "VIDEO")
+    ) {
       return;
     }
 

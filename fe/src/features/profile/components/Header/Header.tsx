@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { Input } from "@/components/Input/Input";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
-import { resolveMediaUrl, uploadToStorage } from "@/utils/storage";
+import {
+  isOversizedUpload,
+  MAX_UPLOAD_SIZE_LABEL,
+  resolveMediaUrl,
+  uploadToStorage,
+} from "@/utils/storage";
 
 import { Button } from "@/features/authentication/components/Button/Button";
 interface ITopProps {
@@ -63,40 +69,62 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
   }, [user?.id]);
 
   async function updateInfo() {
-    let profilePicture = info.profilePicture;
-    let coverPicture = info.coverPicture;
+    try {
+      if (profileImageFile && isOversizedUpload(profileImageFile)) {
+        throw new Error(
+          `${profileImageFile.name} exceeds the ${MAX_UPLOAD_SIZE_LABEL} upload limit.`
+        );
+      }
 
-    if (profileImageFile) {
-      const storedObject = await uploadToStorage({
-        file: profileImageFile,
-        scope: "PROFILE_IMAGE",
-        ownerType: "USER",
-        ownerId: user?.id,
+      if (coverImageFile && isOversizedUpload(coverImageFile)) {
+        throw new Error(
+          `${coverImageFile.name} exceeds the ${MAX_UPLOAD_SIZE_LABEL} upload limit.`
+        );
+      }
+
+      let profilePicture = info.profilePicture;
+      let coverPicture = info.coverPicture;
+
+      if (profileImageFile) {
+        const storedObject = await uploadToStorage({
+          file: profileImageFile,
+          scope: "PROFILE_IMAGE",
+          ownerType: "USER",
+          ownerId: user?.id,
+        });
+        profilePicture = storedObject.accessUrl;
+      }
+
+      if (coverImageFile) {
+        const storedObject = await uploadToStorage({
+          file: coverImageFile,
+          scope: "PROFILE_COVER",
+          ownerType: "USER",
+          ownerId: user?.id,
+        });
+        coverPicture = storedObject.accessUrl;
+      }
+
+      await request<IUser>({
+        endpoint: `/api/v1/authentication/profile/${user?.id}?firstName=${encodeURIComponent(info.firstName || "")}&lastName=${encodeURIComponent(info.lastName || "")}&position=${encodeURIComponent(info.position || "")}&company=${encodeURIComponent(info.company || "")}&location=${encodeURIComponent(info.location || "")}&profilePicture=${encodeURIComponent(profilePicture || "")}&coverPicture=${encodeURIComponent(coverPicture || "")}`,
+        method: "PUT",
+        onSuccess: (data) => {
+          onUpdate(data);
+          setEditingInfo(false);
+          setProfileImageFile(null);
+          setCoverImageFile(null);
+        },
+        onFailure: (error) => {
+          toast.error(error);
+        },
       });
-      profilePicture = storedObject.accessUrl;
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update profile."
+      );
+      setProfileImageFile(null);
+      setCoverImageFile(null);
     }
-
-    if (coverImageFile) {
-      const storedObject = await uploadToStorage({
-        file: coverImageFile,
-        scope: "PROFILE_COVER",
-        ownerType: "USER",
-        ownerId: user?.id,
-      });
-      coverPicture = storedObject.accessUrl;
-    }
-
-    await request<IUser>({
-      endpoint: `/api/v1/authentication/profile/${user?.id}?firstName=${encodeURIComponent(info.firstName || "")}&lastName=${encodeURIComponent(info.lastName || "")}&position=${encodeURIComponent(info.position || "")}&company=${encodeURIComponent(info.company || "")}&location=${encodeURIComponent(info.location || "")}&profilePicture=${encodeURIComponent(profilePicture || "")}&coverPicture=${encodeURIComponent(coverPicture || "")}`,
-      method: "PUT",
-      onSuccess: (data) => {
-        onUpdate(data);
-        setEditingInfo(false);
-        setProfileImageFile(null);
-        setCoverImageFile(null);
-      },
-      onFailure: (error) => console.log(error),
-    });
   }
 
   return (

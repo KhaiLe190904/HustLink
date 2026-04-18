@@ -13,4 +13,8 @@ public interface ObjectStorageService {
   String getPublicPath(StoredObject storedObject);
 
   StoredObject getStoredObject(Long id);
+
+  void assertCanAccess(User user, StoredObject storedObject);
+
+  StoredObject assignOwner(StoredObject storedObject, String ownerType, Long ownerId);
 }

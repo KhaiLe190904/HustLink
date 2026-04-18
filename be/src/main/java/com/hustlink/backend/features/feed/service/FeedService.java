@@ -172,11 +172,15 @@ public class FeedService {
     Page<Post> candidatePage = postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, candidateRequest);
     List<ScoredPost> rankedPosts = rankFeedPosts(authenticatedUserId, candidatePage.getContent(), candidatePoolSize);
     List<ScoredPost> pagedRankedPosts = rankedPosts.stream().skip(offsetInsideCandidateWindow).limit(pageSize).toList();
+    List<Long> pagedPostIds = pagedRankedPosts.stream().map(scoredPost -> scoredPost.post().getId()).toList();
+    Map<Long, Integer> likesCountByPostId = buildLikesCountByPostId(pagedPostIds);
+    Map<Long, Integer> commentsCountByPostId = buildCommentsCountByPostId(pagedPostIds);
+    Set<Long> likedPostIds = postRepository.findLikedPostIdsByUser(pagedPostIds, authenticatedUserId).stream().collect(Collectors.toSet());
 
     markPostsAsServed(authenticatedUserId, pagedRankedPosts.stream().map(ScoredPost::post).toList());
 
     List<PostResponseDto> postDtos = pagedRankedPosts.stream().map(scoredPost -> PostResponseDto.from(
-            scoredPost.post(), authenticatedUserId, scoredPost.score(), scoredPost.breakdown())).collect(Collectors.toList());
+            scoredPost.post(), likesCountByPostId.getOrDefault(scoredPost.post().getId(), 0), commentsCountByPostId.getOrDefault(scoredPost.post().getId(), 0), likedPostIds.contains(scoredPost.post().getId()), scoredPost.score(), scoredPost.breakdown())).collect(Collectors.toList());
 
     boolean hasNextWithinWindow = offsetInsideCandidateWindow + pageSize < rankedPosts.size();
     long syntheticTotalElements = hasNextWithinWindow || candidatePage.hasNext() ? pageable.getOffset() + postDtos.size() + 1 : pageable.getOffset() + postDtos.size();
@@ -296,13 +300,34 @@ public class FeedService {
   private Map<Long, Integer> buildEngagementByPostId(List<Long> postIds) {
     Map<Long, Integer> engagementByPostId = new HashMap<>();
 
-    postRepository.countLikesForPostIds(postIds).forEach(result -> engagementByPostId.put(
-            ((Number) result[0]).longValue(), ((Number) result[1]).intValue()));
-
-    commentRepository.countCommentsForPostIds(postIds).forEach(result -> engagementByPostId.merge(
-            ((Number) result[0]).longValue(), ((Number) result[1]).intValue(), Integer::sum));
+    buildLikesCountByPostId(postIds).forEach(engagementByPostId::put);
+    buildCommentsCountByPostId(postIds).forEach((postId, commentsCount) -> engagementByPostId.merge(postId, commentsCount, Integer::sum));
 
     return engagementByPostId;
+  }
+
+  private Map<Long, Integer> buildLikesCountByPostId(List<Long> postIds) {
+    Map<Long, Integer> likesCountByPostId = new HashMap<>();
+    if (postIds.isEmpty()) {
+      return likesCountByPostId;
+    }
+
+    postRepository.countLikesForPostIds(postIds).forEach(result -> likesCountByPostId.put(
+            ((Number) result[0]).longValue(), ((Number) result[1]).intValue()));
+
+    return likesCountByPostId;
+  }
+
+  private Map<Long, Integer> buildCommentsCountByPostId(List<Long> postIds) {
+    Map<Long, Integer> commentsCountByPostId = new HashMap<>();
+    if (postIds.isEmpty()) {
+      return commentsCountByPostId;
+    }
+
+    commentRepository.countCommentsForPostIds(postIds).forEach(result -> commentsCountByPostId.put(
+            ((Number) result[0]).longValue(), ((Number) result[1]).intValue()));
+
+    return commentsCountByPostId;
   }
 
   private Map<Long, Integer> buildAffinityByAuthorId(Long authenticatedUserId, Set<Long> authorIds) {

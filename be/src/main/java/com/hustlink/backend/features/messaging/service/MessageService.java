@@ -56,6 +56,7 @@ public class MessageService {
     });
 
     Conversation conversation = conversationRepository.save(new Conversation(sender, receiver));
+    reassignConversationAttachmentIfNeeded(sender, attachmentObjectId, conversation.getId());
     Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind);
     messageRepository.save(message);
     conversation.getMessages().add(message);
@@ -109,7 +110,18 @@ public class MessageService {
     }
 
     StoredObject storedObject = objectStorageService.getStoredObject(attachmentObjectId);
+    objectStorageService.assertCanAccess(sender, storedObject);
     return new Message(
             sender, receiver, conversation, content, storedObject.getId(), attachmentKind, storedObject.getOriginalFileName(), storedObject.getContentType());
+  }
+
+  private void reassignConversationAttachmentIfNeeded(User sender, Long attachmentObjectId, Long conversationId) {
+    if (attachmentObjectId == null) {
+      return;
+    }
+
+    StoredObject storedObject = objectStorageService.getStoredObject(attachmentObjectId);
+    objectStorageService.assertCanAccess(sender, storedObject);
+    objectStorageService.assignOwner(storedObject, "CONVERSATION", conversationId);
   }
 }
