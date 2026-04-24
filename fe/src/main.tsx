@@ -27,6 +27,8 @@ import { Invitations } from "./features/networking/pages/Invitations/Invitations
 import { Posts } from "./features/profile/pages/Posts/Posts";
 import { Profile } from "./features/profile/pages/Profile/Profile";
 import { CVUpload } from "./features/ai/pages/CVUpload/CVUpload";
+import { Interview } from "./features/ai/pages/Interview/Interview";
+import { InterviewHistory } from "./features/ai/pages/InterviewHistory/InterviewHistory";
 const router = createBrowserRouter([
   {
     element: <AuthenticationContextProvider />,
@@ -68,6 +70,14 @@ const router = createBrowserRouter([
           {
             path: "ai/cv",
             element: <CVUpload />,
+          },
+          {
+            path: "ai/interview",
+            element: <Interview />,
+          },
+          {
+            path: "ai/interview/history",
+            element: <InterviewHistory />,
           },
           {
             path: "messaging",
