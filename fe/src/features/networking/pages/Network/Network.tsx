@@ -9,6 +9,7 @@ import {
 import { IConnection } from "@/features/networking/components/Connection/Connection";
 import { Title } from "@/features/networking/components/Title/Title";
 import { useWebSocket } from "@/features/websocket/websocket";
+import { Page } from "@/utils/pagination";
 
 interface IUserRecommendation {
   user: IUser;
@@ -25,7 +26,7 @@ interface IUserRecommendation {
 
 export function Network() {
   usePageTitle("Network");
-  const [connections, setConnections] = useState<IConnection[]>([]);
+  const [connectionCount, setConnectionCount] = useState(0);
   const [invitations, setInvitations] = useState<IConnection[]>([]);
   const [suggestions, setSuggestions] = useState<IUserRecommendation[]>([]);
   const navigate = useNavigate();
@@ -33,9 +34,9 @@ export function Network() {
   const { user } = useAuthentication();
 
   useEffect(() => {
-    request<IConnection[]>({
-      endpoint: "/api/v1/networking/connections",
-      onSuccess: (data) => setConnections(data),
+    request<Page<IConnection>>({
+      endpoint: "/api/v1/networking/connections/paginated?page=0&size=1",
+      onSuccess: (data) => setConnectionCount(data.totalElements),
       onFailure: (error) => console.log(error),
     });
   }, []);
@@ -78,7 +79,7 @@ export function Network() {
       "/topic/users/" + user?.id + "/connections/accepted",
       (data) => {
         const connection = JSON.parse(data.body);
-        setConnections((connections) => [connection, ...connections]);
+        setConnectionCount((count) => count + 1);
         setInvitations((invitations) =>
           invitations.filter((c) => c.id !== connection.id)
         );
@@ -93,9 +94,7 @@ export function Network() {
       "/topic/users/" + user?.id + "/connections/remove",
       (data) => {
         const connection = JSON.parse(data.body);
-        setConnections((connections) =>
-          connections.filter((c) => c.id !== connection.id)
-        );
+        setConnectionCount((count) => Math.max(0, count - 1));
         setInvitations((invitations) =>
           invitations.filter((c) => c.id !== connection.id)
         );
@@ -149,7 +148,7 @@ export function Network() {
             </svg>
             <span>Connections</span>
             <span className="ml-auto font-bold w-8 h-8 rounded-full flex justify-center items-center bg-gray-100">
-              {connections.length}
+              {connectionCount}
             </span>
           </NavLink>
         </div>

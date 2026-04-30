@@ -17,4 +17,6 @@ public interface ObjectStorageService {
   void assertCanAccess(User user, StoredObject storedObject);
 
   StoredObject assignOwner(StoredObject storedObject, String ownerType, Long ownerId);
+
+  void delete(StoredObject storedObject);
 }

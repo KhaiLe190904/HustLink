@@ -31,6 +31,13 @@ public class CVController {
     return ResponseEntity.ok(cvService.getMyCvs(user));
   }
 
+  @DeleteMapping("/{id}")
+  public ResponseEntity<Void> deleteCv(
+                                       @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {
+    cvService.deleteCv(user, id);
+    return ResponseEntity.noContent().build();
+  }
+
   @GetMapping("/{id}/analysis")
   public ResponseEntity<CVAnalysisResponse> getAnalysis(
                                                         @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {

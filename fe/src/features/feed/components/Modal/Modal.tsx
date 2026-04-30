@@ -54,6 +54,19 @@ export function Madal({
   }, [content, normalizedMediaUrls, showModal]);
 
   useEffect(() => {
+    if (!showModal) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showModal]);
+
+  useEffect(() => {
     const previews = selectedFiles.map((file) => ({
       key: `${file.name}-${file.lastModified}`,
       previewUrl: URL.createObjectURL(file),
@@ -114,10 +127,19 @@ export function Madal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-start z-[9999]">
+    <div
+      className="fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto bg-black/50"
+      onClick={() => {
+        resetModalState();
+        setShowModal(false);
+      }}
+    >
       {" "}
       {/* .root styles */}
-      <div className="bg-white rounded-lg border border-gray-300 w-full max-w-3xl mx-4 mt-18 p-4">
+      <div
+        className="mt-18 w-full max-w-3xl rounded-lg border border-gray-300 bg-white p-4 mx-4"
+        onClick={(event) => event.stopPropagation()}
+      >
         {" "}
         {/* .modal styles */}
         <div className="flex justify-between items-center mb-4">

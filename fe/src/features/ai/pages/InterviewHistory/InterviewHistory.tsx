@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Button } from "@/features/authentication/components/Button/Button";
@@ -58,21 +58,24 @@ export function InterviewHistory() {
   const [selectedResult, setSelectedResult] =
     useState<InterviewResultResponse | null>(null);
 
-  const loadHistory = async (page = pageNumber) => {
-    setLoadingHistory(true);
-    await request<Page<InterviewSessionSummaryResponse>>({
-      endpoint: `/api/v1/ai/interviews/history?page=${page}&size=10`,
-      onSuccess: (data) => {
-        setHistoryPage(data);
-      },
-      onFailure: (error) => toast.error(error),
-    });
-    setLoadingHistory(false);
-  };
+  const loadHistory = useCallback(
+    async (page = pageNumber) => {
+      setLoadingHistory(true);
+      await request<Page<InterviewSessionSummaryResponse>>({
+        endpoint: `/api/v1/ai/interviews/history?page=${page}&size=10`,
+        onSuccess: (data) => {
+          setHistoryPage(data);
+        },
+        onFailure: (error) => toast.error(error),
+      });
+      setLoadingHistory(false);
+    },
+    [pageNumber]
+  );
 
   useEffect(() => {
     void loadHistory(pageNumber);
-  }, [pageNumber]);
+  }, [loadHistory, pageNumber]);
 
   const loadResult = async (sessionId: number) => {
     setLoadingResultSessionId(sessionId);
@@ -108,17 +111,9 @@ export function InterviewHistory() {
               type="button"
               outline
               className="my-0 sm:w-fit"
-              onClick={() => navigate("/ai/interview")}
-            >
-              New Interview
-            </Button>
-            <Button
-              type="button"
-              outline
-              className="my-0 sm:w-fit"
               onClick={() => navigate("/ai/cv")}
             >
-              Back to CV
+              Back
             </Button>
           </div>
         </div>

@@ -4,6 +4,8 @@ import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.networking.model.Connection;
 import com.hustlink.backend.features.networking.model.Status;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,35 @@ public interface ConnectionRepository extends JpaRepository<Connection, Long> {
 
   @Query("SELECT c FROM connections c WHERE (c.author = :user OR c.recipient = :user) AND c.status = :status")
   List<Connection> findConnectionsByUserAndStatus(@Param("user") User user, @Param("status") Status status);
+
+  @Query("""
+          SELECT c FROM connections c
+          WHERE (c.author = :user OR c.recipient = :user)
+          AND c.status = :status
+          AND (
+            :query IS NULL OR :query = '' OR
+            (
+              c.author = :user AND
+              LOWER(CONCAT(
+                COALESCE(c.recipient.firstName, ''), ' ',
+                COALESCE(c.recipient.lastName, ''), ' ',
+                COALESCE(c.recipient.position, ''), ' ',
+                COALESCE(c.recipient.company, '')
+              )) LIKE LOWER(CONCAT('%', :query, '%'))
+            ) OR (
+              c.recipient = :user AND
+              LOWER(CONCAT(
+                COALESCE(c.author.firstName, ''), ' ',
+                COALESCE(c.author.lastName, ''), ' ',
+                COALESCE(c.author.position, ''), ' ',
+                COALESCE(c.author.company, '')
+              )) LIKE LOWER(CONCAT('%', :query, '%'))
+            )
+          )
+          ORDER BY c.connectionDate DESC
+          """)
+  Page<Connection> findConnectionsByUserAndStatus(
+                                                  @Param("user") User user, @Param("status") Status status, @Param("query") String query, Pageable pageable);
 
   List<Connection> findByAuthorIdAndStatusOrRecipientIdAndStatus(Long authenticatedUserId, Status status, Long authenticatedUserId1, Status status1);
 

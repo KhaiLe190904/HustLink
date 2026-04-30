@@ -1,8 +1,11 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { request } from "@/utils/api";
+
+const MAX_CV_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+const CVS_PER_PAGE = 5;
 
 interface CvSummary {
   id: number;
@@ -46,15 +49,18 @@ interface CvConfigResponse {
 export function CVUpload() {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [analyzingId, setAnalyzingId] = useState<number | null>(null);
   const [geminiConfigured, setGeminiConfigured] = useState(false);
   const [dailyAnalysisLimit, setDailyAnalysisLimit] = useState(2);
   const [remainingAnalysesToday, setRemainingAnalysesToday] = useState(0);
   const [cvs, setCvs] = useState<CvSummary[]>([]);
   const [analysis, setAnalysis] = useState<CvAnalysisResponse | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const loadConfig = () => {
+  const loadConfig = useCallback(() => {
     request<CvConfigResponse>({
       endpoint: "/api/v1/ai/cvs/config",
       onSuccess: ({
@@ -68,23 +74,36 @@ export function CVUpload() {
       },
       onFailure: (error) => toast.error(error),
     });
-  };
+  }, []);
 
-  const loadCvs = () => {
+  const loadCvs = useCallback(() => {
     request<CvSummary[]>({
       endpoint: "/api/v1/ai/cvs/mine",
       onSuccess: setCvs,
       onFailure: (error) => toast.error(error),
     });
-  };
+  }, []);
 
   useEffect(() => {
     loadConfig();
     loadCvs();
-  }, []);
+  }, [loadConfig, loadCvs]);
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(cvs.length / CVS_PER_PAGE));
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, cvs.length]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
+    if (file && file.size > MAX_CV_FILE_SIZE_BYTES) {
+      setSelectedFile(null);
+      setFileInputKey((current) => current + 1);
+      toast.error("CV file must be 25MB or smaller.");
+      return;
+    }
     setSelectedFile(file);
   };
 
@@ -104,6 +123,7 @@ export function CVUpload() {
       body: formData,
       onSuccess: (data) => {
         setSelectedFile(null);
+        setFileInputKey((current) => current + 1);
         toast.success(data.message);
         loadCvs();
       },
@@ -111,6 +131,26 @@ export function CVUpload() {
     });
 
     setUploading(false);
+  };
+
+  const handleDeleteCv = async (cvId: number) => {
+    setDeletingId(cvId);
+    try {
+      await request<void>({
+        endpoint: `/api/v1/ai/cvs/${cvId}`,
+        method: "DELETE",
+        onSuccess: () => {
+          if (analysis?.id === cvId) {
+            setAnalysis(null);
+          }
+          toast.success("CV deleted successfully.");
+          loadCvs();
+        },
+        onFailure: (error) => toast.error(error),
+      });
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleAnalyze = async (cvId: number) => {
@@ -157,6 +197,10 @@ export function CVUpload() {
     });
   };
 
+  const totalPages = Math.max(1, Math.ceil(cvs.length / CVS_PER_PAGE));
+  const pageStart = (currentPage - 1) * CVS_PER_PAGE;
+  const paginatedCvs = cvs.slice(pageStart, pageStart + CVS_PER_PAGE);
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
       <section className="grid gap-6">
@@ -199,11 +243,12 @@ export function CVUpload() {
                       : "Choose a CV in PDF format"}
                   </p>
                   <p className="mt-1 text-sm text-gray-500">
-                    PDF only for the current MVP.
+                    PDF only, maximum file size 25MB.
                   </p>
                 </div>
               </label>
               <input
+                key={fileInputKey}
                 id="cv-upload"
                 type="file"
                 accept=".pdf,application/pdf"
@@ -265,60 +310,73 @@ export function CVUpload() {
                 You have not uploaded any CV yet.
               </div>
             ) : (
-              cvs.map((cv) => (
+              paginatedCvs.map((cv) => (
                 <article
                   key={cv.id}
-                  className="grid gap-4 rounded-2xl border border-gray-200 p-4 md:grid-cols-[minmax(0,1fr)_auto]"
+                  className="grid gap-4 rounded-2xl border border-gray-200 p-4 lg:grid-cols-[minmax(0,1fr)_auto]"
                 >
-                  <div className="grid gap-1">
-                    <h3 className="font-semibold text-gray-900">
+                  <div className="grid gap-2">
+                    <h3 className="line-clamp-2 text-lg font-semibold text-gray-900">
                       {cv.originalFileName}
                     </h3>
-                    <p className="text-sm text-gray-500">
-                      Uploaded {new Date(cv.uploadedAt).toLocaleString()}
-                    </p>
-                    <a
-                      className="text-sm font-medium text-red-700 hover:underline"
-                      href={cv.downloadUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      Open file
-                    </a>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                      <span>{new Date(cv.uploadedAt).toLocaleString()}</span>
+                      <span className="hidden text-gray-300 sm:inline">•</span>
+                      <a
+                        className="font-medium text-red-700 hover:underline"
+                        href={cv.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Open PDF
+                      </a>
+                    </div>
                     <p className="text-sm text-gray-600">
-                      Status:{" "}
                       {cv.analyzed
-                        ? `Analyzed, score ${cv.analysisScore}/100`
-                        : "Uploaded, waiting for AI analysis"}
+                        ? `Analyzed • Score ${cv.analysisScore}/100`
+                        : "Uploaded • Waiting for analysis"}
                     </p>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <Button
+                      type="button"
+                      outline
+                      size="medium"
+                      className="my-0 px-4 sm:w-fit"
+                      onClick={() => handleDeleteCv(cv.id)}
+                      disabled={deletingId === cv.id}
+                    >
+                      {deletingId === cv.id ? "Deleting..." : "Delete"}
+                    </Button>
                     {cv.analyzed ? (
                       <>
                         <Button
                           type="button"
                           outline
-                          className="my-0 px-5 sm:w-fit"
+                          size="medium"
+                          className="my-0 px-4 sm:w-fit"
                           onClick={() => handleViewAnalysis(cv.id)}
                         >
-                          View Analysis
+                          View
                         </Button>
                         <Button
                           type="button"
-                          className="my-0 px-5 sm:w-fit"
+                          size="medium"
+                          className="my-0 px-4 sm:w-fit"
                           onClick={() =>
                             navigate(`/ai/interview?cvId=${cv.id}`)
                           }
                           disabled={!geminiConfigured}
                         >
-                          Start Mock Interview
+                          Mock Interview
                         </Button>
                       </>
                     ) : (
                       <>
                         <Button
                           type="button"
-                          className="my-0 px-5 sm:w-fit"
+                          size="medium"
+                          className="my-0 px-4 sm:w-fit"
                           onClick={() => handleAnalyze(cv.id)}
                           disabled={
                             !geminiConfigured ||
@@ -326,20 +384,19 @@ export function CVUpload() {
                             remainingAnalysesToday <= 0
                           }
                         >
-                          {analyzingId === cv.id
-                            ? "Analyzing..."
-                            : "Analyze with Gemini"}
+                          {analyzingId === cv.id ? "Analyzing..." : "Analyze"}
                         </Button>
                         <Button
                           type="button"
                           outline
-                          className="my-0 px-5 sm:w-fit"
+                          size="medium"
+                          className="my-0 px-4 sm:w-fit"
                           onClick={() =>
                             navigate(`/ai/interview?cvId=${cv.id}`)
                           }
                           disabled={!geminiConfigured}
                         >
-                          Start Mock Interview
+                          Mock Interview
                         </Button>
                       </>
                     )}
@@ -347,6 +404,39 @@ export function CVUpload() {
                 </article>
               ))
             )}
+            {cvs.length > CVS_PER_PAGE ? (
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <p className="text-sm text-gray-500">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    outline
+                    size="medium"
+                    className="my-0 px-4 sm:w-fit"
+                    onClick={() =>
+                      setCurrentPage((page) => Math.max(1, page - 1))
+                    }
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    outline
+                    size="medium"
+                    className="my-0 px-4 sm:w-fit"
+                    onClick={() =>
+                      setCurrentPage((page) => Math.min(totalPages, page + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

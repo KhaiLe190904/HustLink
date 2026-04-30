@@ -254,7 +254,7 @@ public class AIInterviewService {
     long usageCount = getTodayMockInterviewUsageCount(user);
     if (usageCount >= dailyMockInterviewLimit) {
       throw new ResponseStatusException(
-              HttpStatus.BAD_REQUEST, "You can only start %d mock interview time(s) per day. Please try again tomorrow.".formatted(dailyMockInterviewLimit));
+              HttpStatus.TOO_MANY_REQUESTS, "You can only start %d mock interview time(s) per day. Please try again tomorrow.".formatted(dailyMockInterviewLimit));
     }
   }
 

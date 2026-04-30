@@ -152,7 +152,7 @@ public class GeminiService {
                   if (!text.isBlank()) {
                     questions.add(
                             new InterviewQuestionDraft(
-                                    questionNode.path("questionOrder").asInt(questions.size() + 1), text, questionNode.path("category").asText("GENERAL"), toList(questionNode.path("expectedPoints"))));
+                                    questions.size() + 1, text, questionNode.path("category").asText("GENERAL"), toList(questionNode.path("expectedPoints"))));
                   }
                 });
       }

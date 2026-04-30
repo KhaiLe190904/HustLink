@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Button } from "@/features/authentication/components/Button/Button";
@@ -108,6 +108,12 @@ export function Interview() {
   const [voicesReady, setVoicesReady] = useState(false);
   const recognitionRef = useRef<RecognitionInstance | null>(null);
   const timeoutSubmittedRef = useRef<number | null>(null);
+  const answerTextRef = useRef("");
+  const listeningBaseTextRef = useRef("");
+
+  useEffect(() => {
+    answerTextRef.current = answerText;
+  }, [answerText]);
 
   useEffect(() => {
     const RecognitionCtor =
@@ -122,14 +128,25 @@ export function Interview() {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
+      const liveTranscript = Array.from(event.results)
         .map((result) => result[0]?.transcript ?? "")
         .join(" ")
         .trim();
-      setAnswerText(transcript);
+      const baseText = listeningBaseTextRef.current;
+      const nextAnswerText = [baseText, liveTranscript]
+        .filter((value) => value.length > 0)
+        .join(baseText && liveTranscript ? " " : "")
+        .trim();
+      setAnswerText(nextAnswerText);
     };
     recognition.onerror = (event) => {
       setIsListening(false);
+      if (event.error === "network") {
+        toast.error(
+          "Microphone recognition service is unavailable. Check your internet connection or continue by typing."
+        );
+        return;
+      }
       if (event.error && event.error !== "aborted") {
         toast.error(`Microphone error: ${event.error}`);
       }
@@ -140,6 +157,7 @@ export function Interview() {
 
     return () => {
       recognition.stop();
+      window.speechSynthesis?.cancel();
       recognitionRef.current = null;
     };
   }, []);
@@ -160,18 +178,6 @@ export function Interview() {
   }, []);
 
   useEffect(() => {
-    if (!currentQuestion || result) {
-      return;
-    }
-
-    setSecondsRemaining(currentQuestion.answerTimeLimitSeconds);
-    setAnswerText("");
-    timeoutSubmittedRef.current = null;
-    stopListening();
-    speakQuestion(currentQuestion.text, session?.languageCode ?? "en-US");
-  }, [currentQuestion, result, session?.languageCode]);
-
-  useEffect(() => {
     if (!currentQuestion || result || submitting) {
       return;
     }
@@ -183,41 +189,27 @@ export function Interview() {
     return () => window.clearInterval(interval);
   }, [currentQuestion, result, submitting]);
 
-  useEffect(() => {
-    if (
-      !currentQuestion ||
-      submitting ||
-      result ||
-      secondsRemaining > 0 ||
-      timeoutSubmittedRef.current === currentQuestion.id
-    ) {
-      return;
-    }
-
-    timeoutSubmittedRef.current = currentQuestion.id;
-    void submitAnswer(true);
-  }, [currentQuestion, result, secondsRemaining, submitting]);
-
-  const startListening = () => {
+  const startListening = useCallback(() => {
     if (!recognitionRef.current || !currentQuestion) {
       return;
     }
 
     recognitionRef.current.lang = session?.languageCode ?? "en-US";
+    listeningBaseTextRef.current = answerTextRef.current.trim();
     try {
       recognitionRef.current.start();
       setIsListening(true);
     } catch {
       toast.info("Microphone is already recording.");
     }
-  };
+  }, [currentQuestion, session?.languageCode]);
 
-  const stopListening = () => {
+  const stopListening = useCallback(() => {
     recognitionRef.current?.stop();
     setIsListening(false);
-  };
+  }, []);
 
-  const pickVoice = (languageCode: string) => {
+  const pickVoice = useCallback((languageCode: string) => {
     const voices = window.speechSynthesis?.getVoices() ?? [];
     if (voices.length === 0) {
       return null;
@@ -236,23 +228,46 @@ export function Interview() {
       ) ||
       voices[0]
     );
-  };
+  }, []);
 
-  const speakQuestion = (text: string, languageCode: string) => {
-    if (!window.speechSynthesis || !text.trim()) {
+  const speakQuestion = useCallback(
+    (text: string, languageCode: string) => {
+      if (!window.speechSynthesis || !text.trim()) {
+        return;
+      }
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = languageCode;
+      const selectedVoice = pickVoice(languageCode);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+      utterance.rate = 0.96;
+      window.speechSynthesis.speak(utterance);
+    },
+    [pickVoice]
+  );
+
+  useEffect(() => {
+    if (!currentQuestion || result) {
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = languageCode;
-    const selectedVoice = pickVoice(languageCode);
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
-    utterance.rate = 0.96;
-    window.speechSynthesis.speak(utterance);
-  };
+    setSecondsRemaining(currentQuestion.answerTimeLimitSeconds);
+    setAnswerText("");
+    answerTextRef.current = "";
+    listeningBaseTextRef.current = "";
+    timeoutSubmittedRef.current = null;
+    stopListening();
+    speakQuestion(currentQuestion.text, session?.languageCode ?? "en-US");
+  }, [
+    currentQuestion,
+    result,
+    session?.languageCode,
+    speakQuestion,
+    stopListening,
+  ]);
 
   const handleStartInterview = async () => {
     if (!selectedCvId) {
@@ -300,76 +315,94 @@ export function Interview() {
     setStarting(false);
   };
 
-  const submitAnswer = async (autoSubmit = false) => {
-    if (!session || !currentQuestion) {
-      return;
-    }
+  const submitAnswer = useCallback(
+    async (autoSubmit = false) => {
+      if (!session || !currentQuestion) {
+        return;
+      }
 
-    if (!autoSubmit && !answerText.trim()) {
-      toast.error("Please record or type an answer before continuing.");
-      return;
-    }
+      if (!autoSubmit && !answerText.trim()) {
+        toast.error("Please record or type an answer before continuing.");
+        return;
+      }
 
-    stopListening();
-    setSubmitting(true);
-    const isFinalQuestion =
-      currentQuestion.questionOrder >= currentQuestion.totalQuestions;
-    const loadingToastId = isFinalQuestion
-      ? toast.loading("AI is evaluating your interview answers...")
-      : null;
+      stopListening();
+      setSubmitting(true);
+      const isFinalQuestion =
+        currentQuestion.questionOrder >= currentQuestion.totalQuestions;
+      const loadingToastId = isFinalQuestion
+        ? toast.loading("AI is evaluating your interview answers...")
+        : null;
 
-    await request<InterviewSubmitAnswerResponse>({
-      endpoint: `/api/v1/ai/interviews/${session.sessionId}/answers`,
-      method: "POST",
-      body: JSON.stringify({
-        questionId: currentQuestion.id,
-        answerText,
-        durationSeconds:
-          currentQuestion.answerTimeLimitSeconds - secondsRemaining,
-      }),
-      onSuccess: (data) => {
-        if (data.completed && data.results) {
-          setResult(data.results);
-          setCurrentQuestion(null);
+      await request<InterviewSubmitAnswerResponse>({
+        endpoint: `/api/v1/ai/interviews/${session.sessionId}/answers`,
+        method: "POST",
+        body: JSON.stringify({
+          questionId: currentQuestion.id,
+          answerText,
+          durationSeconds:
+            currentQuestion.answerTimeLimitSeconds - secondsRemaining,
+        }),
+        onSuccess: (data) => {
+          if (data.completed && data.results) {
+            setResult(data.results);
+            setCurrentQuestion(null);
+            if (loadingToastId) {
+              toast.update(loadingToastId, {
+                render: "Interview results are ready.",
+                type: "success",
+                isLoading: false,
+                autoClose: 3000,
+                closeOnClick: true,
+              });
+            }
+            return;
+          }
+
+          if (data.nextQuestion) {
+            setSecondsRemaining(data.nextQuestion.answerTimeLimitSeconds);
+            setAnswerText("");
+            timeoutSubmittedRef.current = null;
+            setCurrentQuestion(data.nextQuestion);
+          }
+          if (loadingToastId) {
+            toast.dismiss(loadingToastId);
+          }
+        },
+        onFailure: (error) => {
           if (loadingToastId) {
             toast.update(loadingToastId, {
-              render: "Interview results are ready.",
-              type: "success",
+              render: error,
+              type: "error",
               isLoading: false,
-              autoClose: 3000,
+              autoClose: 4000,
               closeOnClick: true,
             });
+          } else {
+            toast.error(error);
           }
-          return;
-        }
+        },
+      });
 
-        if (data.nextQuestion) {
-          setSecondsRemaining(data.nextQuestion.answerTimeLimitSeconds);
-          setAnswerText("");
-          timeoutSubmittedRef.current = null;
-          setCurrentQuestion(data.nextQuestion);
-        }
-        if (loadingToastId) {
-          toast.dismiss(loadingToastId);
-        }
-      },
-      onFailure: (error) => {
-        if (loadingToastId) {
-          toast.update(loadingToastId, {
-            render: error,
-            type: "error",
-            isLoading: false,
-            autoClose: 4000,
-            closeOnClick: true,
-          });
-        } else {
-          toast.error(error);
-        }
-      },
-    });
+      setSubmitting(false);
+    },
+    [answerText, currentQuestion, secondsRemaining, session, stopListening]
+  );
 
-    setSubmitting(false);
-  };
+  useEffect(() => {
+    if (
+      !currentQuestion ||
+      submitting ||
+      result ||
+      secondsRemaining > 0 ||
+      timeoutSubmittedRef.current === currentQuestion.id
+    ) {
+      return;
+    }
+
+    timeoutSubmittedRef.current = currentQuestion.id;
+    void submitAnswer(true);
+  }, [currentQuestion, result, secondsRemaining, submitAnswer, submitting]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -715,7 +748,11 @@ export function Interview() {
               type="button"
               outline
               className="my-0 sm:w-fit"
-              onClick={() => setAnswerText("")}
+              onClick={() => {
+                setAnswerText("");
+                answerTextRef.current = "";
+                listeningBaseTextRef.current = "";
+              }}
               disabled={submitting}
             >
               Clear Transcript

@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyExistsException;
 import software.amazon.awssdk.services.s3.model.BucketAlreadyOwnedByYouException;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -134,6 +135,13 @@ public class MinioObjectStorageService implements ObjectStorageService {
     storedObject.setOwnerType(ownerType);
     storedObject.setOwnerId(ownerId);
     return storedObjectRepository.save(storedObject);
+  }
+
+  @Override
+  public void delete(StoredObject storedObject) {
+    ensureConfigured();
+    s3Client.deleteObject(DeleteObjectRequest.builder().bucket(storedObject.getBucketName()).key(storedObject.getObjectKey()).build());
+    storedObjectRepository.delete(storedObject);
   }
 
   private void ensureConfigured() {
