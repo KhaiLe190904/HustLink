@@ -7,6 +7,9 @@ import com.hustlink.backend.features.networking.model.Status;
 import com.hustlink.backend.features.networking.service.ConnectionService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +25,12 @@ public class ConnectionController {
       return connectionService.getUserConnections(userId, status);
     }
     return connectionService.getUserConnections(user, status);
+  }
+
+  @GetMapping("/connections/paginated")
+  public Page<Connection> getUserConnectionsPaginated(
+                                                      @RequestAttribute("authenticationUser") User user, @RequestParam(required = false) Status status, @RequestParam(required = false) String query, @PageableDefault(size = 10) Pageable pageable) {
+    return connectionService.getUserConnections(user, status, query, pageable);
   }
 
   @PostMapping("/connections")

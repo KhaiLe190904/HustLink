@@ -8,6 +8,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @ControllerAdvice
@@ -41,6 +42,12 @@ public class BackendController {
       return ResponseEntity.badRequest().body(Map.of("message", "Email already exists, please use another email or login."));
     }
     return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+  }
+
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<Map<String, String>> handleResponseStatusException(
+                                                                           ResponseStatusException e) {
+    return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", e.getReason() == null ? e.getMessage() : e.getReason()));
   }
 
   @ExceptionHandler(Exception.class)

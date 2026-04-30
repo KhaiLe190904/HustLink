@@ -13,6 +13,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -83,6 +85,10 @@ public class ConnectionService {
   public List<Connection> getUserConnections(Long userId, Status status) {
     User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
     return connectionRepository.findConnectionsByUserAndStatus(user, status != null ? status : Status.ACCEPTED);
+  }
+
+  public Page<Connection> getUserConnections(User user, Status status, String query, Pageable pageable) {
+    return connectionRepository.findConnectionsByUserAndStatus(user, status != null ? status : Status.ACCEPTED, query, pageable);
   }
 
   @Deprecated

@@ -21,11 +21,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -73,6 +74,17 @@ public class CVService {
   public List<CVSummaryResponse> getMyCvs(User user) {
     return cvRepository.findByUserIdOrderByUploadedAtDesc(user.getId()).stream().map(cv -> new CVSummaryResponse(
             cv.getId(), cv.getFileName(), cv.getOriginalFileName(), cv.getMimeType(), objectStorageService.getAccessUrl(cv.getStoredObject()), cv.getAnalysisScore(), cv.getAnalysisScore() != null, cv.getUploadedAt())).toList();
+  }
+
+  @Transactional
+  public void deleteCv(User user, Long cvId) {
+    CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+    StoredObject storedObject = cv.getStoredObject();
+    cvRepository.delete(cv);
+    cvRepository.flush();
+    if (storedObject != null) {
+      objectStorageService.delete(storedObject);
+    }
   }
 
   public CVAnalysisResponse analyzeCv(User user, Long cvId) {
