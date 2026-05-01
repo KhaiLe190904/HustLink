@@ -6,7 +6,6 @@ import com.hustlink.backend.features.ai.dto.CVSummaryResponse;
 import com.hustlink.backend.features.ai.dto.CVUploadResponse;
 import com.hustlink.backend.features.ai.service.CVService;
 import com.hustlink.backend.features.authentication.model.User;
-import java.io.IOException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +20,7 @@ public class CVController {
 
   @PostMapping("/upload")
   public ResponseEntity<CVUploadResponse> uploadCv(
-                                                   @RequestAttribute("authenticationUser") User user, @RequestParam("file") MultipartFile file) throws IOException {
+                                                   @RequestAttribute("authenticationUser") User user, @RequestParam("file") MultipartFile file) {
     return ResponseEntity.ok(cvService.uploadCv(user, file));
   }
 

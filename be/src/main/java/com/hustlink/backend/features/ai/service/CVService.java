@@ -12,6 +12,7 @@ import com.hustlink.backend.features.ai.model.AIUsageType;
 import com.hustlink.backend.features.ai.model.CV;
 import com.hustlink.backend.features.ai.repository.AIUsageLogRepository;
 import com.hustlink.backend.features.ai.repository.CVRepository;
+import com.hustlink.backend.features.ai.repository.InterviewSessionRepository;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.storage.model.StorageScope;
 import com.hustlink.backend.features.storage.model.StoredObject;
@@ -36,6 +37,7 @@ public class CVService {
 
   private final CVRepository cvRepository;
   private final AIUsageLogRepository aiUsageLogRepository;
+  private final InterviewSessionRepository interviewSessionRepository;
   private final CVParserService cvParserService;
   private final GeminiService geminiService;
   private final ObjectStorageService objectStorageService;
@@ -44,10 +46,19 @@ public class CVService {
   @Value("${ai.daily-analysis-limit:2}")
   private int dailyAnalysisLimit;
 
-  public CVUploadResponse uploadCv(User user, MultipartFile file) throws IOException {
+  public CVUploadResponse uploadCv(User user, MultipartFile file) {
     validatePdf(file);
 
-    String extractedText = cvParserService.extractTextFromPdf(file);
+    String extractedText;
+    try {
+      extractedText = cvParserService.extractTextFromPdf(file);
+    } catch (IOException exception) {
+      throw new ResponseStatusException(
+              HttpStatus.BAD_REQUEST,
+              "The uploaded file is not a valid readable PDF.",
+              exception);
+    }
+
     if (extractedText.isBlank()) {
       throw new IllegalArgumentException("Could not extract any text from this PDF.");
     }
@@ -79,6 +90,11 @@ public class CVService {
   @Transactional
   public void deleteCv(User user, Long cvId) {
     CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+    if (interviewSessionRepository.existsByCvId(cvId)) {
+      throw new ResponseStatusException(
+              HttpStatus.CONFLICT,
+              "This CV already has interview history and cannot be deleted.");
+    }
     StoredObject storedObject = cv.getStoredObject();
     cvRepository.delete(cv);
     cvRepository.flush();

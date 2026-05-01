@@ -46,6 +46,22 @@ interface CvConfigResponse {
   remainingAnalysesToday: number;
 }
 
+const friendlyUploadError = (error: string) => {
+  if (error.includes("not a valid readable PDF")) {
+    return "This file is not a valid readable PDF. Please upload another CV file.";
+  }
+
+  return error;
+};
+
+const friendlyDeleteError = (error: string) => {
+  if (error.includes("already has interview history")) {
+    return "This CV already contains interview history, so it cannot be deleted.";
+  }
+
+  return error;
+};
+
 export function CVUpload() {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -127,7 +143,7 @@ export function CVUpload() {
         toast.success(data.message);
         loadCvs();
       },
-      onFailure: (error) => toast.error(error),
+      onFailure: (error) => toast.error(friendlyUploadError(error)),
     });
 
     setUploading(false);
@@ -146,7 +162,7 @@ export function CVUpload() {
           toast.success("CV deleted successfully.");
           loadCvs();
         },
-        onFailure: (error) => toast.error(error),
+        onFailure: (error) => toast.error(friendlyDeleteError(error)),
       });
     } finally {
       setDeletingId(null);
