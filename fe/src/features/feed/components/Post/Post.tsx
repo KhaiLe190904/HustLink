@@ -13,7 +13,10 @@ import {
 } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useWebSocket } from "@/features/websocket/websocket";
 import { IComment } from "@/features/feed/components/Comment/Comment";
-import { Madal } from "@/features/feed/components/Modal/Modal";
+import {
+  ARTICLE_CONTENT_PREFIX,
+  Madal,
+} from "@/features/feed/components/Modal/Modal";
 import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import { CommentModal } from "@/features/feed/components/CommentModal/CommentModal";
 import { AiOutlineLike, AiFillLike } from "react-icons/ai";
@@ -39,7 +42,58 @@ interface PostProps {
   setPosts: Dispatch<SetStateAction<IPost[]>>;
 }
 
+interface ParsedArticleContent {
+  title: string;
+  summary: string;
+  contentHtml: string;
+  tags: string[];
+}
+
+function normalizeArticleHtml(contentHtml: string) {
+  let normalized = contentHtml;
+
+  normalized = normalized.replace(/<p>\s*##\s*(.*?)\s*<\/p>/gi, "<h2>$1</h2>");
+  normalized = normalized.replace(/<p>\s*-\s*(.*?)\s*<\/p>/gi, "<li>$1</li>");
+  normalized = normalized.replace(/(<li>.*?<\/li>)/gis, "<ul>$1</ul>");
+  normalized = normalized.replace(/<\/ul>\s*<ul>/gi, "");
+  normalized = normalized.replace(/<p>\s*<\/p>/gi, "");
+
+  return normalized;
+}
+
+function parseArticleContent(content: string): ParsedArticleContent | null {
+  if (!content.startsWith(ARTICLE_CONTENT_PREFIX)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      content.slice(ARTICLE_CONTENT_PREFIX.length)
+    ) as Partial<ParsedArticleContent>;
+
+    if (
+      typeof parsed.title !== "string" ||
+      typeof parsed.summary !== "string" ||
+      typeof parsed.contentHtml !== "string" ||
+      !Array.isArray(parsed.tags)
+    ) {
+      return null;
+    }
+
+    return {
+      title: parsed.title,
+      summary: parsed.summary,
+      contentHtml: normalizeArticleHtml(parsed.contentHtml),
+      tags: parsed.tags.filter((tag) => typeof tag === "string"),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function Post({ post, setPosts }: PostProps) {
+  const article = parseArticleContent(post.content);
+  const isArticle = !!article;
   const postMediaUrls =
     post.mediaUrls && post.mediaUrls.length > 0
       ? post.mediaUrls
@@ -60,6 +114,7 @@ export function Post({ post, setPosts }: PostProps) {
   const { user } = useAuthentication();
   const [showMenu, setShowMenu] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [articleExpanded, setArticleExpanded] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const webSocketClient = useWebSocket();
 
@@ -73,6 +128,7 @@ export function Post({ post, setPosts }: PostProps) {
 
   useEffect(() => {
     setCurrentMediaIndex(0);
+    setArticleExpanded(false);
   }, [post.id, post.picture, post.mediaUrls]);
 
   // Fetch comments only when modal opens
@@ -325,7 +381,8 @@ export function Post({ post, setPosts }: PostProps) {
     <>
       {editing ? (
         <Madal
-          title="Editing your post"
+          title={isArticle ? "Editing your article" : "Editing your post"}
+          mode={isArticle ? "article" : "post"}
           content={post.content}
           mediaUrls={post.mediaUrls}
           onSubmit={editPost}
@@ -333,23 +390,23 @@ export function Post({ post, setPosts }: PostProps) {
           setShowModal={setEditing}
         />
       ) : null}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-3 relative hover:shadow-md transition-shadow">
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_22px_55px_rgba(15,23,42,0.08)]">
         {" "}
         {/* .root styles */}
-        <div className="flex gap-3 items-start p-4 justify-between">
+        <div className="flex items-start justify-between gap-3 p-5 pb-3">
           {" "}
           {/* .top styles */}
           <div className="flex gap-3 items-start flex-1">
             {" "}
             {/* .author styles */}
             <button
-              className="cursor-pointer flex-shrink-0 hover:opacity-80 transition-opacity"
+              className="flex-shrink-0 cursor-pointer rounded-full transition-all hover:ring-4 hover:ring-red-100"
               onClick={() => {
                 navigate(`/profile/${post.author.id}`);
               }}
             >
               <img
-                className="w-16 h-16 rounded-full" /* .avatar styles */
+                className="h-[52px] w-[52px] rounded-full object-cover ring-4 ring-slate-50" /* .avatar styles */
                 src={resolveMediaUrl(post.author.profilePicture) || "/doc1.png"}
                 alt=""
               />
@@ -357,15 +414,15 @@ export function Post({ post, setPosts }: PostProps) {
             <div className="flex-1 min-w-0">
               <button
                 onClick={() => navigate(`/profile/${post.author.id}`)}
-                className="text-left hover:text-blue-600 hover:underline transition-colors"
+                className="text-left transition-colors hover:text-red-700"
               >
-                <div className="font-semibold text-sm text-gray-900 line-clamp-1">
+                <div className="line-clamp-1 text-sm font-bold text-slate-950">
                   {" "}
                   {/* .name styles */}
                   {post.author.firstName + " " + post.author.lastName}
                 </div>
               </button>
-              <div className="text-xs text-gray-600 line-clamp-1 mt-0.5">
+              <div className="mt-0.5 line-clamp-1 text-xs font-medium text-slate-500">
                 {" "}
                 {/* .title styles */}
                 {post.author.position} at {post.author.company}
@@ -374,18 +431,17 @@ export function Post({ post, setPosts }: PostProps) {
                 <TimeAgo
                   date={post.creationDate}
                   edited={!!post.updateDate}
-                  className="text-xs text-gray-500"
+                  className="text-xs text-slate-400"
                 />{" "}
                 {/* .date styles */}
-                <span className="text-gray-400">•</span>
               </div>
             </div>
           </div>
           <div>
             {post.author.id == user?.id && (
               <button
-                className={`bg-transparent w-6 h-6 rounded-full grid place-items-center transition-all duration-300 cursor-pointer ${
-                  showMenu ? "bg-gray-300" : "hover:bg-gray-300"
+                className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-transparent text-slate-500 transition-all duration-300 ${
+                  showMenu ? "bg-slate-100" : "hover:bg-slate-100"
                 }`} /* .toggle styles */
                 onClick={() => setShowMenu(!showMenu)}
               >
@@ -401,18 +457,18 @@ export function Post({ post, setPosts }: PostProps) {
               </button>
             )}
             {showMenu && (
-              <div className="absolute right-5 top-11 flex flex-col items-start bg-gray-300 rounded-lg p-2 text-xs gap-2">
+              <div className="absolute right-5 top-[3.25rem] z-20 grid w-36 gap-1 rounded-2xl border border-slate-200 bg-white p-2 text-sm font-semibold shadow-xl shadow-slate-900/10">
                 {" "}
                 {/* .menu styles */}
                 <button
                   onClick={() => setEditing(true)}
-                  className="w-full text-left border-b border-gray-400 pb-1 cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+                  className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-slate-700 transition-colors hover:bg-slate-50"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => deletePost(post.id)}
-                  className="w-full text-left cursor-pointer hover:bg-gray-200 px-2 py-1 rounded transition-colors"
+                  className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-red-700 transition-colors hover:bg-red-50"
                 >
                   Delete
                 </button>
@@ -420,11 +476,56 @@ export function Post({ post, setPosts }: PostProps) {
             )}
           </div>
         </div>
-        <div className="px-4 pb-3 text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-          {post.content}
-        </div>{" "}
+        {isArticle && article ? (
+          <div className="px-5 pb-4">
+            {!isVideoFile(postMediaUrls[0]) && postMediaUrls[0] ? (
+              <img
+                src={resolveMediaUrl(postMediaUrls[0])}
+                alt={article.title}
+                className="mb-4 h-64 w-full rounded-2xl object-cover"
+              />
+            ) : null}
+            <h2 className="text-3xl font-bold leading-tight text-slate-950">
+              {article.title}
+            </h2>
+            {article.summary ? (
+              <p className="mt-2 text-lg text-slate-600">{article.summary}</p>
+            ) : null}
+            {article.tags.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {article.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-700"
+                  >
+                    #{tag.replace(/^#/, "")}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="mt-5 border-t border-slate-700">
+              <div
+                className={`overflow-hidden text-slate-700 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_p]:mt-2 [&_p]:leading-7 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mt-1 ${
+                  articleExpanded ? "" : "max-h-56"
+                }`}
+                dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setArticleExpanded((prev) => !prev)}
+              className="mt-4 rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+            >
+              {articleExpanded ? "Show less" : "Read more"}
+            </button>
+          </div>
+        ) : (
+          <div className="px-5 pb-4 text-[15px] leading-6 text-slate-800 whitespace-pre-wrap">
+            {post.content}
+          </div>
+        )}{" "}
         {/* .content styles */}
-        {postMediaUrls.length > 0 && (
+        {!isArticle && postMediaUrls.length > 0 && (
           <div className="relative bg-black">
             {isVideoFile(postMediaUrls[currentMediaIndex]) ? (
               <video
@@ -475,13 +576,13 @@ export function Post({ post, setPosts }: PostProps) {
           </div>
         )}{" "}
         {/* .picture styles */}
-        <div className="flex justify-between items-center px-4 py-1">
+        <div className="flex items-center justify-between px-5 py-2">
           {" "}
           {/* .stats styles */}
           {likesCount > 0 ? (
             <button
               onClick={() => setShowCommentModal(true)}
-              className="py-1 text-xs text-gray-600 hover:text-blue-600 hover:underline cursor-pointer transition-colors flex items-center gap-1"
+              className="flex cursor-pointer items-center gap-1 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-blue-600"
             >
               {" "}
               {/* .stat styles */}
@@ -495,7 +596,7 @@ export function Post({ post, setPosts }: PostProps) {
           )}
           {commentsCount > 0 ? (
             <button
-              className="py-1 px-4 text-xs cursor-pointer hover:text-black transition-colors"
+              className="cursor-pointer px-4 py-1 text-xs font-medium text-slate-500 transition-colors hover:text-slate-950"
               onClick={() => setShowCommentModal(true)}
             >
               {" "}
@@ -508,13 +609,13 @@ export function Post({ post, setPosts }: PostProps) {
             <div></div>
           )}
         </div>
-        <div className="flex gap-20 justify-between p-1 border-t border-gray-300">
+        <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-2">
           {" "}
           {/* .actions styles */}
           <button
             disabled={postLiked == undefined}
             onClick={like}
-            className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg flex-1 font-medium text-sm transition-all hover:bg-gray-100 ${
+            className={`flex cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition-all hover:bg-slate-50 ${
               postLiked ? "text-blue-600" : "text-gray-700"
             } disabled:cursor-wait cursor-pointer`} /* action button styles */
           >
@@ -535,7 +636,7 @@ export function Post({ post, setPosts }: PostProps) {
             onClick={() => {
               setShowCommentModal(true);
             }}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg flex-1 font-medium text-sm text-gray-700 transition-all hover:bg-gray-100 cursor-pointer" /* action button styles */
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50" /* action button styles */
           >
             <FaRegComment className="w-5 h-5" />
             <span>Comment</span>

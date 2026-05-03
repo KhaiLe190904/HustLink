@@ -3,6 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { request } from "@/utils/api";
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
+import { resolveMediaUrl } from "@/utils/storage";
+import {
+  FiArrowUpRight,
+  FiCpu,
+  FiPlus,
+  FiRadio,
+  FiTrendingUp,
+  FiUsers,
+} from "react-icons/fi";
 
 interface IUserRecommendation {
   user: IUser;
@@ -24,32 +33,71 @@ export function RightSidebar() {
 
   useEffect(() => {
     request<IUserRecommendation[]>({
-      endpoint: "/api/v1/networking/suggestions?limit=2",
+      endpoint: "/api/v1/networking/suggestions?limit=10",
       onSuccess: (data) => setSuggestions(data),
       onFailure: (error) => console.log(error),
     });
   }, []);
 
   const trendingTopics = [
-    { tag: "#RemoteWork", posts: "12,456 posts" },
-    { tag: "#ArtificialIntelligence", posts: "8,921 posts" },
-    { tag: "#Layoffs", posts: "5,234 posts" },
-    { tag: "#DigitalTransformation", posts: "3,112 posts" },
+    { tag: "#RemoteWork", posts: "12,456 posts", icon: FiArrowUpRight },
+    { tag: "#ArtificialIntelligence", posts: "8,921 posts", icon: FiCpu },
+    { tag: "#Layoffs", posts: "5,234 posts", icon: FiTrendingUp },
+    { tag: "#DigitalTransformation", posts: "3,112 posts", icon: FiRadio },
   ];
+  const stickyTop = "6.5rem";
+  const stickyBottomGap = "3rem";
+  const visibleSuggestions = suggestions.filter((s) => s.user.id != id).slice(0, 2);
 
   return (
-    <div className="space-y-4 sticky top-30">
-      {/* Add to your connections */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h3 className="font-semibold text-base text-gray-900">
-            Add to your connections
+    <div
+      className="sticky grid w-full min-w-0 gap-5 overflow-y-auto overflow-x-hidden pr-1 hide-scrollbar"
+      style={{
+        top: stickyTop,
+        maxHeight: `calc(100vh - ${stickyTop} - ${stickyBottomGap})`,
+        paddingBottom: stickyBottomGap,
+      }}
+    >
+      <div className="w-full min-w-0 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white">
+        <div className="px-5 pt-5">
+          <h3 className="text-lg font-bold text-slate-950">
+            <span className="text-red-700">Trending</span> Topics
           </h3>
         </div>
-        <div className="p-4 space-y-4">
-          {suggestions
-            .filter((s) => s.user.id != id)
-            .map((recommendation) => {
+        <div className="px-4 py-3">
+          {trendingTopics.map((topic) => {
+            const Icon = topic.icon;
+
+            return (
+              <button
+                key={topic.tag}
+                className="flex w-full items-center gap-2 rounded-2xl px-3 py-3 text-left transition hover:bg-slate-50"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold text-slate-950">
+                    {topic.tag}
+                  </div>
+                  <div className="mt-0.5 text-xs font-medium text-slate-500">
+                    {topic.posts}
+                  </div>
+                </div>
+                <span className="grid h-9 w-9 place-items-center rounded-2xl bg-red-50 text-red-700">
+                  <Icon className="h-4 w-4" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="w-full min-w-0 overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white">
+        <div className="px-5 pt-5">
+          <h3 className="text-lg font-bold text-slate-950">
+            <span className="text-red-700">Suggested</span> Connections
+          </h3>
+        </div>
+        <div className="grid max-h-[52vh] gap-4 overflow-y-auto overflow-x-hidden p-4 hide-scrollbar">
+          {visibleSuggestions.map((recommendation) => {
               const { user, reasons } = recommendation;
               const reasonTexts: string[] = [];
 
@@ -75,45 +123,39 @@ export function RightSidebar() {
               }
 
               return (
-                <div className="flex gap-3" key={user.id}>
+                <div className="flex w-full min-w-0 gap-3" key={user.id}>
                   <button
-                    className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 hover:ring-2 hover:ring-red-500 transition-all cursor-pointer"
+                    className="h-12 w-12 flex-shrink-0 cursor-pointer overflow-hidden rounded-full transition-all hover:ring-4 hover:ring-red-100"
                     onClick={() => navigate("/profile/" + user.id)}
                   >
                     <img
-                      src={user.profilePicture || "/doc1.png"}
+                      src={resolveMediaUrl(user.profilePicture) || "/doc1.png"}
                       alt="Profile"
-                      className="w-full h-full object-cover"
+                      className="h-full w-full object-cover"
                     />
                   </button>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <button
                       onClick={() => navigate("/profile/" + user.id)}
-                      className="text-left w-full group"
+                      className="group w-full text-left"
                     >
-                      <div className="font-semibold text-sm text-gray-900 truncate group-hover:text-red-600 group-hover:underline transition-colors">
+                      <div className="truncate text-sm font-bold text-slate-950 transition-colors group-hover:text-red-700">
                         {user.firstName} {user.lastName}
                       </div>
-                      <div className="text-xs text-gray-600 truncate mt-0.5">
+                      <div className="mt-0.5 truncate text-xs font-medium text-slate-500">
                         {user.position} at {user.company}
                       </div>
                       {reasonTexts.length > 0 && (
-                        <div className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M11 6a3 3 0 11-6 0 3 3 0 016 0zM14 17a6 6 0 00-12 0h12zM13 8a1 1 0 100 2h4a1 1 0 100-2h-4z" />
-                          </svg>
-                          <span className="truncate">
-                            {reasonTexts.join(" • ")}
+                        <div className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+                          <FiUsers className="h-3.5 w-3.5" />
+                          <span className="block truncate">
+                            {reasonTexts.join(" | ")}
                           </span>
                         </div>
                       )}
                     </button>
                     <button
-                      className="mt-2 px-4 py-1.5 bg-[var(--primary-color)] text-white rounded-full font-semibold text-sm hover:bg-red-700 hover:scale-105 hover:shadow-md active:scale-95 transition-all w-full flex items-center justify-center gap-1"
+                      className="mt-2 flex w-full max-w-full items-center justify-center gap-1 overflow-hidden rounded-xl bg-slate-950 px-4 py-2 text-sm font-bold text-white transition hover:bg-red-700"
                       onClick={() => {
                         request<IConnection>({
                           endpoint:
@@ -129,19 +171,7 @@ export function RightSidebar() {
                         });
                       }}
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                        />
-                      </svg>
+                      <FiPlus className="h-4 w-4" />
                       Connect
                     </button>
                   </div>
@@ -149,9 +179,9 @@ export function RightSidebar() {
               );
             })}
 
-          {suggestions.length === 0 && (
-            <div className="text-center py-4">
-              <p className="text-gray-500 text-sm">
+          {visibleSuggestions.length === 0 && (
+            <div className="py-4 text-center">
+              <p className="text-sm text-slate-500">
                 No suggestions available at the moment.
               </p>
             </div>
@@ -159,58 +189,9 @@ export function RightSidebar() {
         </div>
         <button
           onClick={() => navigate("/network/invitations")}
-          className="w-full px-4 py-3 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-200 transition-colors"
+          className="w-full border-t border-slate-100 px-4 py-4 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
         >
-          View all recommendations →
-        </button>
-      </div>
-
-      {/* Trending Topics */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200 flex items-center gap-2">
-          <svg
-            className="w-4 h-4 text-gray-700"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fillRule="evenodd"
-              d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"
-              clipRule="evenodd"
-            />
-          </svg>
-          <h3 className="font-semibold text-base text-gray-900">
-            Trending Topics
-          </h3>
-        </div>
-        <div className="p-2">
-          {trendingTopics.map((topic, index) => (
-            <button
-              key={index}
-              className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded transition-colors"
-            >
-              <div className="font-semibold text-sm text-blue-600 hover:underline">
-                {topic.tag}
-              </div>
-              <div className="text-xs text-gray-600 mt-0.5">{topic.posts}</div>
-            </button>
-          ))}
-        </div>
-        <button className="w-full px-4 py-3 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 border-t border-gray-200 transition-colors flex items-center justify-center gap-1">
-          <span>Show more</span>
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          View all recommendations
         </button>
       </div>
     </div>
