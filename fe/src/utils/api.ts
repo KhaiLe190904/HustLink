@@ -16,9 +16,26 @@ export const request = async <T>({
   onFailure,
 }: RequestParams<T>): Promise<void> => {
   try {
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    };
+    const isPublicEndpoint =
+      endpoint.startsWith("/api/v1/authentication/login") ||
+      endpoint.startsWith("/api/v1/authentication/register") ||
+      endpoint.startsWith("/api/v1/authentication/oauth") ||
+      endpoint.startsWith("/api/v1/authentication/send-password-reset-token") ||
+      endpoint.startsWith("/api/v1/authentication/reset-password");
+
+    const token = localStorage.getItem("token");
+    if (
+      !isPublicEndpoint &&
+      (!token || token === "null" || token === "undefined")
+    ) {
+      onFailure("Your login session has expired. Please sign in again.");
+      return;
+    }
+
+    const headers: Record<string, string> = {};
+    if (token && token !== "null" && token !== "undefined") {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
     if (!(body instanceof FormData)) {
       headers["Content-Type"] = "application/json";
