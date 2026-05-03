@@ -11,6 +11,7 @@ export function Messaging() {
   const location = useLocation();
   const creatingNewConversation = location.pathname.includes("new");
   const onConversation = location.pathname.includes("conversations");
+  const showConversationList = windowWidth >= 1024 || !creatingNewConversation;
   const navigate = useNavigate();
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -20,36 +21,42 @@ export function Messaging() {
   }, []);
 
   return (
-    <div className="grid gap-8 h-full xl:grid-cols-[1fr_20rem] xl:items-start">
-      <div className="h-full bg-white rounded-lg border border-gray-300 lg:grid lg:grid-cols-[16rem_1fr]">
+    <div className="grid gap-8 xl:grid-cols-[1fr_20rem] xl:items-start">
+      <div
+        className={`h-[calc(100vh-8.5rem)] min-h-[36rem] overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)] lg:grid ${
+          showConversationList ? "lg:grid-cols-[18rem_1fr]" : "lg:grid-cols-1"
+        }`}
+      >
         <div
-          className="border-r border-gray-300"
+          className={`${showConversationList ? "border-r border-slate-200/90" : ""} min-h-0 bg-slate-50/50`}
           style={{
-            display:
-              windowWidth >= 1024 || !creatingNewConversation
-                ? "block"
-                : "none",
+            display: showConversationList ? "block" : "none",
           }}
         >
-          <div className="flex justify-between items-center gap-4 p-4 border-b border-gray-300">
-            <h1 className="font-bold text-lg">Messaging</h1>
-            <button
-              onClick={() => {
-                navigate("conversations/new");
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-200/90 p-4">
+              <h1 className="text-lg font-bold text-slate-900">Messaging</h1>
+              <button
+                onClick={() => {
+                  navigate("conversations/new");
+                }}
+                className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200"
+              >
+                +
+              </button>
+            </div>
+            <Conversations
+              className="min-h-0 flex-1 overflow-y-auto"
+              style={{
+                display:
+                  onConversation && windowWidth < 1024 ? "none" : "block",
               }}
-              className="bg-gray-100 w-8 h-8 p-1 rounded-full transition-colors flex items-center justify-center hover:bg-gray-200"
-            >
-              +
-            </button>
+            />
           </div>
-          <Conversations
-            style={{
-              display: onConversation && windowWidth < 1024 ? "none" : "block",
-            }}
-          />
         </div>
-
-        <Outlet />
+        <div className="min-h-0 min-w-0 overflow-hidden">
+          <Outlet />
+        </div>
       </div>
       <div className="hidden xl:block">
         <RightSidebar />
