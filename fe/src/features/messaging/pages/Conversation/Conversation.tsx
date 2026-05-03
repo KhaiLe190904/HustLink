@@ -291,7 +291,7 @@ export function Conversation() {
       : conversation?.recipient;
   return (
     <div
-      className={`grid h-[calc(100vh-12rem)] lg:h-[calc(100vh-8rem)] ${
+      className={`grid h-full min-h-0 ${
         creatingNewConversation
           ? "grid-rows-[1fr_auto] lg:grid-rows-[1fr_auto]"
           : "grid-rows-[auto_auto_1fr_auto] lg:grid-rows-[auto_1fr_auto]"
@@ -301,21 +301,21 @@ export function Conversation() {
         <>
           <div className="p-4 border-b border-gray-300 lg:hidden">
             <button
-              className="bg-gray-100 w-8 h-8 p-2 rounded-full transition-colors grid items-center justify-center place-items-center hover:bg-gray-200"
+              className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200"
               onClick={() => navigate("/messaging")}
             >
               {"<"}
             </button>
           </div>
           {conversation && (
-            <div className="p-4 grid items-center grid-cols-[3rem_1fr] gap-2 border-b border-gray-300 rounded-b-lg">
+            <div className="grid grid-cols-[3rem_1fr] items-center gap-3 border-b border-slate-200/90 bg-white/80 p-4">
               <button
                 onClick={() =>
                   navigate(`/profile/${conversationUserToDisplay?.id}`)
                 }
               >
                 <img
-                  className="w-12 h-12 rounded-full object-cover"
+                  className="h-12 w-12 rounded-full object-cover ring-2 ring-slate-100"
                   src={
                     resolveMediaUrl(
                       conversationUserToDisplay?.profilePicture
@@ -325,11 +325,11 @@ export function Conversation() {
                 />
               </button>
               <div>
-                <div className="font-bold text-gray-900">
+                <div className="font-bold text-slate-900">
                   {conversationUserToDisplay?.firstName}{" "}
                   {conversationUserToDisplay?.lastName}
                 </div>
-                <div className="text-gray-600 text-sm">
+                <div className="text-sm text-slate-500">
                   {conversationUserToDisplay?.position} at{" "}
                   {conversationUserToDisplay?.company}
                 </div>
@@ -341,7 +341,7 @@ export function Conversation() {
               className="px-4 relative"
               onSubmit={(e) => e.preventDefault()}
             >
-              <p style={{ marginTop: "1rem" }}>
+              <p className="mt-4 text-sm font-medium text-slate-600">
                 Starting a new conversation {selectedUser && "with:"}
               </p>
               {!selectedUser && (
@@ -357,7 +357,7 @@ export function Conversation() {
                     value={search}
                   />
                   {showDropdown && (
-                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-2 max-h-[300px] overflow-y-auto z-50">
+                    <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[300px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
                       {suggestingUsers
                         .filter(
                           (user) =>
@@ -372,7 +372,7 @@ export function Conversation() {
                         .map((user) => (
                           <button
                             key={user.id}
-                            className="w-full p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                            className="flex w-full items-center gap-3 border-b border-slate-100 p-3 transition-colors last:border-b-0 hover:bg-slate-50"
                             onClick={() => {
                               const conversation = conversations.find(
                                 (c) =>
@@ -399,10 +399,10 @@ export function Conversation() {
                               alt=""
                             />
                             <div className="text-left flex-1">
-                              <div className="font-medium text-gray-900">
+                              <div className="font-medium text-slate-900">
                                 {user.firstName} {user.lastName}
                               </div>
-                              <div className="text-gray-600 text-sm">
+                              <div className="text-sm text-slate-500">
                                 {user.position} at {user.company}
                               </div>
                             </div>
@@ -418,7 +418,7 @@ export function Conversation() {
                             ?.toLowerCase()
                             .includes(search.toLowerCase())
                       ).length === 0 && (
-                        <div className="p-4 text-gray-500 text-center">
+                        <div className="p-4 text-center text-slate-500">
                           {search
                             ? `No users found matching "${search}"`
                             : "No connections available"}
@@ -430,7 +430,7 @@ export function Conversation() {
               )}
 
               {selectedUser && (
-                <div className="flex items-center gap-3 mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="mt-4 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <img
                     className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                     src={
@@ -440,16 +440,16 @@ export function Conversation() {
                     alt=""
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-gray-900">
+                    <div className="font-bold text-slate-900">
                       {selectedUser.firstName} {selectedUser.lastName}
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-sm text-slate-500">
                       {selectedUser.position} at {selectedUser.company}
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedUser(null)}
-                    className="bg-gray-200 w-8 h-8 rounded-full transition-colors flex items-center justify-center hover:bg-red-500 hover:text-white flex-shrink-0"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-slate-200 transition hover:bg-red-500 hover:text-white"
                   >
                     X
                   </button>
@@ -464,7 +464,7 @@ export function Conversation() {
           {conversation && (
             <div
               ref={messagesContainerRef}
-              className="overflow-y-auto"
+              className="min-h-0 overflow-y-auto"
               onScroll={(e) => {
                 const target = e.currentTarget;
                 // Load older messages within 100px from top
@@ -489,14 +489,14 @@ export function Conversation() {
             >
               <Messages messages={messages} user={user} />
               {loadingMessages && (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-slate-500">
                   Loading more messages...
                 </div>
               )}
             </div>
           )}
           <form
-            className="px-4 py-3 bg-white border-t border-gray-200"
+            className="border-t border-slate-200 bg-white px-4 py-3"
             onSubmit={async (e) => {
               e.preventDefault();
               if (!content.trim() && !attachment) return;
@@ -523,7 +523,7 @@ export function Conversation() {
                 value={content}
                 name="content"
                 rows={1}
-                className="flex-1 pl-4 pr-4 py-3 border border-gray-300 rounded-3xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-transparent bg-gray-50 hover:bg-white transition-colors resize-none overflow-y-auto min-h-[48px] max-h-32 hide-scrollbar"
+                className="hide-scrollbar min-h-[48px] max-h-32 flex-1 resize-none overflow-y-auto rounded-3xl border border-slate-300 bg-slate-50 px-4 py-3 transition-colors hover:bg-white focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
                 placeholder="Write a message..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -566,7 +566,7 @@ export function Conversation() {
                   }
                 }}
               />
-              <label className="mb-0.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-gray-300 bg-white text-gray-600 transition hover:bg-gray-50">
+              <label className="mb-0.5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white text-slate-600 transition hover:bg-slate-50">
                 <input
                   ref={attachmentInputRef}
                   type="file"
@@ -620,11 +620,11 @@ export function Conversation() {
             ) : null}
             {postingMessage && uploadStage ? (
               <div className="mt-2">
-                <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="flex items-center justify-between text-xs text-slate-500">
                   <span>{uploadStage}</span>
                   <span>Please wait</span>
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-gray-200">
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200">
                   <div className="h-full w-1/2 animate-pulse rounded-full bg-[var(--primary-color)]" />
                 </div>
               </div>
