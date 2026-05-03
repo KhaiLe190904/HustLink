@@ -28,6 +28,8 @@ public class Post {
   private Long id;
 
   @NotEmpty
+  @Lob
+  @Column(columnDefinition = "nvarchar(max)", nullable = false)
   private String content;
   private String picture;
 

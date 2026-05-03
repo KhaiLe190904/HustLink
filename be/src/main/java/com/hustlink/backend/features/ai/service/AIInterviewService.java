@@ -72,19 +72,23 @@ public class AIInterviewService {
               HttpStatus.INTERNAL_SERVER_ERROR, "Could not generate interview questions.");
     }
 
+    List<GeminiService.InterviewQuestionDraft> selectedDrafts = drafts.stream()
+            .limit(questionCount)
+            .toList();
+
     InterviewSession session = new InterviewSession();
     session.setUser(user);
     session.setCv(cv);
     session.setJobPosition(jobPosition);
     session.setLanguageCode(geminiService.resolveInterviewLanguageCode(cv.getExtractedText()));
     session.setStatus(InterviewSessionStatus.IN_PROGRESS);
-    session.setTotalQuestions(drafts.size());
+    session.setTotalQuestions(selectedDrafts.size());
     session.setCurrentQuestionIndex(0);
     session.setAnswerTimeLimitSeconds(answerTimeLimitSeconds);
 
     InterviewSession savedSession = interviewSessionRepository.save(session);
 
-    List<InterviewQuestion> questions = drafts.stream().limit(questionCount).map(
+    List<InterviewQuestion> questions = selectedDrafts.stream().map(
             draft -> {
               InterviewQuestion question = new InterviewQuestion();
               question.setSession(savedSession);

@@ -37,11 +37,24 @@ public class RecommendationService {
   private static final double ACTIVITY_SIMILARITY_WEIGHT = 2.0;
   private static final double PROFILE_COMPLETE_BONUS = 1.5;
   private static final double RECENT_ACTIVITY_BONUS = 1.0;
+  private static final int DEFAULT_LIMIT = 20;
+  private static final int MAX_LIMIT = 50;
+  private static final int CANDIDATE_POOL_SIZE = 500;
 
   @Transactional(readOnly = true)
-  @Cacheable(value = "userRecommendations", key = "#user.id + '_' + #limit")
   public List<UserRecommendation> getRecommendations(User user, int limit) {
-    log.info("Computing recommendations for user {} with limit {}", user.getId(), limit);
+    int normalizedLimit = Math.max(1, Math.min(limit <= 0 ? DEFAULT_LIMIT : limit, MAX_LIMIT));
+    List<UserRecommendation> rankedRecommendations = getRankedRecommendations(user);
+    if (rankedRecommendations.isEmpty()) {
+      return List.of();
+    }
+    return rankedRecommendations.stream().limit(normalizedLimit).collect(Collectors.toList());
+  }
+
+  @Transactional(readOnly = true)
+  @Cacheable(value = "userRecommendations", key = "#user.id")
+  public List<UserRecommendation> getRankedRecommendations(User user) {
+    log.info("Computing ranked recommendations for user {}", user.getId());
 
     Set<Long> connectedUserIds = getConnectedUserIds(user);
     Set<Long> connectedAndPendingUserIds = getConnectedAndPendingUserIds(user);
@@ -50,8 +63,9 @@ public class RecommendationService {
     Set<User> secondDegreeConnections = getSecondDegreeConnections(user, connectedUserIds);
 
     Set<User> candidates = new HashSet<>(secondDegreeConnections);
-    if (candidates.size() < limit * 3) {
-      List<User> additionalUsers = userRepository.findRandomCompleteProfiles(new ArrayList<>(connectedAndPendingUserIds), limit * 3);
+    if (candidates.size() < CANDIDATE_POOL_SIZE) {
+      List<User> additionalUsers = userRepository.findRandomCompleteProfiles(
+              new ArrayList<>(connectedAndPendingUserIds), CANDIDATE_POOL_SIZE);
       candidates.addAll(additionalUsers);
     }
 
@@ -79,7 +93,7 @@ public class RecommendationService {
         return scoreComparison;
       }
       return Long.compare(r1.getUser().getId(), r2.getUser().getId());
-    }).limit(limit).collect(Collectors.toList());
+    }).collect(Collectors.toList());
   }
 
   private UserFeatures extractFeatures(User user, User candidate, Set<User> secondDegreeConnections, Set<Long> connectedUserIds, Map<Long, Integer> userActivityScores) {
@@ -88,7 +102,7 @@ public class RecommendationService {
     features.isSecondDegree = secondDegreeConnections.contains(candidate);
     features.sameCompany = isSimilar(user.getCompany(), candidate.getCompany());
     features.samePosition = isSimilar(user.getPosition(), candidate.getPosition());
-    features.sameLocation = isSimilar(user.getLocation(), candidate.getLocation());
+    features.sameLocation = isSameLocation(user, candidate);
     features.mutualConnections = countMutualConnections(user, candidate, connectedUserIds);
 
     Integer userActivity = userActivityScores.getOrDefault(user.getId(), 0);
@@ -212,6 +226,15 @@ public class RecommendationService {
       return false;
     }
     return str1.trim().equalsIgnoreCase(str2.trim());
+  }
+
+  private boolean isSameLocation(User user, User candidate) {
+    String userLocation = user.getLocationForMatching();
+    String candidateLocation = candidate.getLocationForMatching();
+    if (userLocation.isBlank() || candidateLocation.isBlank()) {
+      return false;
+    }
+    return userLocation.equals(candidateLocation);
   }
 
   private static class UserFeatures {
