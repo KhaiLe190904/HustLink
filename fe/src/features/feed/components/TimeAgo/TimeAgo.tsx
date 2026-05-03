@@ -21,7 +21,7 @@ export function TimeAgo({ date, edited, className, ...others }: TimeAgoProps) {
       {" "}
       {/* color: #666, font-size: 12px */}
       <span>{time}</span>
-      {edited ? <span>(Edited)</span> : null}
+      {edited ? <span> (Edited)</span> : null}
     </div>
   );
 }

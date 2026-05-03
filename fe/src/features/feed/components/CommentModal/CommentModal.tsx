@@ -15,6 +15,7 @@ import { Comment, IComment } from "@/features/feed/components/Comment/Comment";
 import { IPost } from "@/features/feed/components/Post/Post";
 import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import { isVideoFile, resolveMediaUrl } from "@/utils/storage";
+import { ARTICLE_CONTENT_PREFIX } from "@/features/feed/components/Modal/Modal";
 
 interface CommentModalProps {
   showModal: boolean;
@@ -36,6 +37,55 @@ interface CommentModalProps {
   likeDisabled?: boolean;
 }
 
+interface ParsedArticleContent {
+  title: string;
+  summary: string;
+  contentHtml: string;
+  tags: string[];
+}
+
+function normalizeArticleHtml(contentHtml: string) {
+  let normalized = contentHtml;
+
+  normalized = normalized.replace(/<p>\s*##\s*(.*?)\s*<\/p>/gi, "<h2>$1</h2>");
+  normalized = normalized.replace(/<p>\s*-\s*(.*?)\s*<\/p>/gi, "<li>$1</li>");
+  normalized = normalized.replace(/(<li>.*?<\/li>)/gis, "<ul>$1</ul>");
+  normalized = normalized.replace(/<\/ul>\s*<ul>/gi, "");
+  normalized = normalized.replace(/<p>\s*<\/p>/gi, "");
+
+  return normalized;
+}
+
+function parseArticleContent(content: string): ParsedArticleContent | null {
+  if (!content.startsWith(ARTICLE_CONTENT_PREFIX)) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      content.slice(ARTICLE_CONTENT_PREFIX.length)
+    ) as Partial<ParsedArticleContent>;
+
+    if (
+      typeof parsed.title !== "string" ||
+      typeof parsed.summary !== "string" ||
+      typeof parsed.contentHtml !== "string" ||
+      !Array.isArray(parsed.tags)
+    ) {
+      return null;
+    }
+
+    return {
+      title: parsed.title,
+      summary: parsed.summary,
+      contentHtml: normalizeArticleHtml(parsed.contentHtml),
+      tags: parsed.tags.filter((tag) => typeof tag === "string"),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function CommentModal({
   showModal,
   setShowModal,
@@ -55,6 +105,9 @@ export function CommentModal({
   onLike,
   likeDisabled,
 }: CommentModalProps) {
+  const article = parseArticleContent(post.content);
+  const isArticle = !!article;
+  const [articleExpanded, setArticleExpanded] = useState(false);
   const navigate = useNavigate();
   const commentsContainerRef = useRef<HTMLDivElement>(null);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
@@ -68,6 +121,10 @@ export function CommentModal({
   useEffect(() => {
     setCurrentMediaIndex(0);
   }, [post.id, post.picture, post.mediaUrls, showModal]);
+
+  useEffect(() => {
+    setArticleExpanded(false);
+  }, [post.id, showModal]);
 
   useEffect(() => {
     if (showModal && commentsContainerRef.current) {
@@ -160,21 +217,61 @@ export function CommentModal({
                   />
                 </div>
               </button>
-              <p className="text-gray-800 whitespace-pre-wrap mb-4">
-                {post.content}
-              </p>
+              {isArticle && article ? (
+                <div className="mb-4">
+                  <h2 className="text-3xl font-bold text-slate-900">
+                    {article.title}
+                  </h2>
+                  {article.summary ? (
+                    <p className="mt-1 text-slate-600">{article.summary}</p>
+                  ) : null}
+                  {article.tags.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {article.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700"
+                        >
+                          #{tag.replace(/^#/, "")}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {articleExpanded ? (
+                    <div className="mt-4 border-t border-slate-700">
+                      <div
+                        className="overflow-hidden text-slate-700 [&_h2]:mt-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_p]:mt-2 [&_p]:leading-7 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mt-1"
+                        dangerouslySetInnerHTML={{
+                          __html: article.contentHtml,
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setArticleExpanded((prev) => !prev)}
+                    className="mt-2 rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200"
+                  >
+                    {articleExpanded ? "Show less" : "Show more"}
+                  </button>
+                </div>
+              ) : (
+                <p className="mb-4 whitespace-pre-wrap text-gray-800">
+                  {post.content}
+                </p>
+              )}
             </div>
 
             {/* Post Media */}
             {postMediaUrls.length > 0 && (
-              <div className="relative flex flex-1 min-h-0 items-center justify-center bg-black">
+              <div className="relative flex flex-1 min-h-0 items-center justify-center bg-white">
                 {isVideoFile(postMediaUrls[currentMediaIndex]) ? (
                   <video
                     src={resolveMediaUrl(postMediaUrls[currentMediaIndex])}
                     controls
                     playsInline
                     preload="metadata"
-                    className="max-h-full max-w-full bg-black object-contain"
+                    className="max-h-full max-w-full bg-white object-contain"
                   />
                 ) : (
                   <img
