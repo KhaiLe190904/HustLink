@@ -49,26 +49,26 @@ export function Connection({
   return (
     <div
       key={connection.id}
-      className="flex items-center gap-2 text-sm last:border-b-0 last:mb-0 last:pb-0 border-b border-gray-300 mb-2 pb-2"
+      className="mb-3 flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3 py-3 text-sm last:mb-0"
     >
       <button
         onClick={() => navigate("/profile/" + userToDisplay.id)}
-        className="flex-shrink-0"
+        className="flex-shrink-0 rounded-full transition-all hover:ring-4 hover:ring-red-100"
       >
         <img
-          className="w-12 h-12 rounded-full object-cover hover:ring-2 hover:ring-blue-200 transition-all"
+          className="h-12 w-12 rounded-full object-cover"
           src={userToDisplay.profilePicture || "/doc1.png"}
           alt="Profile"
         />
       </button>
       <button
         onClick={() => navigate("/profile/" + userToDisplay.id)}
-        className="flex-1 text-left hover:text-red-600 transition-colors"
+        className="flex-1 text-left transition-colors hover:text-red-700"
       >
-        <h3 className="font-bold text-gray-900 truncate">
+        <h3 className="truncate font-bold text-slate-900">
           {userToDisplay?.firstName + " " + userToDisplay.lastName}
         </h3>
-        <p className="text-gray-600 text-xs truncate">
+        <p className="truncate text-xs text-slate-500">
           {userToDisplay?.position} at {userToDisplay?.company}
         </p>
       </button>
