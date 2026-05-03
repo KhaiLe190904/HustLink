@@ -16,10 +16,16 @@ import com.hustlink.backend.features.networking.model.Connection;
 import com.hustlink.backend.features.networking.model.Status;
 import com.hustlink.backend.features.networking.repository.ConnectionRepository;
 import com.hustlink.backend.features.notifications.service.NotificationService;
+import com.hustlink.backend.features.storage.model.StorageScope;
+import com.hustlink.backend.features.storage.model.StoredObject;
+import com.hustlink.backend.features.storage.repository.StoredObjectRepository;
+import com.hustlink.backend.features.storage.service.ObjectStorageService;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,12 +43,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class FeedService {
+  private static final String POST_OWNER_TYPE = "POST";
+  private static final Set<StorageScope> POST_MEDIA_SCOPES = EnumSet.of(
+          StorageScope.FEED_IMAGE, StorageScope.FEED_VIDEO, StorageScope.FEED_FILE);
+
   private final PostRepository postRepository;
   private final PostImpressionRepository postImpressionRepository;
   private final UserRepository userRepository;
   private final ConnectionRepository connectionRepository;
   private final CommentRepository commentRepository;
   private final FeedRankingProperties feedRankingProperties;
+  private final StoredObjectRepository storedObjectRepository;
+  private final ObjectStorageService objectStorageService;
 
   private final NotificationService notificationService;
 
@@ -50,9 +62,11 @@ public class FeedService {
     User author = userRepository.findById(authorId).orElseThrow(() -> new IllegalArgumentException("User not found"));
     Post post = new Post(postDto.getContent(), author);
     List<String> mediaUrls = normalizeMediaUrls(postDto);
-    post.setMediaUrls(mediaUrls);
+    post.setMediaUrls(new ArrayList<>(mediaUrls));
     post.setPicture(mediaUrls.isEmpty() ? postDto.getPicture() : mediaUrls.get(0));
-    return postRepository.save(post);
+    Post savedPost = postRepository.save(post);
+    linkUnassignedPostObjects(authorId, savedPost.getId(), mediaUrls);
+    return savedPost;
   }
 
   public Post editPost(Long postId, Long userId, PostDto postDto) {
@@ -63,9 +77,12 @@ public class FeedService {
     }
     post.setContent(postDto.getContent());
     List<String> mediaUrls = normalizeMediaUrls(postDto);
-    post.setMediaUrls(mediaUrls);
+    post.setMediaUrls(new ArrayList<>(mediaUrls));
     post.setPicture(mediaUrls.isEmpty() ? postDto.getPicture() : mediaUrls.get(0));
-    return postRepository.save(post);
+    Post savedPost = postRepository.save(post);
+    linkUnassignedPostObjects(userId, savedPost.getId(), mediaUrls);
+    cleanupRemovedPostObjects(savedPost.getId(), mediaUrls);
+    return savedPost;
   }
 
   public List<Post> getFeedPost(Long authenticatedUserId) {
@@ -85,12 +102,15 @@ public class FeedService {
     return postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
   }
 
+  @Transactional
   public void deletePost(Long postId, Long userId) {
     Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
     User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
     if (!post.getAuthor().equals(user)) {
       throw new IllegalArgumentException("You are not allowed to delete this post");
     }
+    deleteAllPostObjects(postId);
+    postImpressionRepository.deleteByPostId(postId);
     postRepository.delete(post);
   }
 
@@ -207,17 +227,78 @@ public class FeedService {
   }
 
   private List<String> normalizeMediaUrls(PostDto postDto) {
-    List<String> mediaUrls = postDto.getMediaUrls() == null ? List.of() : postDto.getMediaUrls().stream().filter(url -> url != null && !url.isBlank()).distinct().limit(3).toList();
+    List<String> mediaUrls = postDto.getMediaUrls() == null
+            ? new ArrayList<>()
+            : postDto.getMediaUrls().stream()
+            .filter(url -> url != null && !url.isBlank())
+            .distinct()
+            .limit(3)
+            .collect(Collectors.toCollection(ArrayList::new));
 
     if (!mediaUrls.isEmpty()) {
       return mediaUrls;
     }
 
     if (postDto.getPicture() != null && !postDto.getPicture().isBlank()) {
-      return List.of(postDto.getPicture());
+      return new ArrayList<>(List.of(postDto.getPicture()));
     }
 
-    return List.of();
+    return new ArrayList<>();
+  }
+
+  private void linkUnassignedPostObjects(Long userId, Long postId, List<String> mediaUrls) {
+    if (mediaUrls.isEmpty()) {
+      return;
+    }
+
+    Set<String> expectedUrls = new HashSet<>(mediaUrls);
+    List<StoredObject> pendingObjects = storedObjectRepository
+            .findByOwnerTypeAndOwnerIdIsNullAndUploadedByIdAndScopeIn(
+                    POST_OWNER_TYPE, userId, POST_MEDIA_SCOPES);
+
+    for (StoredObject storedObject : pendingObjects) {
+      if (matchesAnyMediaUrl(storedObject, expectedUrls)) {
+        objectStorageService.assignOwner(storedObject, POST_OWNER_TYPE, postId);
+      }
+    }
+  }
+
+  private void cleanupRemovedPostObjects(Long postId, List<String> mediaUrls) {
+    Set<String> expectedUrls = new HashSet<>(mediaUrls);
+    List<StoredObject> ownedObjects = storedObjectRepository.findByOwnerTypeAndOwnerId(POST_OWNER_TYPE, postId);
+
+    for (StoredObject storedObject : ownedObjects) {
+      if (!POST_MEDIA_SCOPES.contains(storedObject.getScope())) {
+        continue;
+      }
+      if (!matchesAnyMediaUrl(storedObject, expectedUrls)) {
+        objectStorageService.delete(storedObject);
+      }
+    }
+  }
+
+  private void deleteAllPostObjects(Long postId) {
+    List<StoredObject> ownedObjects = storedObjectRepository.findByOwnerTypeAndOwnerId(POST_OWNER_TYPE, postId);
+    for (StoredObject storedObject : ownedObjects) {
+      if (!POST_MEDIA_SCOPES.contains(storedObject.getScope())) {
+        continue;
+      }
+      objectStorageService.delete(storedObject);
+    }
+  }
+
+  private boolean matchesAnyMediaUrl(StoredObject storedObject, Set<String> expectedUrls) {
+    if (expectedUrls.isEmpty()) {
+      return false;
+    }
+
+    String accessUrl = objectStorageService.getAccessUrl(storedObject);
+    if (accessUrl != null && expectedUrls.contains(accessUrl)) {
+      return true;
+    }
+
+    String publicPath = objectStorageService.getPublicPath(storedObject);
+    return publicPath != null && expectedUrls.contains(publicPath);
   }
 
   @Transactional

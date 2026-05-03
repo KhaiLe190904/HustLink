@@ -44,23 +44,28 @@ public class AuthenticationFilter extends HttpFilter {
     try {
       String authorization = request.getHeader("Authorization");
       if (authorization == null || !authorization.startsWith("Bearer ")) {
-        throw new ServletException("Token missing.");
+        throw new IllegalArgumentException("Token missing.");
       }
 
       String token = authorization.substring(7);
+      if (token.isBlank() || "null".equalsIgnoreCase(token) || "undefined".equalsIgnoreCase(token)) {
+        throw new IllegalArgumentException("Token missing.");
+      }
 
       if (jsonWebTokenService.isTokenExpired(token)) {
-        throw new ServletException("Invalid token");
+        throw new IllegalArgumentException("Invalid token");
       }
 
       String email = jsonWebTokenService.getEmailFromToken(token);
       User user = authenticationService.getUser(email);
       request.setAttribute("authenticationUser", user);
-      chain.doFilter(request, response);
-    } catch (Exception e) {
+    } catch (IllegalArgumentException e) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       response.setContentType("application/json");
       response.getWriter().write("{\"message\": \"Invalid authentication token, or token missing.\"}");
+      return;
     }
+
+    chain.doFilter(request, response);
   }
 }
