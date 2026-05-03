@@ -77,11 +77,11 @@ public class AuthenticationController {
   }
 
   @PutMapping("/profile/{id}")
-  public User updateUserProfile(@RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam(required = false) String firstName, @RequestParam(required = false) String lastName, @RequestParam(required = false) String company, @RequestParam(required = false) String position, @RequestParam(required = false) String location, @RequestParam(required = false) String profilePicture, @RequestParam(required = false) String coverPicture, @RequestParam(required = false) String about) {
+  public User updateUserProfile(@RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam(required = false) String firstName, @RequestParam(required = false) String lastName, @RequestParam(required = false) String company, @RequestParam(required = false) String position, @RequestParam(required = false) String locationDisplay, @RequestParam(required = false) String locationKey, @RequestParam(required = false) String profilePicture, @RequestParam(required = false) String coverPicture, @RequestParam(required = false) String about, @RequestParam(required = false) String experience, @RequestParam(required = false) String education) {
     if (!user.getId().equals(id)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have permission to update user profile.");
     }
-    return authenticationService.updateUserProfile(id, firstName, lastName, company, position, location, profilePicture, coverPicture, about);
+    return authenticationService.updateUserProfile(id, firstName, lastName, company, position, locationDisplay, locationKey, profilePicture, coverPicture, about, experience, education);
   }
 
   @GetMapping("users")

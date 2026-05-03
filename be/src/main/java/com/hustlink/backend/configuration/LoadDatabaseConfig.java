@@ -138,7 +138,8 @@ public class LoadDatabaseConfig {
     user.setLastName(lastName);
     user.setPosition(position);
     user.setCompany(company);
-    user.setLocation(location);
+    user.setLocationDisplay(location);
+    user.setLocationKey(location.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""));
     user.setProfilePicture(profilePicture);
     // user.setAbout("I'm a passionate " + position + " at " + company + " with
     // expertise in

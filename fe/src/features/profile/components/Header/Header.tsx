@@ -12,6 +12,11 @@ import {
 } from "@/utils/storage";
 
 import { Button } from "@/features/authentication/components/Button/Button";
+import { FiSave, FiX } from "react-icons/fi";
+interface ILocationSuggestion {
+  locationDisplay: string;
+  locationKey: string;
+}
 interface ITopProps {
   user: IUser | null;
   authUser: IUser | null;
@@ -24,12 +29,23 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
     lastName: user?.lastName,
     position: user?.position,
     company: user?.company,
-    location: user?.location,
+    locationDisplay: user?.locationDisplay || "",
+    locationKey: user?.locationKey,
     profilePicture: user?.profilePicture,
     coverPicture: user?.coverPicture,
   });
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [profilePreviewUrl, setProfilePreviewUrl] = useState<string | null>(
+    null
+  );
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<
+    ILocationSuggestion[]
+  >([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [connexions, setConnections] = useState<IConnection[]>([]);
   const [invitations, setInvitations] = useState<IConnection[]>([]);
   const connection =
@@ -39,6 +55,14 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
     invitations.find(
       (c) => c.recipient.id === user?.id || c.author.id === user?.id
     );
+  const displayName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim() ||
+    "Unnamed user";
+  const displayHeadline =
+    user?.position && user?.company
+      ? `${user.position} at ${user.company}`
+      : user?.position || user?.company || "";
+  const displayLocation = user?.locationDisplay || "";
 
   useEffect(() => {
     setInfo({
@@ -46,11 +70,34 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
       lastName: user?.lastName,
       position: user?.position,
       company: user?.company,
-      location: user?.location,
+      locationDisplay: user?.locationDisplay || "",
+      locationKey: user?.locationKey,
       profilePicture: user?.profilePicture,
       coverPicture: user?.coverPicture,
     });
+    setLocationQuery(user?.locationDisplay || "");
+    setLocationError("");
   }, [user]);
+
+  useEffect(() => {
+    if (!profileImageFile) {
+      setProfilePreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(profileImageFile);
+    setProfilePreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [profileImageFile]);
+
+  useEffect(() => {
+    if (!coverImageFile) {
+      setCoverPreviewUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(coverImageFile);
+    setCoverPreviewUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [coverImageFile]);
 
   useEffect(() => {
     request<IConnection[]>({
@@ -68,8 +115,33 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
     });
   }, [user?.id]);
 
+  useEffect(() => {
+    if (!editingInfo || locationQuery.trim().length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      request<ILocationSuggestion[]>({
+        endpoint: `/api/v1/locations/search?query=${encodeURIComponent(
+          locationQuery.trim()
+        )}&limit=5`,
+        onSuccess: (data) => setLocationSuggestions(data),
+        onFailure: () => setLocationSuggestions([]),
+      });
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [editingInfo, locationQuery]);
+
   async function updateInfo() {
     try {
+      if (!(info.locationDisplay || "").trim()) {
+        throw new Error("Please choose your location.");
+      }
+
+      if (!(info.locationKey || "").trim()) {
+        throw new Error("Please select a location from search results.");
+      }
+
       if (profileImageFile && isOversizedUpload(profileImageFile)) {
         throw new Error(
           `${profileImageFile.name} exceeds the ${MAX_UPLOAD_SIZE_LABEL} upload limit.`
@@ -106,62 +178,86 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
       }
 
       await request<IUser>({
-        endpoint: `/api/v1/authentication/profile/${user?.id}?firstName=${encodeURIComponent(info.firstName || "")}&lastName=${encodeURIComponent(info.lastName || "")}&position=${encodeURIComponent(info.position || "")}&company=${encodeURIComponent(info.company || "")}&location=${encodeURIComponent(info.location || "")}&profilePicture=${encodeURIComponent(profilePicture || "")}&coverPicture=${encodeURIComponent(coverPicture || "")}`,
+        endpoint: `/api/v1/authentication/profile/${user?.id}?firstName=${encodeURIComponent(info.firstName || "")}&lastName=${encodeURIComponent(info.lastName || "")}&position=${encodeURIComponent(info.position || "")}&company=${encodeURIComponent(info.company || "")}&locationDisplay=${encodeURIComponent(info.locationDisplay || "")}&locationKey=${encodeURIComponent(info.locationKey || "")}&profilePicture=${encodeURIComponent(profilePicture || "")}&coverPicture=${encodeURIComponent(coverPicture || "")}`,
         method: "PUT",
         onSuccess: (data) => {
           onUpdate(data);
           setEditingInfo(false);
           setProfileImageFile(null);
           setCoverImageFile(null);
+          setLocationError("");
         },
         onFailure: (error) => {
           toast.error(error);
         },
       });
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to update profile."
-      );
+      const message =
+        error instanceof Error ? error.message : "Failed to update profile.";
+      if (
+        message.includes("location") ||
+        message.includes("Location") ||
+        message.includes("search results")
+      ) {
+        setLocationError(message);
+      }
+      toast.error(message);
       setProfileImageFile(null);
       setCoverImageFile(null);
     }
   }
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
       <img
-        className="w-full h-48 object-cover"
-        src={resolveMediaUrl(user?.coverPicture) || "/cover.jpeg"}
+        className="h-52 w-full object-cover"
+        src={
+          editingInfo
+            ? coverPreviewUrl ||
+              resolveMediaUrl(info.coverPicture) ||
+              "/cover.jpeg"
+            : resolveMediaUrl(user?.coverPicture) || "/cover.jpeg"
+        }
         alt="Cover"
       />
 
       <div className="relative -mt-16 ml-6 mb-4">
         <img
-          className="w-32 h-32 rounded-full border-4 border-white object-cover"
-          src={resolveMediaUrl(user?.profilePicture) || "/doc1.png"}
+          className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-lg"
+          src={
+            editingInfo
+              ? profilePreviewUrl ||
+                resolveMediaUrl(info.profilePicture) ||
+                "/doc1.png"
+              : resolveMediaUrl(user?.profilePicture) || "/doc1.png"
+          }
           alt="Profile"
         />
       </div>
 
-      <div className="px-6 relative">
+      <div className="relative px-6 pb-6">
         <div>
           {!editingInfo ? (
             <div>
-              <div className="text-2xl font-bold text-gray-900 mb-1">
-                {user?.firstName + " " + user?.lastName}
+              <div className="mb-1 text-3xl font-bold text-slate-900">
+                {displayName}
               </div>
-              <div className="text-gray-700 text-lg mb-1">
-                {user?.position + " at " + user?.company}
-              </div>
-              <div className="text-gray-600">{user?.location}</div>
+              {displayHeadline ? (
+                <div className="mb-1 text-lg text-slate-700">
+                  {displayHeadline}
+                </div>
+              ) : null}
+              {displayLocation ? (
+                <div className="text-sm text-slate-500">{displayLocation}</div>
+              ) : null}
 
               {user?.id === authUser?.id ? (
                 <button
-                  className="absolute top-2 right-4 p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="absolute right-4 top-1 grid h-10 w-10 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100"
                   onClick={() => setEditingInfo(true)}
                 >
                   <svg
-                    className="w-4 h-4 text-gray-600"
+                    className="h-4 w-4"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 512 512"
                     fill="currentColor"
@@ -175,7 +271,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                     <Button
                       size="medium"
                       outline
-                      className="mt-3"
+                      className="mt-4"
                       onClick={() => {
                         request<IConnection>({
                           endpoint:
@@ -195,7 +291,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                     <Button
                       size="medium"
                       outline
-                      className="mt-3"
+                      className="mt-4"
                       onClick={() => {
                         request<IConnection>({
                           endpoint: `/api/v1/networking/connections/${connection?.id}`,
@@ -224,9 +320,29 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
             </div>
           ) : (
             <div>
-              <div className="absolute bottom-55 right-4 flex gap-2">
+              <div className="mb-3">
+                <div className="mb-1 text-3xl font-bold text-slate-900">
+                  {[(info.firstName || "").trim(), (info.lastName || "").trim()]
+                    .filter(Boolean)
+                    .join(" ") || "Unnamed user"}
+                </div>
+                {(info.position || "").trim() || (info.company || "").trim() ? (
+                  <div className="mb-1 text-lg text-slate-700">
+                    {(info.position || "").trim() && (info.company || "").trim()
+                      ? `${(info.position || "").trim()} at ${(info.company || "").trim()}`
+                      : (info.position || "").trim() ||
+                        (info.company || "").trim()}
+                  </div>
+                ) : null}
+                {(info.locationDisplay || "").trim() ? (
+                  <div className="text-sm text-slate-500">
+                    {(info.locationDisplay || "").trim()}
+                  </div>
+                ) : null}
+              </div>
+              <div className="mb-2 flex justify-end gap-4">
                 <button
-                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100"
                   onClick={() => {
                     setEditingInfo(false);
                     setInfo({
@@ -234,33 +350,25 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                       lastName: user?.lastName || "",
                       company: user?.company || "",
                       position: user?.position || "",
-                      location: user?.location || "",
+                      locationDisplay: user?.locationDisplay || "",
+                      locationKey: user?.locationKey || "",
                       profilePicture: user?.profilePicture || "",
                       coverPicture: user?.coverPicture || "",
                     });
+                    setLocationQuery(user?.locationDisplay || "");
+                    setShowLocationSuggestions(false);
+                    setLocationError("");
+                    setProfileImageFile(null);
+                    setCoverImageFile(null);
                   }}
                 >
-                  <svg
-                    className="w-4 h-4 text-gray-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 384 512"
-                    fill="currentColor"
-                  >
-                    <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z" />
-                  </svg>
+                  <FiX className="h-7 w-7" />
                 </button>
                 <button
-                  className="p-2 hover:bg-green-100 rounded transition-colors"
+                  className="grid h-9 w-9 place-items-center rounded-full text-emerald-600 transition hover:bg-emerald-50"
                   onClick={updateInfo}
                 >
-                  <svg
-                    className="w-4 h-4 text-green-600"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 448 512"
-                    fill="currentColor"
-                  >
-                    <path d="M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-242.7c0-17-6.7-33.3-18.7-45.3L352 50.7C340 38.7 323.7 32 306.7 32L64 32zm0 96c0-17.7 14.3-32 32-32l192 0c17.7 0 32 14.3 32 32l0 64c0 17.7-14.3 32-32 32L96 224c-17.7 0-32-14.3-32-32l0-64zM224 288a64 64 0 1 1 0 128 64 64 0 1 1 0-128z" />
-                  </svg>
+                  <FiSave className="h-7 w-7" />
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
@@ -279,7 +387,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                   placeholder="Last name"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-2 gap-4 -mt-2">
                 <Input
                   value={info?.company}
                   onChange={(e) =>
@@ -295,12 +403,73 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                   placeholder="Position"
                 />
               </div>
-              <Input
-                value={info?.location}
-                onChange={(e) => setInfo({ ...info, location: e.target.value })}
-                placeholder="Location"
-              />
-              <div className="grid grid-cols-1 gap-4 mt-2 md:grid-cols-2">
+              <div className="relative -mt-2">
+                <input
+                  value={locationQuery}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setLocationQuery(nextValue);
+                    setInfo({
+                      ...info,
+                      locationDisplay: nextValue,
+                      locationKey: "",
+                    });
+                    setLocationError(
+                      nextValue.trim()
+                        ? "Please select a location from suggestions."
+                        : ""
+                    );
+                    setShowLocationSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    setShowLocationSuggestions(true);
+                    if (
+                      !(info.locationKey || "").trim() &&
+                      locationQuery.trim()
+                    ) {
+                      setLocationError(
+                        "Please select a location from suggestions."
+                      );
+                    }
+                  }}
+                  onBlur={() =>
+                    window.setTimeout(
+                      () => setShowLocationSuggestions(false),
+                      150
+                    )
+                  }
+                  placeholder="Search city (e.g. Ho Chi Minh City, Vietnam)"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base outline-none focus:border-red-300"
+                />
+                {showLocationSuggestions && locationSuggestions.length > 0 ? (
+                  <div className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                    {locationSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.locationKey}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setLocationQuery(suggestion.locationDisplay);
+                          setInfo({
+                            ...info,
+                            locationDisplay: suggestion.locationDisplay,
+                            locationKey: suggestion.locationKey,
+                          });
+                          setLocationError("");
+                          setShowLocationSuggestions(false);
+                        }}
+                        className="block w-full border-b border-slate-100 px-4 py-2 text-left text-base text-slate-700 last:border-b-0 hover:bg-slate-50"
+                      >
+                        {suggestion.locationDisplay}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              {locationError ? (
+                <p className="mt-2 text-sm text-red-500">{locationError}</p>
+              ) : null}
+              <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2">
                 <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
                   <label className="text-sm font-medium text-gray-700">
                     Profile image
@@ -331,15 +500,6 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
             </div>
           )}
         </div>
-        {authUser?.id == user?.id && !editingInfo && (
-          <div className="mt-3">
-            <button className="mt-3" onClick={() => setEditingInfo(true)}>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-                <path d="M362.7 19.3L314.3 67.7 444.3 197.7l48.4-48.4c25-25 25-65.5 0-90.5L453.3 19.3c-25-25-65.5-25-90.5 0zm-71 71L58.6 323.5c-10.4 10.4-18 23.3-22.2 37.4L1 481.2C-1.5 489.7 .8 498.8 7 505s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L421.7 220.3 291.7 90.3z" />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
