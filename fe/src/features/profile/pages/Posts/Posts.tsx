@@ -98,25 +98,25 @@ export function Posts() {
     return <Loader />;
   }
   return (
-    <div className="grid gap-8 xl:grid-cols-[14rem_1fr_20rem] xl:items-start">
+    <div className="grid gap-8 xl:grid-cols-[14rem_minmax(0,1fr)_20rem] xl:items-start">
       <div className="hidden xl:block">
         <LeftSidebar user={user} />
       </div>
       <div className="grid gap-4">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-slate-900">
           {user?.firstName + " " + user?.lastName + "'s posts"}
         </h1>
         {posts.map((post) => (
           <Post key={post.id} post={post} setPosts={setPosts} />
         ))}
         {loadingPosts && (
-          <div className="p-4 text-center text-gray-500">
+          <div className="rounded-3xl border border-slate-200/80 bg-white p-4 text-center text-slate-500">
             Loading more posts...
           </div>
         )}
         {posts.length === 0 && !loadingPosts && (
-          <div className="bg-white border border-gray-300 rounded-lg p-8 text-center">
-            <p className="text-gray-500">No post to display.</p>
+          <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-8 text-center shadow-[0_14px_30px_rgba(15,23,42,0.04)]">
+            <p className="text-slate-500">No post to display.</p>
           </div>
         )}
       </div>
