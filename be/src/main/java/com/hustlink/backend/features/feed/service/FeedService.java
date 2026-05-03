@@ -227,13 +227,7 @@ public class FeedService {
   }
 
   private List<String> normalizeMediaUrls(PostDto postDto) {
-    List<String> mediaUrls = postDto.getMediaUrls() == null
-            ? new ArrayList<>()
-            : postDto.getMediaUrls().stream()
-            .filter(url -> url != null && !url.isBlank())
-            .distinct()
-            .limit(3)
-            .collect(Collectors.toCollection(ArrayList::new));
+    List<String> mediaUrls = postDto.getMediaUrls() == null ? new ArrayList<>() : postDto.getMediaUrls().stream().filter(url -> url != null && !url.isBlank()).distinct().limit(3).collect(Collectors.toCollection(ArrayList::new));
 
     if (!mediaUrls.isEmpty()) {
       return mediaUrls;
@@ -252,9 +246,8 @@ public class FeedService {
     }
 
     Set<String> expectedUrls = new HashSet<>(mediaUrls);
-    List<StoredObject> pendingObjects = storedObjectRepository
-            .findByOwnerTypeAndOwnerIdIsNullAndUploadedByIdAndScopeIn(
-                    POST_OWNER_TYPE, userId, POST_MEDIA_SCOPES);
+    List<StoredObject> pendingObjects = storedObjectRepository.findByOwnerTypeAndOwnerIdIsNullAndUploadedByIdAndScopeIn(
+            POST_OWNER_TYPE, userId, POST_MEDIA_SCOPES);
 
     for (StoredObject storedObject : pendingObjects) {
       if (matchesAnyMediaUrl(storedObject, expectedUrls)) {

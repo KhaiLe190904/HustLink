@@ -163,7 +163,9 @@ export function Input({
       </div>
 
       {error || helperText ? (
-        <div className={`mt-1 text-xs ${error ? "text-red-500" : "text-slate-500"}`}>
+        <div
+          className={`mt-1 text-xs ${error ? "text-red-500" : "text-slate-500"}`}
+        >
           {error || helperText}
         </div>
       ) : null}

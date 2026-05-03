@@ -54,9 +54,7 @@ public class CVService {
       extractedText = cvParserService.extractTextFromPdf(file);
     } catch (IOException exception) {
       throw new ResponseStatusException(
-              HttpStatus.BAD_REQUEST,
-              "The uploaded file is not a valid readable PDF.",
-              exception);
+              HttpStatus.BAD_REQUEST, "The uploaded file is not a valid readable PDF.", exception);
     }
 
     if (extractedText.isBlank()) {
@@ -92,8 +90,7 @@ public class CVService {
     CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
     if (interviewSessionRepository.existsByCvId(cvId)) {
       throw new ResponseStatusException(
-              HttpStatus.CONFLICT,
-              "This CV already has interview history and cannot be deleted.");
+              HttpStatus.CONFLICT, "This CV already has interview history and cannot be deleted.");
     }
     StoredObject storedObject = cv.getStoredObject();
     cvRepository.delete(cv);

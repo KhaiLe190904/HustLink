@@ -99,7 +99,7 @@ export function Profile() {
   };
   return (
     <div className="">
-      <Box >
+      <Box>
         <h1>Only one last step</h1>
         <p>Tell us about you so we can personalize your experience.</p>
         {step === 0 && (

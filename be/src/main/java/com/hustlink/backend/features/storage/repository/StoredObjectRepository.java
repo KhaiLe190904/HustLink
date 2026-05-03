@@ -10,5 +10,5 @@ public interface StoredObjectRepository extends JpaRepository<StoredObject, Long
   List<StoredObject> findByOwnerTypeAndOwnerId(String ownerType, Long ownerId);
 
   List<StoredObject> findByOwnerTypeAndOwnerIdIsNullAndUploadedByIdAndScopeIn(
-          String ownerType, Long uploadedById, Collection<StorageScope> scopes);
+                                                                              String ownerType, Long uploadedById, Collection<StorageScope> scopes);
 }

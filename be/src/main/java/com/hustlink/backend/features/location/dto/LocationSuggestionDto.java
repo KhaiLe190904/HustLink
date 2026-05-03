@@ -13,4 +13,3 @@ public class LocationSuggestionDto {
   private String locationDisplay;
   private String locationKey;
 }
-
