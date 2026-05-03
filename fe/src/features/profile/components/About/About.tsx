@@ -29,18 +29,18 @@ export function About({ user, authUser, onUpdate }: AboutProps) {
   }
 
   return (
-    <div className="bg-white border border-gray-300 rounded-lg p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-gray-900">About</h2>
+    <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-[0_14px_30px_rgba(15,23,42,0.04)]">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold text-slate-900">About</h2>
         {authUser?.id === user?.id && (
           <>
             {!editingAbout ? (
               <button
-                className="p-2 hover:bg-gray-100 rounded transition-colors"
+                className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100"
                 onClick={() => setEditingAbout(!editingAbout)}
               >
                 <svg
-                  className="w-4 h-4 text-gray-600"
+                  className="h-4 w-4"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 512 512"
                   fill="currentColor"
@@ -51,14 +51,14 @@ export function About({ user, authUser, onUpdate }: AboutProps) {
             ) : (
               <div className="flex gap-2">
                 <button
-                  className="p-2 hover:bg-gray-100 rounded transition-colors"
+                  className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100"
                   onClick={() => {
                     setEditingAbout(false);
                     setAboutInput(user?.about || "");
                   }}
                 >
                   <svg
-                    className="w-4 h-4 text-gray-600"
+                    className="h-4 w-4"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 384 512"
                     fill="currentColor"
@@ -67,11 +67,11 @@ export function About({ user, authUser, onUpdate }: AboutProps) {
                   </svg>
                 </button>
                 <button
-                  className="p-2 hover:bg-green-100 rounded transition-colors"
+                  className="grid h-9 w-9 place-items-center rounded-full text-emerald-600 transition hover:bg-emerald-50"
                   onClick={updateAbout}
                 >
                   <svg
-                    className="w-4 h-4 text-green-600"
+                    className="h-4 w-4"
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 448 512"
                     fill="currentColor"
@@ -85,7 +85,9 @@ export function About({ user, authUser, onUpdate }: AboutProps) {
         )}
       </div>
       {!editingAbout ? (
-        <p>{user?.about ? user.about : "No information provided."}</p>
+        <p className="whitespace-pre-wrap text-[15px] leading-7 text-slate-700">
+          {user?.about ? user.about : "No information provided."}
+        </p>
       ) : (
         <Input
           value={aboutInput}
