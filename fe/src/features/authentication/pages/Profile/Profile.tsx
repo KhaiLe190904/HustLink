@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/Input/Input";
 import { Box } from "@/features/authentication/components/Box/Box";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
-
 import { Button } from "@/features/authentication/components/Button/Button";
+import { request } from "@/utils/api";
+
+interface ILocationSuggestion {
+  locationDisplay: string;
+  locationKey: string;
+}
+
 export function Profile() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
@@ -15,8 +21,34 @@ export function Profile() {
     lastName: "",
     company: "",
     position: "",
-    location: "",
+    locationDisplay: "",
+    locationKey: "",
   });
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<
+    ILocationSuggestion[]
+  >([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (step !== 2 || locationQuery.trim().length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      request<ILocationSuggestion[]>({
+        endpoint: `/api/v1/locations/search?query=${encodeURIComponent(
+          locationQuery.trim()
+        )}&limit=5`,
+        onSuccess: (suggestions) => setLocationSuggestions(suggestions),
+        onFailure: () => setLocationSuggestions([]),
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [step, locationQuery]);
+
   const onSubmit = async () => {
     if (!data.firstName || !data.lastName) {
       setError("Please fill in your first and last name.");
@@ -26,17 +58,21 @@ export function Profile() {
       setError("Please fill in your latest company and position.");
       return;
     }
-    if (!data.location) {
-      setError("Please fill in your location.");
+    if (!data.locationDisplay) {
+      setError("Please choose your location.");
+      return;
+    }
+    if (!data.locationKey) {
+      setError("Please select a location from search results.");
       return;
     }
     try {
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/api/v1/authentication/profile/${user?.id}?firstName=${
           data.firstName
-        }&lastName=${data.lastName}&company=${data.company}&position=${data.position}&location=${
-          data.location
-        }`,
+        }&lastName=${data.lastName}&company=${data.company}&position=${data.position}&locationDisplay=${encodeURIComponent(
+          data.locationDisplay
+        )}&locationKey=${encodeURIComponent(data.locationKey)}`,
         {
           method: "PUT",
           headers: {
@@ -63,13 +99,11 @@ export function Profile() {
   };
   return (
     <div className="">
-      <Box>
+      <Box >
         <h1>Only one last step</h1>
-        <p>
-          Tell us a bit about yourself so we can personalize your experience.
-        </p>
+        <p>Tell us about you so we can personalize your experience.</p>
         {step === 0 && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mt-2">
             <Input
               onFocus={() => setError("")}
               required
@@ -91,7 +125,7 @@ export function Profile() {
           </div>
         )}
         {step === 1 && (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 mt-2">
             <Input
               onFocus={() => setError("")}
               label="Latest company"
@@ -111,16 +145,61 @@ export function Profile() {
           </div>
         )}
         {step == 2 && (
-          <Input
-            onFocus={() => setError("")}
-            label="Location"
-            name="location"
-            onChange={(e) =>
-              setData((prev) => ({ ...prev, location: e.target.value }))
-            }
-          ></Input>
+          <div className="relative mt-2">
+            <Input
+              value={locationQuery}
+              onFocus={() => {
+                setError("");
+                setShowLocationSuggestions(true);
+              }}
+              onBlur={() =>
+                window.setTimeout(() => setShowLocationSuggestions(false), 150)
+              }
+              label="Location"
+              name="location"
+              onChange={(e) => {
+                const value = e.target.value;
+                setLocationQuery(value);
+                setData((prev) => ({
+                  ...prev,
+                  locationDisplay: value,
+                  locationKey: "",
+                }));
+                if (value.trim()) {
+                  setError("Please select a location from search results.");
+                } else {
+                  setError("");
+                }
+                setShowLocationSuggestions(true);
+              }}
+            ></Input>
+            {showLocationSuggestions && locationSuggestions.length > 0 ? (
+              <div className="absolute z-30 -mt-3 max-h-60 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                {locationSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion.locationKey}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setLocationQuery(suggestion.locationDisplay);
+                      setData((prev) => ({
+                        ...prev,
+                        locationDisplay: suggestion.locationDisplay,
+                        locationKey: suggestion.locationKey,
+                      }));
+                      setError("");
+                      setShowLocationSuggestions(false);
+                    }}
+                    className="block w-full border-b border-slate-100 px-4 py-2 text-left text-sm text-slate-700 last:border-b-0 hover:bg-slate-50"
+                  >
+                    {suggestion.locationDisplay}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         )}
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-500 text-sm -mt-2">{error}</p>}
         <div className="flex gap-4 justify-end">
           {step > 0 && (
             <Button outline onClick={() => setStep((prev) => prev - 1)}>
@@ -139,7 +218,10 @@ export function Profile() {
             </Button>
           )}
           {step === 2 && (
-            <Button disabled={!data.location} onClick={onSubmit}>
+            <Button
+              disabled={!data.locationDisplay || !data.locationKey}
+              onClick={onSubmit}
+            >
               Submit
             </Button>
           )}

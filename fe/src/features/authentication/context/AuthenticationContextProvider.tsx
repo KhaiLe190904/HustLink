@@ -22,11 +22,14 @@ export interface IUser {
   lastName?: string;
   company?: string;
   position?: string;
-  location?: string;
+  locationDisplay?: string;
+  locationKey?: string;
   profileComplete: boolean;
   profilePicture?: string;
   coverPicture?: string;
   about?: string;
+  experience?: string;
+  education?: string;
 }
 
 interface AuthenticationContextType {

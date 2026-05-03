@@ -46,11 +46,18 @@ public class User {
   private String company = null;
   @FullTextField(analyzer = "standard")
   private String position = null;
-  private String location = null;
+  private String locationDisplay = null;
+  private String locationKey = null;
   private Boolean profileComplete = false;
   private String coverPicture = null;
   private String profilePicture = null;
   private String about = null;
+  @Lob
+  @Column(columnDefinition = "nvarchar(max)")
+  private String experience = null;
+  @Lob
+  @Column(columnDefinition = "nvarchar(max)")
+  private String education = null;
 
   @JsonIgnore
   @OneToMany(mappedBy = "recipient", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -86,7 +93,7 @@ public class User {
   }
 
   public void updateProfileComplete() {
-    this.profileComplete = (this.firstName != null && this.lastName != null && this.company != null && this.position != null && this.location != null);
+    this.profileComplete = (this.firstName != null && this.lastName != null && this.company != null && this.position != null && this.locationDisplay != null);
   }
 
   public void setFirstName(String firstName) {
@@ -109,8 +116,18 @@ public class User {
     updateProfileComplete();
   }
 
-  public void setLocation(String location) {
-    this.location = location;
+  public void setLocationDisplay(String locationDisplay) {
+    this.locationDisplay = locationDisplay;
     updateProfileComplete();
+  }
+
+  public String getLocationForMatching() {
+    if (locationKey != null && !locationKey.isBlank()) {
+      return locationKey.trim().toLowerCase();
+    }
+    if (locationDisplay != null && !locationDisplay.isBlank()) {
+      return locationDisplay.trim().toLowerCase();
+    }
+    return "";
   }
 }
