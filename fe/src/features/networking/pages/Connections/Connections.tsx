@@ -244,7 +244,7 @@ export function Connections() {
   }, [user?.id, ws]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-300 p-4">
+    <div className="rounded-[1.75rem] border border-slate-200/80 bg-white p-6 shadow-[0_14px_30px_rgba(15,23,42,0.04)]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Title>
           Connections {(hasSearched || showingAll) && `(${connectionsTotal})`}
@@ -253,7 +253,7 @@ export function Connections() {
           type="button"
           onClick={handleShowAll}
           disabled={loadingConnections && showingAll}
-          className="px-4 py-2 rounded-full border border-[var(--primary-color)] text-[var(--primary-color)] font-semibold text-sm hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="rounded-full border border-[var(--primary-color)] px-4 py-2 text-sm font-semibold text-[var(--primary-color)] hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Show all
         </button>
@@ -265,12 +265,12 @@ export function Connections() {
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
           placeholder="Search your connections"
-          className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
+          className="flex-1 rounded-full border border-slate-300 bg-slate-50 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]"
         />
         <button
           type="submit"
           disabled={loadingConnections}
-          className="px-4 py-2 rounded-full bg-[var(--primary-color)] text-white font-semibold text-sm hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="rounded-full bg-[var(--primary-color)] px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Search
         </button>
@@ -289,7 +289,7 @@ export function Connections() {
         ))}
 
         {!hasSearched && !showingAll && connections.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="py-8 text-center text-slate-500">
             Search your connections or click Show all to load them.
           </div>
         )}
@@ -297,13 +297,13 @@ export function Connections() {
         {(hasSearched || showingAll) &&
           !loadingConnections &&
           connections.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="py-8 text-center text-slate-500">
               No connections found.
             </div>
           )}
 
         {loadingConnections && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="py-8 text-center text-slate-500">
             Loading connections...
           </div>
         )}
