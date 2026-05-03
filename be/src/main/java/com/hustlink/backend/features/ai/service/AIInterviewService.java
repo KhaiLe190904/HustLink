@@ -72,9 +72,7 @@ public class AIInterviewService {
               HttpStatus.INTERNAL_SERVER_ERROR, "Could not generate interview questions.");
     }
 
-    List<GeminiService.InterviewQuestionDraft> selectedDrafts = drafts.stream()
-            .limit(questionCount)
-            .toList();
+    List<GeminiService.InterviewQuestionDraft> selectedDrafts = drafts.stream().limit(questionCount).toList();
 
     InterviewSession session = new InterviewSession();
     session.setUser(user);

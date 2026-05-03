@@ -375,7 +375,9 @@ export function Madal({
                     <div className="mt-5 border-t border-slate-700">
                       <div
                         className="overflow-hidden text-slate-700 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-slate-900 [&_p]:mt-2 [&_p]:leading-7 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-6 [&_li]:mt-1"
-                        dangerouslySetInnerHTML={{ __html: normalizedPreviewHtml }}
+                        dangerouslySetInnerHTML={{
+                          __html: normalizedPreviewHtml,
+                        }}
                       />
                     </div>
                   </article>

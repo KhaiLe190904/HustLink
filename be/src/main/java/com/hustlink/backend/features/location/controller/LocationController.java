@@ -17,9 +17,7 @@ public class LocationController {
 
   @GetMapping("/search")
   public List<LocationSuggestionDto> search(
-          @RequestParam String query,
-          @RequestParam(required = false, defaultValue = "5") Integer limit) {
+                                            @RequestParam String query, @RequestParam(required = false, defaultValue = "5") Integer limit) {
     return locationSearchService.searchLocations(query, limit == null ? 5 : limit);
   }
 }
-
