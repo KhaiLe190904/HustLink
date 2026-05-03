@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IUser } from "../../../../features/authentication/context/AuthenticationContextProvider";
 import { request } from "../../../../utils/api";
-import { Input } from "../../../Input/Input";
+import { resolveMediaUrl } from "@/utils/storage";
+import { FiSearch } from "react-icons/fi";
 
 export function Search() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,19 +29,19 @@ export function Search() {
 
   return (
     <div className="relative">
-      <Input
+      <FiSearch className="pointer-events-none absolute left-5 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-slate-500" />
+      <input
         onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder="🔍 Find people, posts, ..."
-        size="medium"
+        placeholder="Find people, posts, ..."
         value={searchTerm}
-        className="placeholder:text-gray-400 placeholder:text-sm"
+        className="h-11 w-full rounded-full border border-slate-200 bg-slate-100/80 pl-[3.25rem] pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 hover:bg-slate-50 focus:border-red-200 focus:bg-white focus:ring-4 focus:ring-red-50"
       />
       {suggestions.length > 0 && (
-        <ul className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-b-md z-[999] max-h-64 overflow-y-auto shadow-md">
+        <ul className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-[999] max-h-72 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10">
           {suggestions.map((user) => (
             <li
               key={user.id}
-              className="border-b border-gray-200 last:border-b-0"
+              className="border-b border-slate-100 last:border-b-0"
             >
               <button
                 onClick={() => {
@@ -48,18 +49,18 @@ export function Search() {
                   setSearchTerm("");
                   navigate(`/profile/${user.id}`);
                 }}
-                className="flex items-center gap-2 p-2 w-full hover:bg-gray-50 transition-colors"
+                className="flex w-full items-center gap-3 rounded-2xl p-3 transition-colors hover:bg-slate-50"
               >
                 <img
-                  className="w-12 h-12 rounded-full object-cover"
-                  src={user.profilePicture || "/doc1.png"}
+                  className="h-11 w-11 rounded-full object-cover"
+                  src={resolveMediaUrl(user.profilePicture) || "/doc1.png"}
                   alt=""
                 />
-                <div className="text-left">
-                  <div className="font-bold text-sm">
+                <div className="min-w-0 text-left">
+                  <div className="truncate text-sm font-bold text-slate-950">
                     {user.firstName} {user.lastName}
                   </div>
-                  <div className="text-xs text-gray-600">
+                  <div className="truncate text-xs font-medium text-slate-500">
                     {user.position} at {user.company}
                   </div>
                 </div>

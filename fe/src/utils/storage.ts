@@ -40,6 +40,11 @@ export async function uploadToStorage({
   ownerType,
   ownerId,
 }: UploadStorageParams): Promise<StoredObjectResponse> {
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") {
+    throw new Error("Your login session has expired. Please sign in again.");
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("scope", scope);
@@ -53,7 +58,7 @@ export async function uploadToStorage({
   const response = await fetch(`${BASE_URL}/api/v1/storage/upload`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
+      Authorization: `Bearer ${token}`,
     },
     body: formData,
   });
@@ -69,11 +74,16 @@ export async function uploadToStorage({
 export async function fetchPrivateDownloadUrl(
   storedObjectId: number
 ): Promise<string> {
+  const token = localStorage.getItem("token");
+  if (!token || token === "null" || token === "undefined") {
+    throw new Error("Your login session has expired. Please sign in again.");
+  }
+
   const response = await fetch(
     `${BASE_URL}/api/v1/storage/objects/${storedObjectId}/download-url`,
     {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
       },
     }
   );

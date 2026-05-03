@@ -1,5 +1,5 @@
 import logo from "/logo.svg";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useEffect, useState } from "react";
 import { Profile } from "@/components/Header/components/Profile";
@@ -9,9 +9,20 @@ import { request } from "@/utils/api";
 import { INotification } from "@/features/feed/pages/Notifications/Notifications";
 import { IConversation } from "@/features/messaging/components/Conversations/Conversations";
 import { IConnection } from "@/features/networking/components/Connection/Connection";
+import {
+  FiBell,
+  FiBriefcase,
+  FiFileText,
+  FiHome,
+  FiMenu,
+  FiMessageCircle,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
 export function Header() {
   const { user } = useAuthentication();
   const webSocketClient = useWebSocket();
+  const location = useLocation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNavigationMenu, setShowNavigationMenu] = useState(
     window.innerWidth > 1080 ? true : false
@@ -194,236 +205,105 @@ export function Header() {
     return () => subscription?.unsubscribe();
   }, [user?.id, webSocketClient]);
 
+  const navItems = [
+    { to: "/", label: "Home", icon: FiHome, badge: 0 },
+    { to: "/ai/cv", label: "AI CV", icon: FiFileText, badge: 0 },
+    {
+      to: "/network",
+      label: "Network",
+      icon: FiUsers,
+      badge: location.pathname.includes("network") ? 0 : invitations.length,
+    },
+    { to: "/jobs", label: "Jobs", icon: FiBriefcase, badge: 0 },
+    {
+      to: "/messaging",
+      label: "Messaging",
+      icon: FiMessageCircle,
+      badge: location.pathname.includes("messaging") ? 0 : nonReadMessagesCount,
+    },
+    {
+      to: "/notifications",
+      label: "Notifications",
+      icon: FiBell,
+      badge: nonReadNotificationCount,
+    },
+  ];
+
+  const closeMenus = () => {
+    setShowProfileMenu(false);
+    if (window.innerWidth <= 1080) {
+      setShowNavigationMenu(false);
+    }
+  };
+
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm text-gray-600 text-sm fixed top-0 left-0 right-0 z-[100]">
-      <div className="max-w-[1400px] px-6 mx-auto w-full grid grid-cols-[1fr_auto] relative gap-4 py-0.1">
-        <div className="grid gap-4 grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr_auto] items-center">
-          <NavLink to="/" className="flex items-center">
-            <img
-              src={logo}
-              alt="HustLink"
-              className="w-30 h-15 transition-transform hover:scale-105"
-            />
-          </NavLink>
-          <div className="max-w-xs mt-1 hidden lg:block">
-            <Search />
-          </div>
+    <header className="fixed left-0 right-0 top-0 z-[100] border-b border-slate-200/80 bg-white/95 text-sm text-slate-600 shadow-sm backdrop-blur-xl">
+      <div className="mx-auto grid h-[72px] w-full max-w-[1400px] grid-cols-[auto_1fr_auto] items-center gap-4 px-4 sm:px-6">
+        <NavLink to="/" className="flex items-center">
+          <img
+            src={logo}
+            alt="HustLink"
+            className="h-12 w-auto transition-transform hover:scale-[1.02]"
+          />
+        </NavLink>
+
+        <div className="hidden justify-self-center lg:block lg:w-[380px] xl:w-[520px]">
+          <Search />
         </div>
-        <div className="flex items-center gap-2 lg:gap-6">
+
+        <div className="flex items-center justify-end gap-2">
           {showNavigationMenu ? (
-            <ul className="absolute top-16 right-4 bg-white border border-gray-200 rounded-xl p-3 w-72 grid gap-1 shadow-lg lg:relative lg:flex lg:items-center lg:w-auto lg:gap-4 lg:bg-transparent lg:border-none lg:top-0 lg:right-0 lg:p-0 lg:shadow-none">
-              <li>
-                <NavLink
-                  to="/"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
-                      isActive
-                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`
-                  }
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    if (window.innerWidth <= 1080) {
-                      setShowNavigationMenu(false);
-                    }
-                  }}
-                >
-                  <svg
-                    className="w-6 h-6 lg:w-5 lg:h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M23 9v2h-2v7a3 3 0 01-3 3h-4v-6h-4v6H6a3 3 0 01-3-3v-7H1V9l11-7 5 3.18V2h3v5.09z" />
-                  </svg>
-                  <span className="text-sm font-medium lg:text-xs">Home</span>
-                </NavLink>
-              </li>
-              <li className="relative">
-                <NavLink
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    if (window.innerWidth <= 1080) {
-                      setShowNavigationMenu(false);
-                    }
-                  }}
-                  to="/ai/cv"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
-                      isActive
-                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  <svg
-                    className="w-6 h-6 lg:w-5 lg:h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm8 1.5V9h4.5M8 13h8M8 17h8M8 9h3" />
-                  </svg>
-                  <span className="text-sm font-medium lg:text-xs">AI CV</span>
-                </NavLink>
-              </li>
-              <li className="relative">
-                <NavLink
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    if (window.innerWidth <= 1080) {
-                      setShowNavigationMenu(false);
-                    }
-                  }}
-                  to="/network"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
-                      isActive
-                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  <div className="relative">
-                    <svg
-                      className="w-6 h-6 lg:w-5 lg:h-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
+            <ul className="absolute right-4 top-[82px] grid w-[min(22rem,calc(100vw-2rem))] gap-1 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10 lg:relative lg:right-auto lg:top-auto lg:flex lg:w-auto lg:items-center lg:gap-1 lg:border-none lg:bg-transparent lg:p-0 lg:shadow-none">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <li key={item.to} className="relative">
+                    <NavLink
+                      to={item.to}
+                      end={item.to === "/"}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 rounded-2xl px-4 py-3 font-semibold transition-all lg:flex-col lg:gap-1 lg:px-3 lg:py-2 ${
+                          isActive
+                            ? "bg-red-50 text-red-700 lg:bg-slate-100"
+                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
+                        }`
+                      }
+                      onClick={closeMenus}
                     >
-                      <path d="M12 16v6H3v-6a3 3 0 013-3h3a3 3 0 013 3zm5.5-3A3.5 3.5 0 1014 9.5a3.5 3.5 0 003.5 3.5zm1 2h-2a2.5 2.5 0 00-2.5 2.5V22h7v-4.5a2.5 2.5 0 00-2.5-2.5zM7.5 2A4.5 4.5 0 1012 6.5 4.49 4.49 0 007.5 2z" />
-                    </svg>
-                    {invitations.length > 0 &&
-                    !location.pathname.includes("network") ? (
-                      <span className="absolute -top-2 -right-4 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-medium shadow-sm">
-                        {invitations.length > 9 ? "9+" : invitations.length}
+                      <span className="relative">
+                        <Icon className="h-5 w-5" />
+                        {item.badge > 0 ? (
+                          <span className="absolute -right-2.5 -top-2.5 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                            {item.badge > 9 ? "9+" : item.badge}
+                          </span>
+                        ) : null}
                       </span>
-                    ) : null}
-                  </div>
-                  <span className="text-sm font-medium lg:text-xs">
-                    Network
-                  </span>
-                </NavLink>
-              </li>
-              <li className="relative">
-                <NavLink
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    if (window.innerWidth <= 1080) {
-                      setShowNavigationMenu(false);
-                    }
-                  }}
-                  to="/jobs"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
-                      isActive
-                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  <svg
-                    className="w-6 h-6 lg:w-5 lg:h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M17 6V5a3 3 0 00-3-3h-4a3 3 0 00-3 3v1H2v4a3 3 0 003 3h14a3 3 0 003-3V6zM9 5a1 1 0 011-1h4a1 1 0 011 1v1H9zm10 9a4 4 0 003-1.38V17a3 3 0 01-3 3H5a3 3 0 01-3-3v-4.38A4 4 0 005 14z" />
-                  </svg>
-                  <span className="text-sm font-medium lg:text-xs">Jobs</span>
-                </NavLink>
-              </li>
-              <li className="relative">
-                <NavLink
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    if (window.innerWidth <= 1080) {
-                      setShowNavigationMenu(false);
-                    }
-                  }}
-                  to="/messaging"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
-                      isActive
-                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  <div className="relative">
-                    <svg
-                      className="w-6 h-6 lg:w-5 lg:h-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M16 4H8a7 7 0 000 14h4v4l8.16-5.39A6.78 6.78 0 0023 11a7 7 0 00-7-7zm-8 8.25A1.25 1.25 0 119.25 11 1.25 1.25 0 018 12.25zm4 0A1.25 1.25 0 1113.25 11 1.25 1.25 0 0112 12.25zm4 0A1.25 1.25 0 1117.25 11 1.25 1.25 0 0116 12.25z" />
-                    </svg>
-                    {nonReadMessagesCount > 0 &&
-                    !location.pathname.includes("messaging") ? (
-                      <span className="absolute -top-2 -right-4 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-medium shadow-sm">
-                        {nonReadMessagesCount > 9 ? "9+" : nonReadMessagesCount}
+                      <span className="text-sm lg:text-[11px]">
+                        {item.label}
                       </span>
-                    ) : null}
-                  </div>
-                  <span className="text-sm font-medium lg:text-xs">
-                    Messaging
-                  </span>
-                </NavLink>
-              </li>
-              <li className="relative">
-                <NavLink
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    if (window.innerWidth <= 1080) {
-                      setShowNavigationMenu(false);
-                    }
-                  }}
-                  to="/notifications"
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 p-3 rounded-lg transition-all lg:flex-col lg:gap-1 lg:p-2 lg:rounded-md hover:bg-gray-100 lg:hover:bg-gray-50 ${
-                      isActive
-                        ? "text-[var(--primary-color)] bg-blue-50 lg:bg-transparent font-medium"
-                        : "text-gray-600 hover:text-gray-900"
-                    }`
-                  }
-                >
-                  <div className="relative">
-                    <svg
-                      className="w-6 h-6 lg:w-5 lg:h-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M22 19h-8.28a2 2 0 11-3.44 0H2v-1a4.52 4.52 0 011.17-2.83l1-1.17h15.7l1 1.17A4.42 4.42 0 0122 18zM18.21 7.44A6.27 6.27 0 0012 2a6.27 6.27 0 00-6.21 5.44L5 13h14z" />
-                    </svg>
-                    {nonReadNotificationCount > 0 ? (
-                      <span className="absolute -top-2 -right-4 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center font-medium shadow-sm">
-                        {nonReadNotificationCount > 9
-                          ? "9+"
-                          : nonReadNotificationCount}
-                      </span>
-                    ) : null}
-                  </div>
-                  <span className="text-sm font-medium lg:text-xs">
-                    Notifications
-                  </span>
-                </NavLink>
-              </li>
+                    </NavLink>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
+
           <button
-            className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-gray-100 transition-all lg:hidden"
+            className="grid h-11 w-11 place-items-center rounded-2xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-950 lg:hidden"
             onClick={() => {
               setShowNavigationMenu((prev) => !prev);
               setShowProfileMenu(false);
             }}
+            aria-label="Toggle navigation"
           >
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path
-                d="M3 12h18M3 6h18M3 18h18"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span className="text-xs font-medium">Menu</span>
+            {showNavigationMenu ? (
+              <FiX className="h-5 w-5" />
+            ) : (
+              <FiMenu className="h-5 w-5" />
+            )}
           </button>
+
           {user ? (
             <Profile
               setShowNavigationMenu={setShowNavigationMenu}
