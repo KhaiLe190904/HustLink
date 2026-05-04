@@ -59,7 +59,7 @@ public class AuthenticationFilter extends HttpFilter {
       String email = jsonWebTokenService.getEmailFromToken(token);
       User user = authenticationService.getUser(email);
       request.setAttribute("authenticationUser", user);
-    } catch (IllegalArgumentException e) {
+    } catch (RuntimeException e) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       response.setContentType("application/json");
       response.getWriter().write("{\"message\": \"Invalid authentication token, or token missing.\"}");

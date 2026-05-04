@@ -102,6 +102,10 @@ function formatEducationPeriod(item: EducationItem) {
   return item.period || "";
 }
 
+function hasMonthWithoutYear(year?: number, month?: number) {
+  return !year && !!month;
+}
+
 export function Profile() {
   const { id } = useParams();
   const [loading, setLoading] = useState(true);
@@ -176,10 +180,12 @@ export function Profile() {
   ) => {
     if (!user?.id) return;
     await request<IUser>({
-      endpoint: `/api/v1/authentication/profile/${user.id}?experience=${encodeURIComponent(
-        JSON.stringify(nextExperiences)
-      )}&education=${encodeURIComponent(JSON.stringify(nextEducations))}`,
+      endpoint: `/api/v1/authentication/profile/${user.id}`,
       method: "PUT",
+      body: JSON.stringify({
+        experience: JSON.stringify(nextExperiences),
+        education: JSON.stringify(nextEducations),
+      }),
       onSuccess: (data) => handleUpdate(data),
       onFailure: (error) => {
         throw new Error(error);
@@ -413,6 +419,21 @@ export function Profile() {
                       experienceDraft.endMonth
                     );
                     if (
+                      hasMonthWithoutYear(
+                        experienceDraft.startYear,
+                        experienceDraft.startMonth
+                      ) ||
+                      hasMonthWithoutYear(
+                        experienceDraft.endYear,
+                        experienceDraft.endMonth
+                      )
+                    ) {
+                      setExperienceDateError(
+                        "Month requires year. Please select year and month together."
+                      );
+                      return;
+                    }
+                    if (
                       !experienceDraft.isPresent &&
                       start &&
                       end &&
@@ -432,11 +453,19 @@ export function Profile() {
                               ? experienceDraft
                               : item
                           );
-                    setExperiences(next);
-                    await saveProfileSections(next, educations);
-                    setExperienceDraft(EMPTY_EXPERIENCE);
-                    setEditingExperienceIndex(null);
-                    setEditingExperience(false);
+                    try {
+                      await saveProfileSections(next, educations);
+                      setExperiences(next);
+                      setExperienceDraft(EMPTY_EXPERIENCE);
+                      setEditingExperienceIndex(null);
+                      setEditingExperience(false);
+                    } catch (error) {
+                      setExperienceFormError(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to save experience."
+                      );
+                    }
                   }}
                 >
                   {editingExperienceIndex === null
@@ -653,6 +682,21 @@ export function Profile() {
                       educationDraft.endYear,
                       educationDraft.endMonth
                     );
+                    if (
+                      hasMonthWithoutYear(
+                        educationDraft.startYear,
+                        educationDraft.startMonth
+                      ) ||
+                      hasMonthWithoutYear(
+                        educationDraft.endYear,
+                        educationDraft.endMonth
+                      )
+                    ) {
+                      setEducationDateError(
+                        "Month requires year. Please select year and month together."
+                      );
+                      return;
+                    }
                     if (start && end && end < start) {
                       setEducationDateError(
                         "End month/year must be after start month/year."
@@ -668,11 +712,19 @@ export function Profile() {
                               ? educationDraft
                               : item
                           );
-                    setEducations(next);
-                    await saveProfileSections(experiences, next);
-                    setEducationDraft(EMPTY_EDUCATION);
-                    setEditingEducationIndex(null);
-                    setEditingEducation(false);
+                    try {
+                      await saveProfileSections(experiences, next);
+                      setEducations(next);
+                      setEducationDraft(EMPTY_EDUCATION);
+                      setEditingEducationIndex(null);
+                      setEditingEducation(false);
+                    } catch (error) {
+                      setEducationFormError(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to save education."
+                      );
+                    }
                   }}
                 >
                   {editingEducationIndex === null
@@ -760,23 +812,55 @@ export function Profile() {
                     const next = experiences.filter(
                       (_, i) => i !== confirmDelete.index
                     );
-                    setExperiences(next);
-                    await saveProfileSections(next, educations);
-                    if (editingExperienceIndex === confirmDelete.index) {
-                      setExperienceDraft(EMPTY_EXPERIENCE);
-                      setEditingExperienceIndex(null);
-                      setEditingExperience(false);
+                    try {
+                      await saveProfileSections(next, educations);
+                      setExperiences(next);
+                      if (editingExperienceIndex === confirmDelete.index) {
+                        setExperienceDraft(EMPTY_EXPERIENCE);
+                        setEditingExperienceIndex(null);
+                        setEditingExperience(false);
+                      } else if (
+                        editingExperienceIndex !== null &&
+                        editingExperienceIndex > confirmDelete.index
+                      ) {
+                        setEditingExperienceIndex((prev) =>
+                          prev === null ? null : prev - 1
+                        );
+                      }
+                    } catch (error) {
+                      setExperienceFormError(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to delete experience."
+                      );
+                      return;
                     }
                   } else {
                     const next = educations.filter(
                       (_, i) => i !== confirmDelete.index
                     );
-                    setEducations(next);
-                    await saveProfileSections(experiences, next);
-                    if (editingEducationIndex === confirmDelete.index) {
-                      setEducationDraft(EMPTY_EDUCATION);
-                      setEditingEducationIndex(null);
-                      setEditingEducation(false);
+                    try {
+                      await saveProfileSections(experiences, next);
+                      setEducations(next);
+                      if (editingEducationIndex === confirmDelete.index) {
+                        setEducationDraft(EMPTY_EDUCATION);
+                        setEditingEducationIndex(null);
+                        setEditingEducation(false);
+                      } else if (
+                        editingEducationIndex !== null &&
+                        editingEducationIndex > confirmDelete.index
+                      ) {
+                        setEditingEducationIndex((prev) =>
+                          prev === null ? null : prev - 1
+                        );
+                      }
+                    } catch (error) {
+                      setEducationFormError(
+                        error instanceof Error
+                          ? error.message
+                          : "Failed to delete education."
+                      );
+                      return;
                     }
                   }
                   setConfirmDelete(null);

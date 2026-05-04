@@ -2,60 +2,101 @@ import { Outlet } from "react-router-dom";
 
 export function AuthenticationLayout() {
   return (
-    <div className="grid grid-rows-[auto_1fr_auto] min-h-screen [&_a]:text-[var(--primary-color)] [&_a]:font-bold [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4">
-      {" "}
-      {/* .root styles with nested selectors */}
-      <header className="max-w-[90rem] w-full mx-auto p-2 py-4 w-max-content mx-auto">
-        {" "}
-        {/* header .container styles */}
-        <a href="/" className="flex w-max">
-          {" "}
-          {/* header a styles */}
-          <img src="/logo.svg" alt="Logo" className="w-48" />{" "}
-          {/* .logo styles */}
-        </a>
+    <div className="grid min-h-screen grid-rows-[auto_1fr_auto] bg-slate-50 text-slate-900 [&_a]:font-semibold [&_a]:text-[var(--primary-color)] [&_h1]:mb-4 [&_h1]:text-3xl [&_h1]:font-bold">
+      <header className="border-b border-slate-200/80 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[90rem] items-center px-4 py-4">
+          <a
+            href="/"
+            className="flex w-max transition-opacity hover:opacity-85"
+          >
+            <img src="/logo.svg" alt="HustLink" className="w-44 md:w-48" />
+          </a>
+        </div>
       </header>
-      <main className="grid items-center max-w-[90rem] w-full mx-auto p-2">
-        {" "}
-        {/* main + .container styles */}
-        <Outlet />
+
+      <main className="mx-auto grid w-full max-w-[90rem] items-center px-4 py-10 md:py-14">
+        <div className="mx-auto w-full max-w-6xl">
+          <Outlet />
+        </div>
       </main>
-      <footer className="text-xs bg-white border border-gray-300 [&_a]:text-black/60 [&_a]:font-normal [&_img]:w-36 [&_img]:h-auto">
-        {" "}
-        {/* footer styles with nested selectors */}
-        <ul className="max-w-[90rem] w-full mx-auto px-2 py-2 flex items-center gap-4 flex-wrap [&_li]:flex [&_li]:gap-2 [&_li]:items-center">
-          {" "}
-          {/* footer ul + li styles */}
-          <li>
-            <img src="/logo_dark.svg" alt="Logo" />
-            <span>© 2025</span>
+
+      <footer className="border-t border-slate-200/80 bg-white text-xs text-slate-500">
+        <ul className="mx-auto flex w-full max-w-[90rem] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+          <li className="mr-2 flex items-center gap-2 text-slate-600">
+            <img src="/logo_dark.svg" alt="HustLink" className="h-auto w-28" />
+            <span>© 2026</span>
           </li>
           <li>
-            <a href="">Accessiblity</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Accessibility
+            </a>
           </li>
           <li>
-            <a href="">User Agreement</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              User Agreement
+            </a>
           </li>
           <li>
-            <a href="">Privacy Policy</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Privacy Policy
+            </a>
           </li>
           <li>
-            <a href="">Cookie Policy</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Cookie Policy
+            </a>
           </li>
           <li>
-            <a href="">Copywright Policy</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Copyright Policy
+            </a>
           </li>
           <li>
-            <a href="">Brand Policy</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Brand Policy
+            </a>
           </li>
           <li>
-            <a href="">Guest Controls</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Guest Controls
+            </a>
           </li>
           <li>
-            <a href="">Community Guidelines</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Community Guidelines
+            </a>
           </li>
           <li>
-            <a href="">Language</a>
+            <a
+              className="font-medium text-slate-500 hover:text-slate-700"
+              href="#"
+            >
+              Language
+            </a>
           </li>
         </ul>
       </footer>

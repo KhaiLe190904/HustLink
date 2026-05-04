@@ -16,6 +16,7 @@ import { IComment } from "@/features/feed/components/Comment/Comment";
 import {
   ARTICLE_CONTENT_PREFIX,
   Madal,
+  sanitizeArticleHtml,
 } from "@/features/feed/components/Modal/Modal";
 import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import { CommentModal } from "@/features/feed/components/CommentModal/CommentModal";
@@ -83,7 +84,9 @@ function parseArticleContent(content: string): ParsedArticleContent | null {
     return {
       title: parsed.title,
       summary: parsed.summary,
-      contentHtml: normalizeArticleHtml(parsed.contentHtml),
+      contentHtml: sanitizeArticleHtml(
+        normalizeArticleHtml(parsed.contentHtml)
+      ),
       tags: parsed.tags.filter((tag) => typeof tag === "string"),
     };
   } catch {
@@ -100,6 +103,7 @@ export function Post({ post, setPosts }: PostProps) {
       : post.picture
         ? [post.picture]
         : [];
+  const articleCoverUrl = postMediaUrls.find((url) => !isVideoFile(url));
   const [comments, setComments] = useState<IComment[]>([]);
   const [commentsPage, setCommentsPage] = useState<number>(0);
   const [hasMoreComments, setHasMoreComments] = useState<boolean>(true);
@@ -478,9 +482,9 @@ export function Post({ post, setPosts }: PostProps) {
         </div>
         {isArticle && article ? (
           <div className="px-5 pb-4">
-            {!isVideoFile(postMediaUrls[0]) && postMediaUrls[0] ? (
+            {articleCoverUrl ? (
               <img
-                src={resolveMediaUrl(postMediaUrls[0])}
+                src={resolveMediaUrl(articleCoverUrl)}
                 alt={article.title}
                 className="mb-4 h-64 w-full rounded-2xl object-cover"
               />

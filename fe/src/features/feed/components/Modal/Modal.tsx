@@ -34,6 +34,39 @@ export interface ArticlePayload {
   tags: string[];
 }
 
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+export function sanitizeArticleHtml(html: string) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const allowedTags = new Set(["H2", "P", "UL", "LI", "BR", "STRONG", "EM"]);
+
+  const traverse = (node: Element) => {
+    const children = Array.from(node.children);
+    for (const child of children) {
+      if (!allowedTags.has(child.tagName)) {
+        child.replaceWith(...Array.from(child.childNodes));
+        continue;
+      }
+
+      Array.from(child.attributes).forEach((attribute) => {
+        child.removeAttribute(attribute.name);
+      });
+      traverse(child);
+    }
+  };
+
+  traverse(doc.body);
+  return doc.body.innerHTML;
+}
+
 function normalizeArticleHtml(contentHtml: string) {
   let normalized = contentHtml;
 
@@ -82,7 +115,7 @@ function paragraphize(text: string) {
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => `<p>${line}</p>`)
+    .map((line) => `<p>${escapeHtml(line)}</p>`)
     .join("");
 }
 
@@ -179,7 +212,7 @@ export function Madal({
     [articleBody, articleSummary, articleTags, articleTitle]
   );
   const normalizedPreviewHtml = useMemo(
-    () => normalizeArticleHtml(articlePayload.contentHtml),
+    () => sanitizeArticleHtml(normalizeArticleHtml(articlePayload.contentHtml)),
     [articlePayload.contentHtml]
   );
 

@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.UnsupportedEncodingException;
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @RestController
@@ -77,11 +78,13 @@ public class AuthenticationController {
   }
 
   @PutMapping("/profile/{id}")
-  public User updateUserProfile(@RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam(required = false) String firstName, @RequestParam(required = false) String lastName, @RequestParam(required = false) String company, @RequestParam(required = false) String position, @RequestParam(required = false) String locationDisplay, @RequestParam(required = false) String locationKey, @RequestParam(required = false) String profilePicture, @RequestParam(required = false) String coverPicture, @RequestParam(required = false) String about, @RequestParam(required = false) String experience, @RequestParam(required = false) String education) {
+  public User updateUserProfile(@RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam(required = false) String firstName, @RequestParam(required = false) String lastName, @RequestParam(required = false) String company, @RequestParam(required = false) String position, @RequestParam(required = false) String locationDisplay, @RequestParam(required = false) String locationKey, @RequestParam(required = false) String profilePicture, @RequestParam(required = false) String coverPicture, @RequestParam(required = false) String about, @RequestParam(required = false) String experience, @RequestParam(required = false) String education, @RequestBody(required = false) Map<String, String> body) {
     if (!user.getId().equals(id)) {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User does not have permission to update user profile.");
     }
-    return authenticationService.updateUserProfile(id, firstName, lastName, company, position, locationDisplay, locationKey, profilePicture, coverPicture, about, experience, education);
+    String resolvedExperience = experience != null ? experience : body != null ? body.get("experience") : null;
+    String resolvedEducation = education != null ? education : body != null ? body.get("education") : null;
+    return authenticationService.updateUserProfile(id, firstName, lastName, company, position, locationDisplay, locationKey, profilePicture, coverPicture, about, resolvedExperience, resolvedEducation);
   }
 
   @GetMapping("users")

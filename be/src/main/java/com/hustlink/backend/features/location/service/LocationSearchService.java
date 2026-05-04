@@ -4,9 +4,11 @@ import com.hustlink.backend.features.location.dto.LocationSuggestionDto;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +27,12 @@ import org.springframework.web.util.UriUtils;
 public class LocationSearchService {
   private static final int DEFAULT_LIMIT = 5;
   private static final int MAX_LIMIT = 20;
+  private static final long CACHE_TTL_MILLIS = 2 * 60 * 1000;
   private static final List<String> FALLBACK_LOCATIONS = Arrays.asList(
           "An Giang, Vietnam", "Ba Ria - Vung Tau, Vietnam", "Bac Giang, Vietnam", "Bac Kan, Vietnam", "Bac Lieu, Vietnam", "Bac Ninh, Vietnam", "Ben Tre, Vietnam", "Binh Dinh, Vietnam", "Binh Duong, Vietnam", "Binh Phuoc, Vietnam", "Binh Thuan, Vietnam", "Ca Mau, Vietnam", "Can Tho, Vietnam", "Cao Bang, Vietnam", "Da Nang, Vietnam", "Dak Lak, Vietnam", "Dak Nong, Vietnam", "Dien Bien, Vietnam", "Dong Nai, Vietnam", "Dong Thap, Vietnam", "Gia Lai, Vietnam", "Ha Giang, Vietnam", "Ha Nam, Vietnam", "Ha Noi, Vietnam", "Ha Tinh, Vietnam", "Hai Duong, Vietnam", "Hai Phong, Vietnam", "Hau Giang, Vietnam", "Ho Chi Minh City, Vietnam", "Hoa Binh, Vietnam", "Hung Yen, Vietnam", "Khanh Hoa, Vietnam", "Kien Giang, Vietnam", "Kon Tum, Vietnam", "Lai Chau, Vietnam", "Lam Dong, Vietnam", "Lang Son, Vietnam", "Lao Cai, Vietnam", "Long An, Vietnam", "Nam Dinh, Vietnam", "Nghe An, Vietnam", "Ninh Binh, Vietnam", "Ninh Thuan, Vietnam", "Phu Tho, Vietnam", "Phu Yen, Vietnam", "Quang Binh, Vietnam", "Quang Nam, Vietnam", "Quang Ngai, Vietnam", "Quang Ninh, Vietnam", "Quang Tri, Vietnam", "Soc Trang, Vietnam", "Son La, Vietnam", "Tay Ninh, Vietnam", "Thai Binh, Vietnam", "Thai Nguyen, Vietnam", "Thanh Hoa, Vietnam", "Thua Thien Hue, Vietnam", "Tien Giang, Vietnam", "Tra Vinh, Vietnam", "Tuyen Quang, Vietnam", "Vinh Long, Vietnam", "Vinh Phuc, Vietnam", "Yen Bai, Vietnam", "San Francisco, US", "New York, US", "Seattle, US", "Boston, US", "Austin, US", "London, UK", "Berlin, DE", "Paris, FR", "Amsterdam, NL", "Stockholm, SE", "Tokyo, JP", "Singapore, SG", "Sydney, AU", "Toronto, CA", "Vancouver, CA", "Dubai, AE", "Dakar, SN", "Seoul, KR", "Mumbai, IN", "Shanghai, CN", "Sao Paulo, BR", "Mexico City, MX", "Dublin, IE");
 
   private final RestTemplate restTemplate;
+  private final Map<String, CacheEntry> searchCache = new ConcurrentHashMap<>();
 
   public List<LocationSuggestionDto> searchLocations(String query, int limit) {
     String trimmed = query == null ? "" : query.trim();
@@ -36,24 +40,34 @@ public class LocationSearchService {
       return List.of();
     }
     int normalizedLimit = normalizeLimit(limit);
+    String cacheKey = normalizeForSearch(trimmed) + "::" + normalizedLimit;
+    CacheEntry cached = searchCache.get(cacheKey);
+    if (cached != null && System.currentTimeMillis() - cached.cachedAt <= CACHE_TTL_MILLIS) {
+      return cached.suggestions;
+    }
 
     try {
       int remoteLimit = Math.min(Math.max(normalizedLimit * 4, 10), 40);
       List<Map<String, Object>> primaryResults = searchRemote(trimmed, remoteLimit);
       List<LocationSuggestionDto> remoteSuggestions = primaryResults.stream().filter(location -> !isCountryLevel(location)).map(this::toSuggestion).filter(suggestion -> suggestion.getLocationDisplay() != null && !suggestion.getLocationDisplay().isBlank()).collect(Collectors.toMap(
-              suggestion -> suggestion.getLocationKey() + "::" + suggestion.getLocationDisplay().toLowerCase(Locale.ROOT), suggestion -> suggestion, (first, ignored) -> first)).values().stream().collect(Collectors.toList());
+              suggestion -> suggestion.getLocationKey() + "::" + suggestion.getLocationDisplay().toLowerCase(Locale.ROOT), suggestion -> suggestion, (first, ignored) -> first, LinkedHashMap::new)).values().stream().collect(Collectors.toList());
 
       List<LocationSuggestionDto> fallbackSuggestions = fallbackSuggestions(trimmed, normalizedLimit * 2);
       List<LocationSuggestionDto> suggestions = java.util.stream.Stream.concat(remoteSuggestions.stream(), fallbackSuggestions.stream()).collect(Collectors.toMap(
-              suggestion -> suggestion.getLocationKey() + "::" + suggestion.getLocationDisplay().toLowerCase(Locale.ROOT), suggestion -> suggestion, (first, ignored) -> first)).values().stream().limit(normalizedLimit).collect(Collectors.toList());
+              suggestion -> suggestion.getLocationKey() + "::" + suggestion.getLocationDisplay().toLowerCase(Locale.ROOT), suggestion -> suggestion, (first, ignored) -> first, LinkedHashMap::new)).values().stream().limit(normalizedLimit).collect(Collectors.toList());
 
       if (suggestions.isEmpty()) {
-        return fallbackSuggestions(trimmed, normalizedLimit);
+        List<LocationSuggestionDto> fallback = fallbackSuggestions(trimmed, normalizedLimit);
+        searchCache.put(cacheKey, new CacheEntry(fallback, System.currentTimeMillis()));
+        return fallback;
       }
+      searchCache.put(cacheKey, new CacheEntry(suggestions, System.currentTimeMillis()));
       return suggestions;
     } catch (Exception exception) {
       log.warn("Location search failed, fallback to local list. {}", exception.getMessage());
-      return fallbackSuggestions(trimmed, normalizedLimit);
+      List<LocationSuggestionDto> fallback = fallbackSuggestions(trimmed, normalizedLimit);
+      searchCache.put(cacheKey, new CacheEntry(fallback, System.currentTimeMillis()));
+      return fallback;
     }
   }
 
@@ -73,7 +87,6 @@ public class LocationSearchService {
   }
 
   private LocationSuggestionDto toSuggestion(Map<String, Object> location) {
-    String placeId = String.valueOf(location.getOrDefault("place_id", ""));
     Object addressObj = location.get("address");
     String display = null;
 
@@ -100,8 +113,7 @@ public class LocationSearchService {
       }
     }
 
-    String keySource = placeId.isBlank() ? display : placeId;
-    String key = normalizeLocationKey(keySource);
+    String key = normalizeLocationKey(display);
     return LocationSuggestionDto.builder().locationDisplay(display).locationKey(key).build();
   }
 
@@ -153,5 +165,15 @@ public class LocationSearchService {
     }
     String noAccent = Normalizer.normalize(raw, Normalizer.Form.NFD).replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
     return noAccent.toLowerCase(Locale.ROOT).trim();
+  }
+
+  private static class CacheEntry {
+    private final List<LocationSuggestionDto> suggestions;
+    private final long cachedAt;
+
+    private CacheEntry(List<LocationSuggestionDto> suggestions, long cachedAt) {
+      this.suggestions = suggestions;
+      this.cachedAt = cachedAt;
+    }
   }
 }

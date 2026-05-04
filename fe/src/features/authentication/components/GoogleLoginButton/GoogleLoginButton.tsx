@@ -26,7 +26,7 @@ export function GoogleLoginButton({ page }: { page: "login" | "signup" }) {
       className="flex justify-center items-center gap-3 w-full rounded-full my-4 px-4 py-3 bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm"
     >
       <FcGoogle size={20} />
-      <span>Tiếp tục với Google</span>
+      <span>Continue with Google</span>
     </button>
   );
 }
