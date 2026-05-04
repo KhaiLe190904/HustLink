@@ -41,7 +41,7 @@ export function ResetPassword() {
       toast.error(message);
     } catch (e) {
       console.log(e);
-      toast.error("Đã xảy ra lỗi không xác định, vui lòng thử lại sau");
+      toast.error("An unknown error occurred. Please try again later.");
     }
   };
   const resetPassword = async (
@@ -51,7 +51,9 @@ export function ResetPassword() {
   ) => {
     // Validate password policy before calling API
     if (!isPasswordValid) {
-      setErrorMessage("Mật khẩu không đáp ứng yêu cầu. Vui lòng kiểm tra lại.");
+      setErrorMessage(
+        "Your password does not meet the requirements. Please review and try again."
+      );
       return;
     }
 
@@ -66,28 +68,28 @@ export function ResetPassword() {
       );
       if (response.ok) {
         setErrorMessage("");
-        toast.success("Đổi mật khẩu thành công");
+        toast.success("Password updated successfully");
         navigate("/authentication/login");
         return;
       }
       const { message } = await response.json();
-      // Translate error messages
+      // Normalize common password-policy errors
       let errorMsg = message;
       if (errorMsg.includes("uppercase letter")) {
-        errorMsg = "Mật khẩu phải chứa ít nhất một chữ hoa (A-Z).";
+        errorMsg = "Password must include at least one uppercase letter (A-Z).";
       } else if (errorMsg.includes("digit")) {
-        errorMsg = "Mật khẩu phải chứa ít nhất một chữ số (0-9).";
+        errorMsg = "Password must include at least one digit (0-9).";
       } else if (errorMsg.includes("special character")) {
         errorMsg =
-          "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*...).";
+          "Password must include at least one special character (!@#$%^&*...).";
       } else if (errorMsg.includes("at least 8 characters")) {
-        errorMsg = "Mật khẩu phải có ít nhất 8 ký tự.";
+        errorMsg = "Password must be at least 8 characters long.";
       }
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
     } catch (e) {
       console.log(e);
-      toast.error("Đã xảy ra lỗi không xác định, vui lòng thử lại sau");
+      toast.error("An unknown error occurred. Please try again later.");
     }
   };
 
@@ -96,7 +98,7 @@ export function ResetPassword() {
       {" "}
       {/* .root minimal styles */}
       <Box>
-        <h1>Quên mật khẩu</h1>
+        <h1>Forgot password</h1>
         {!emailSent ? (
           <form
             onSubmit={async (e) => {
@@ -106,19 +108,21 @@ export function ResetPassword() {
               setEmail(email);
             }}
           >
+            <p className="mb-2">
+              We'll send a verification code to this email if it matches an
+              existing HustLink account.
+            </p>
             <Input type="email" id="email" name="email" label="Email" />
             <p className="text-red-500 mb-4">{errorMessage}</p>
-            <p>
-              Chúng tôi sẽ gửi mã xác minh tới email hoặc số điện thoại này nếu
-              nó khớp với tài khoản HustLink hiện có.
-            </p>
-            <Button type="submit">Gửi mã xác minh</Button>
+            <Button type="submit" className="mt-2 mb-2">
+              Send verification code
+            </Button>
             <Button
               type="button"
               outline
               onClick={() => navigate("/authentication/login")}
             >
-              Quay lại
+              Back
             </Button>
           </form>
         ) : (
@@ -131,14 +135,18 @@ export function ResetPassword() {
             }}
           >
             <p>
-              Hãy điền mã xác minh chúng tôi vừa gửi tới Email bạn và điền mật
-              khẩu mới
+              Enter the verification code we sent and set your new password.
             </p>
-            <Input type="text" label="Mã xác minh" key="code" name="code" />
+            <Input
+              type="text"
+              label="Verification code"
+              key="code"
+              name="code"
+            />
             <div>
               <Input
                 type="password"
-                label="Mật khẩu mới"
+                label="New password"
                 key="password"
                 name="password"
                 id="password"
@@ -167,7 +175,7 @@ export function ResetPassword() {
                           : "text-gray-500"
                       }
                     >
-                      Ít nhất 8 ký tự
+                      At least 8 characters
                     </span>
                   </div>
                   <div className="flex items-center text-xs">
@@ -187,7 +195,7 @@ export function ResetPassword() {
                           : "text-gray-500"
                       }
                     >
-                      Chứa chữ hoa (A-Z)
+                      Includes an uppercase letter (A-Z)
                     </span>
                   </div>
                   <div className="flex items-center text-xs">
@@ -207,7 +215,7 @@ export function ResetPassword() {
                           : "text-gray-500"
                       }
                     >
-                      Chứa chữ số (0-9)
+                      Includes a digit (0-9)
                     </span>
                   </div>
                   <div className="flex items-center text-xs">
@@ -227,14 +235,14 @@ export function ResetPassword() {
                           : "text-gray-500"
                       }
                     >
-                      Chứa ký tự đặc biệt (!@#$%^&*...)
+                      Includes a special character (!@#$%^&*...)
                     </span>
                   </div>
                 </div>
               )}
             </div>
             <p className="text-red-500 mb-4">{errorMessage}</p>
-            <Button type="submit">Xác nhận đổi mật khẩu</Button>
+            <Button type="submit">Confirm password reset</Button>
             <Button
               type="button"
               outline
@@ -243,7 +251,7 @@ export function ResetPassword() {
                 setEmailSent(false);
               }}
             >
-              Quay lại
+              Back
             </Button>
           </form>
         )}

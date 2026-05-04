@@ -68,9 +68,13 @@ export function Profile() {
     }
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/v1/authentication/profile/${user?.id}?firstName=${
+        `${import.meta.env.VITE_API_URL}/api/v1/authentication/profile/${user?.id}?firstName=${encodeURIComponent(
           data.firstName
-        }&lastName=${data.lastName}&company=${data.company}&position=${data.position}&locationDisplay=${encodeURIComponent(
+        )}&lastName=${encodeURIComponent(data.lastName)}&company=${encodeURIComponent(
+          data.company
+        )}&position=${encodeURIComponent(
+          data.position
+        )}&locationDisplay=${encodeURIComponent(
           data.locationDisplay
         )}&locationKey=${encodeURIComponent(data.locationKey)}`,
         {

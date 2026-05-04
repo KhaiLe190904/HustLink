@@ -36,7 +36,7 @@ export function Signup() {
         })
         .catch((error) => {
           toast.error(
-            error.message || "Đăng ký với Google thất bại. Vui lòng thử lại."
+            error.message || "Google sign-up failed. Please try again."
           );
         })
         .finally(() => {
@@ -70,7 +70,7 @@ export function Signup() {
 
     // Prevent submitting same email if it has any email error (bounced or already registered)
     if (email === lastSubmittedEmail && emailError) {
-      toast.error("Vui lòng thay đổi email trước khi thử lại.");
+      toast.error("Please change your email before trying again.");
       return;
     }
 
@@ -81,16 +81,18 @@ export function Signup() {
     setErrorMessage("");
     setEmailError("");
 
-    // Kiểm tra password policy
+    // Validate password policy
     if (!isPasswordValid) {
-      setErrorMessage("Mật khẩu không đáp ứng yêu cầu. Vui lòng kiểm tra lại.");
+      setErrorMessage(
+        "Your password does not meet the requirements. Please review and try again."
+      );
       setIsLoading(false);
       return;
     }
 
-    // Kiểm tra mật khẩu xác nhận
+    // Validate confirm password
     if (password !== confirmPassword) {
-      setErrorMessage("Mật khẩu xác nhận không khớp");
+      setErrorMessage("Passwords do not match");
       setIsLoading(false);
       return;
     }
@@ -100,31 +102,32 @@ export function Signup() {
         await authentication.signup(email, password);
         navigate("/");
       } else {
-        throw new Error("Dịch vụ xác thực không khả dụng");
+        throw new Error("Authentication service is unavailable");
       }
     } catch (error) {
       if (error instanceof Error) {
-        // Translate English error messages to Vietnamese
+        // Normalize common auth errors
         let errorMessage = error.message;
         if (errorMessage.includes("previously bounced")) {
           errorMessage =
-            "Email này không thể nhận được mã xác thực (Email không tồn tại). Vui lòng sử dụng email khác.";
+            "This email can't receive a verification code (email address doesn't exist). Please use another email.";
           setEmailError(errorMessage);
         } else if (errorMessage.includes("already been registered")) {
-          errorMessage = "Email này đã được đăng ký. Vui lòng đăng nhập.";
+          errorMessage = "This email is already registered. Please sign in.";
           setEmailError(errorMessage);
         } else if (errorMessage.includes("uppercase letter")) {
-          errorMessage = "Mật khẩu phải chứa ít nhất một chữ hoa (A-Z).";
+          errorMessage =
+            "Password must include at least one uppercase letter (A-Z).";
           setErrorMessage(errorMessage);
         } else if (errorMessage.includes("digit")) {
-          errorMessage = "Mật khẩu phải chứa ít nhất một chữ số (0-9).";
+          errorMessage = "Password must include at least one digit (0-9).";
           setErrorMessage(errorMessage);
         } else if (errorMessage.includes("special character")) {
           errorMessage =
-            "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*...).";
+            "Password must include at least one special character (!@#$%^&*...).";
           setErrorMessage(errorMessage);
         } else if (errorMessage.includes("at least 8 characters")) {
-          errorMessage = "Mật khẩu phải có ít nhất 8 ký tự.";
+          errorMessage = "Password must be at least 8 characters long.";
           setErrorMessage(errorMessage);
         }
         toast.error(errorMessage);
@@ -133,7 +136,7 @@ export function Signup() {
           setErrorMessage(errorMessage);
         }
       } else {
-        const defaultError = "Đã xảy ra lỗi không xác định";
+        const defaultError = "An unknown error occurred";
         toast.error(defaultError);
         setErrorMessage(defaultError);
       }
@@ -146,8 +149,8 @@ export function Signup() {
       {" "}
       {/* .root styles */}
       <Box>
-        <h1>Đăng ký</h1>
-        <p>Tận dụng tối đa cuộc sống nghề nghiệp của bạn</p>
+        <h1>Sign up</h1>
+        <p>Make the most of your professional life</p>
         <form onSubmit={doSignup} noValidate>
           <Input
             type="email"
@@ -156,9 +159,6 @@ export function Signup() {
             label="Email"
             error={emailError}
             disabled={isLoading}
-            helperText={
-              emailError ? undefined : "Nhập email để nhận mã xác thực"
-            }
             onChange={(e) => {
               const newEmail = e.target.value;
               setCurrentEmail(newEmail);
@@ -174,7 +174,7 @@ export function Signup() {
               type="password"
               id="password"
               name="password"
-              label="Mật khẩu"
+              label="Password"
               disabled={isLoading}
               value={password}
               onChange={(e) => {
@@ -183,7 +183,7 @@ export function Signup() {
               }}
             />
             {password && (
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-1 mb-4">
                 <div className="flex items-center text-xs">
                   <span
                     className={`mr-2 ${
@@ -201,7 +201,7 @@ export function Signup() {
                         : "text-gray-500"
                     }
                   >
-                    Ít nhất 8 ký tự
+                    At least 8 characters
                   </span>
                 </div>
                 <div className="flex items-center text-xs">
@@ -221,7 +221,7 @@ export function Signup() {
                         : "text-gray-500"
                     }
                   >
-                    Chứa chữ hoa (A-Z)
+                    Includes an uppercase letter (A-Z)
                   </span>
                 </div>
                 <div className="flex items-center text-xs">
@@ -241,7 +241,7 @@ export function Signup() {
                         : "text-gray-500"
                     }
                   >
-                    Chứa chữ số (0-9)
+                    Includes a digit (0-9)
                   </span>
                 </div>
                 <div className="flex items-center text-xs">
@@ -261,7 +261,7 @@ export function Signup() {
                         : "text-gray-500"
                     }
                   >
-                    Chứa ký tự đặc biệt (!@#$%^&*...)
+                    Includes a special character (!@#$%^&*...)
                   </span>
                 </div>
               </div>
@@ -271,11 +271,11 @@ export function Signup() {
             type="password"
             id="confirmPassword"
             name="confirmPassword"
-            label="Xác nhận mật khẩu"
+            label="Confirm password"
             error={errorMessage}
             disabled={isLoading}
             helperText={
-              !errorMessage ? "Nhập lại mật khẩu để xác nhận" : undefined
+              !errorMessage ? "Re-enter your password to confirm" : undefined
             }
           />
 
@@ -285,22 +285,20 @@ export function Signup() {
               isLoading || (!!emailError && currentEmail === lastSubmittedEmail)
             }
           >
-            {isLoading ? "Đang xử lý..." : "Đồng ý và tham gia"}
+            {isLoading ? "Processing..." : "Agree and join"}
           </Button>
           <p className="text-xs">
-            Khi nhấp vào Đồng ý và tham gia hoặc Tiếp tục, bạn đồng ý với.{" "}
-            <a href="">Thỏa thuận người dùng</a>,{" "}
-            <a href="">Chính sách riêng tư</a> và{" "}
-            <a href="">Chính sách Cookie</a> của HustLink.
+            By clicking Agree and join or Continue, you agree to HustLink's{" "}
+            <a href="">User Agreement</a>, <a href="">Privacy Policy</a>, and{" "}
+            <a href="">Cookie Policy</a>.
           </p>
         </form>
-        <Seperator>Hoặc</Seperator>
+        <Seperator>Or</Seperator>
         <GoogleLoginButton page="signup" />
         <div className="text-center">
           {" "}
           {/* .register styles */}
-          Đã có tài khoản trên HustLink?{" "}
-          <Link to="/authentication/login">Đăng nhập</Link>
+          Already on HustLink? <Link to="/authentication/login">Sign in</Link>
         </div>
       </Box>
     </div>

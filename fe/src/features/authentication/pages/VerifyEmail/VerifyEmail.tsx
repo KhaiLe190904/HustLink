@@ -45,13 +45,13 @@ export function VerifyEmail() {
               });
             }, 1000);
 
-            // Logout và redirect về login sau 5 giây
+            // Logout and redirect to login after 5 seconds
             setTimeout(() => {
               clearInterval(countdownInterval);
               logout();
               navigate("/authentication/login");
               toast.error(
-                "Email không hợp lệ. Vui lòng đăng ký bằng email khác."
+                "Invalid email address. Please sign up with a different email."
               );
             }, 5000);
           } else if (status === "delivered") {
@@ -104,7 +104,7 @@ export function VerifyEmail() {
       }
     } catch (error) {
       console.log(error);
-      toast.error("Đã xảy ra lỗi không xác định, vui lòng thử lại sau");
+      toast.error("An unknown error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -125,14 +125,16 @@ export function VerifyEmail() {
       );
       if (response.ok) {
         setErrorMessage("");
-        setMessage("Đã gửi mã mới thành công. Hãy check email của bạn");
+        setMessage(
+          "A new code was sent successfully. Please check your email."
+        );
         return;
       }
       const { message } = await response.json();
       toast.error(message);
     } catch (e) {
       console.log(e);
-      toast.error("Đã xảy ra lỗi không xác định, vui lòng thử lại sau");
+      toast.error("An unknown error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -142,7 +144,7 @@ export function VerifyEmail() {
       {" "}
       {/* .root minimal styles */}
       <Box>
-        <h1>Xác thực email</h1>
+        <h1>Verify your email</h1>
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -152,16 +154,15 @@ export function VerifyEmail() {
             setIsLoading(false);
           }}
         >
-          <p>Chúng tôi đã gửi một email xác thực đến địa chỉ email của bạn.</p>
-          <p>
-            Nếu bạn không nhận được email, hãy kiểm tra thư mục spam hoặc thử
-            lại.
+          <p>We've sent a verification email to your email address.</p>
+          <p className="mb-2">
+            If you don't receive it, check your spam folder or try again.
           </p>
-          <Input type="text" label="Mã xác thực" key="code" name="code" />
+          <Input type="text" label="Verification code" key="code" name="code" />
           {message && <p className="text-green-500">{message}</p>}
           {errorMessage && <p className="text-red-500">{errorMessage}</p>}
-          <Button type="submit" disabled={isLoading}>
-            Xác thực Email
+          <Button type="submit" disabled={isLoading} className="mt-2 mb-2">
+            Verify email
           </Button>
           <Button
             type="button"
@@ -171,18 +172,18 @@ export function VerifyEmail() {
               sendEmailVerificationToken();
             }}
           >
-            Gửi lại mã
+            Resend code
           </Button>
           {isEmailDelivered && (
             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm text-green-800 mb-3">
-                Nếu bạn không thấy email gửi tới, hãy kiểm tra lại có chính xác
-                là email của bạn không và thử lại!
-                <p>
-                  Có phải email của bạn là:{" "}
+              <div className="text-sm text-green-800 mb-3">
+                If you still can't find the email, confirm your address is
+                correct and try again.
+                <p className="mt-1">
+                  Is your email:{" "}
                   <span className="font-semibold">{user?.email}</span>?
                 </p>
-              </p>
+              </div>
 
               <Button
                 type="button"
@@ -192,14 +193,14 @@ export function VerifyEmail() {
                   navigate("/authentication/signup");
                 }}
               >
-                Không phải email của tôi
+                That's not my email
               </Button>
             </div>
           )}
         </form>
       </Box>
       <ToastContainer />
-      {/* Modal hiển thị khi email bị bounced */}
+      {/* Modal shown when email is bounced */}
       {showBouncedModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
@@ -221,17 +222,17 @@ export function VerifyEmail() {
               </div>
             </div>
             <h2 className="text-xl font-bold text-center mb-4 text-gray-900">
-              Email không hợp lệ
+              Invalid email address
             </h2>
             <p className="text-center text-gray-700 mb-6">
-              Email của bạn không thể nhận được mã xác thực (Email không tồn
-              tại). Vui lòng đăng ký bằng email khác.
+              Your email can't receive a verification code (email address
+              doesn't exist). Please sign up with a different email.
             </p>
             <div className="text-center">
               <p className="text-sm text-gray-500 mb-4">
-                Tự động chuyển về trang đăng nhập sau{" "}
+                Redirecting to the sign-in page in{" "}
                 <span className="font-bold text-red-600">{countdown}</span>{" "}
-                giây...
+                seconds...
               </p>
               <div className="flex gap-2">
                 <Button
@@ -240,11 +241,11 @@ export function VerifyEmail() {
                     logout();
                     navigate("/authentication/login");
                     toast.error(
-                      "Email không hợp lệ. Vui lòng đăng ký bằng email khác."
+                      "Invalid email address. Please sign up with a different email."
                     );
                   }}
                 >
-                  Đồng ý
+                  OK
                 </Button>
               </div>
             </div>

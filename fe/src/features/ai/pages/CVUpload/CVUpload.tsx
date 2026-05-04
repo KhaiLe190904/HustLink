@@ -75,6 +75,9 @@ export function CVUpload() {
   const [cvs, setCvs] = useState<CvSummary[]>([]);
   const [analysis, setAnalysis] = useState<CvAnalysisResponse | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmDeleteCv, setConfirmDeleteCv] = useState<CvSummary | null>(
+    null
+  );
 
   const loadConfig = useCallback(() => {
     request<CvConfigResponse>({
@@ -359,7 +362,7 @@ export function CVUpload() {
                       outline
                       size="medium"
                       className="my-0 px-4 sm:w-fit"
-                      onClick={() => handleDeleteCv(cv.id)}
+                      onClick={() => setConfirmDeleteCv(cv)}
                       disabled={deletingId === cv.id}
                     >
                       {deletingId === cv.id ? "Deleting..." : "Delete"}
@@ -515,6 +518,44 @@ export function CVUpload() {
           )}
         </div>
       </aside>
+      {confirmDeleteCv ? (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-900">Delete CV?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-slate-800">
+                {confirmDeleteCv.originalFileName}
+              </span>
+              ? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                type="button"
+                outline
+                size="medium"
+                className="my-0 px-4 sm:w-fit"
+                onClick={() => setConfirmDeleteCv(null)}
+                disabled={deletingId === confirmDeleteCv.id}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                size="medium"
+                className="my-0 px-4 sm:w-fit bg-red-600 hover:bg-red-700"
+                disabled={deletingId === confirmDeleteCv.id}
+                onClick={async () => {
+                  await handleDeleteCv(confirmDeleteCv.id);
+                  setConfirmDeleteCv(null);
+                }}
+              >
+                {deletingId === confirmDeleteCv.id ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { IPost } from "@/features/feed/components/Post/Post";
 import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import { isVideoFile, resolveMediaUrl } from "@/utils/storage";
 import { ARTICLE_CONTENT_PREFIX } from "@/features/feed/components/Modal/Modal";
+import { sanitizeArticleHtml } from "@/features/feed/components/Modal/Modal";
 
 interface CommentModalProps {
   showModal: boolean;
@@ -78,7 +79,9 @@ function parseArticleContent(content: string): ParsedArticleContent | null {
     return {
       title: parsed.title,
       summary: parsed.summary,
-      contentHtml: normalizeArticleHtml(parsed.contentHtml),
+      contentHtml: sanitizeArticleHtml(
+        normalizeArticleHtml(parsed.contentHtml)
+      ),
       tags: parsed.tags.filter((tag) => typeof tag === "string"),
     };
   } catch {

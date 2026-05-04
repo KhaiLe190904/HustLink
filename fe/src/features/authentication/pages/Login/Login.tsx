@@ -33,7 +33,7 @@ export function Login() {
         })
         .catch((error) => {
           toast.error(
-            error.message || "Đăng nhập với Google thất bại. Vui lòng thử lại."
+            error.message || "Google sign-in failed. Please try again."
           );
         })
         .finally(() => {
@@ -53,13 +53,13 @@ export function Login() {
         const destination = location.state?.from?.pathname || "/";
         navigate(destination);
       } else {
-        throw new Error("Dịch vụ xác thực không khả dụng");
+        throw new Error("Authentication service is unavailable");
       }
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error("Đã xảy ra lỗi không xác định");
+        toast.error("An unknown error occurred");
       }
     } finally {
       setIsLoading(false);
@@ -70,8 +70,8 @@ export function Login() {
       {" "}
       {/* .root styles */}
       <Box>
-        <h1>Đăng nhập</h1>
-        <p>Chào mừng bạn đến với HustLink</p>
+        <h1>Sign in</h1>
+        <p>Welcome to HustLink</p>
         <form onSubmit={doLogin}>
           <Input
             type="email"
@@ -79,7 +79,7 @@ export function Login() {
             name="email"
             label="Email"
             onFocus={() => setErrorMessage("")}
-            helperText="Nhập địa chỉ email của bạn"
+            helperText="Enter your email address"
           />
           <Input
             type="password"
@@ -88,25 +88,25 @@ export function Login() {
             label="Password"
             loading={isLoading}
             onFocus={() => setErrorMessage("")}
-            helperText="Nhập mật khẩu của bạn"
+            helperText="Enter your password"
           />
           {errorMessage && <p className="text-red-500 mb-4">{errorMessage}</p>}{" "}
           <div className="text-right mb-4">
             <Link to="/authentication/request-password-reset">
-              Quên mật khẩu?
+              Forgot password?
             </Link>
           </div>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+            {isLoading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
-        <Seperator>Hoặc</Seperator>
+        <Seperator>OR</Seperator>
         <GoogleLoginButton page="login" />
         <div className="text-center">
           {" "}
           {/* .register styles */}
-          Chưa có tài khoản trên HustLink?{" "}
-          <Link to="/authentication/signup">Tham gia ngay</Link>
+          Don't have a HustLink account?{" "}
+          <Link to="/authentication/signup">Join now</Link>
         </div>
       </Box>
     </div>
