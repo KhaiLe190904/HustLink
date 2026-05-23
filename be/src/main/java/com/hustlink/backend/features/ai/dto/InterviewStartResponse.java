@@ -5,8 +5,10 @@ public record InterviewStartResponse(
                                      Long cvId,
                                      String cvFileName,
                                      String jobPosition,
+                                     String level,
                                      String languageCode,
                                      int totalQuestions,
                                      int answerTimeLimitSeconds,
-                                     InterviewQuestionResponse currentQuestion) {
+                                     InterviewQuestionResponse currentQuestion,
+                                     RagDebugResponse ragDebug) {
 }

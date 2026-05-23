@@ -2,6 +2,7 @@ package com.hustlink.backend.features.ai.controller;
 
 import com.hustlink.backend.features.ai.dto.AIConfigResponse;
 import com.hustlink.backend.features.ai.dto.CVAnalysisResponse;
+import com.hustlink.backend.features.ai.dto.CVContextDebugResponse;
 import com.hustlink.backend.features.ai.dto.CVSummaryResponse;
 import com.hustlink.backend.features.ai.dto.CVUploadResponse;
 import com.hustlink.backend.features.ai.service.CVService;
@@ -47,6 +48,18 @@ public class CVController {
   public ResponseEntity<CVAnalysisResponse> analyzeCv(
                                                       @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {
     return ResponseEntity.ok(cvService.analyzeCv(user, id));
+  }
+
+  @GetMapping("/{id}/context-debug")
+  public ResponseEntity<CVContextDebugResponse> debugCvContext(
+                                                               @RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam(required = false) String jobPosition, @RequestParam(required = false, defaultValue = "JUNIOR") String level) {
+    return ResponseEntity.ok(cvService.debugContext(user, id, jobPosition, level));
+  }
+
+  @PostMapping("/context-debug")
+  public ResponseEntity<CVContextDebugResponse> debugUploadedCvContext(
+                                                                       @RequestAttribute("authenticationUser") User user, @RequestParam("file") MultipartFile file, @RequestParam(required = false) String jobPosition, @RequestParam(required = false, defaultValue = "JUNIOR") String level) {
+    return ResponseEntity.ok(cvService.debugUploadedContext(user, file, jobPosition, level));
   }
 
   @GetMapping("/config")
