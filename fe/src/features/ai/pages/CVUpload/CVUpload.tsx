@@ -463,7 +463,30 @@ export function CVUpload() {
       <aside className="grid gap-6">
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-900">Latest Analysis</h2>
-          {!analysis ? (
+          {analyzingId !== null ? (
+            <div className="mt-4 grid gap-5 animate-pulse">
+              <div className="rounded-2xl bg-red-50/50 p-4 h-28 flex flex-col justify-center border border-red-100/50">
+                <div className="h-4 bg-red-200/60 rounded w-1/3"></div>
+                <div className="h-8 bg-red-200/80 rounded w-1/4 mt-2"></div>
+                <div className="h-3 bg-red-200/40 rounded w-1/2 mt-2"></div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-5 bg-slate-200 rounded w-1/4"></div>
+                <div className="h-3.5 bg-slate-100 rounded w-full"></div>
+                <div className="h-3.5 bg-slate-100 rounded w-5/6"></div>
+              </div>
+              <div className="space-y-3">
+                <div className="h-5 bg-slate-200 rounded w-1/3"></div>
+                <div className="h-10 bg-emerald-50/60 rounded-xl w-full border border-emerald-100/40"></div>
+                <div className="h-10 bg-emerald-50/60 rounded-xl w-full border border-emerald-100/40"></div>
+              </div>
+              <div className="space-y-3">
+                <div className="h-5 bg-slate-200 rounded w-1/3"></div>
+                <div className="h-10 bg-amber-50/60 rounded-xl w-full border border-amber-100/40"></div>
+                <div className="h-10 bg-amber-50/60 rounded-xl w-full border border-amber-100/40"></div>
+              </div>
+            </div>
+          ) : !analysis ? (
             <p className="mt-3 text-sm text-gray-500">
               No analysis is open yet. Upload a CV or choose one that has
               already been analyzed to review the result.
