@@ -19,6 +19,7 @@ interface InterviewStartResponse {
   cvId: number;
   cvFileName: string;
   jobPosition: string;
+  level: string;
   languageCode: string;
   totalQuestions: number;
   answerTimeLimitSeconds: number;
@@ -43,6 +44,7 @@ interface InterviewResultResponse {
   cvId: number;
   cvFileName: string;
   jobPosition: string;
+  level: string;
   languageCode: string;
   overallScore: number;
   summary: string;
@@ -95,6 +97,7 @@ export function Interview() {
   const { user } = useAuthentication();
   const selectedCvId = Number(searchParams.get("cvId") ?? "");
   const [jobPosition, setJobPosition] = useState(user?.position ?? "");
+  const [interviewLevel, setInterviewLevel] = useState("JUNIOR");
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [session, setSession] = useState<InterviewStartResponse | null>(null);
@@ -286,6 +289,7 @@ export function Interview() {
       body: JSON.stringify({
         cvId: selectedCvId,
         jobPosition,
+        level: interviewLevel,
       }),
       onSuccess: (data) => {
         setSession(data);
@@ -410,6 +414,111 @@ export function Interview() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
+  const isFinalQuestion =
+    currentQuestion &&
+    currentQuestion.questionOrder >= currentQuestion.totalQuestions;
+
+  if (starting) {
+    return (
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] animate-pulse">
+        <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="h-6 bg-slate-200 rounded w-24"></div>
+              <div className="h-8 bg-slate-200 rounded w-48 mt-3"></div>
+              <div className="h-4 bg-slate-100 rounded w-36 mt-1"></div>
+            </div>
+            <div className="rounded-2xl px-4 py-3 bg-slate-100 h-16 w-28 flex flex-col justify-center">
+              <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+              <div className="h-6 bg-slate-200 rounded w-1/2 mt-1"></div>
+            </div>
+          </div>
+          <div className="rounded-3xl border border-red-50 bg-gradient-to-br from-red-50/30 to-white/50 p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="h-6 bg-red-100/50 rounded-full w-20"></div>
+              <div className="h-9 bg-slate-100 rounded-xl w-32 border border-slate-200/50"></div>
+            </div>
+            <div className="space-y-2">
+              <div className="h-7 bg-slate-200 rounded w-full"></div>
+              <div className="h-7 bg-slate-200 rounded w-5/6"></div>
+            </div>
+            <div className="h-4 bg-slate-100 rounded w-2/3"></div>
+          </div>
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <div className="h-10 bg-slate-200 rounded-xl w-32"></div>
+              <div className="h-10 bg-slate-100 rounded-xl w-32 border border-slate-200/40"></div>
+            </div>
+            <div className="h-10 bg-slate-100 rounded-xl w-full"></div>
+            <div className="h-40 bg-slate-100 rounded-3xl w-full"></div>
+            <div className="flex gap-3">
+              <div className="h-10 bg-red-100/50 rounded-xl w-32"></div>
+              <div className="h-10 bg-slate-100 rounded-xl w-32 border border-slate-200/40"></div>
+            </div>
+          </div>
+        </section>
+        <aside className="grid gap-6">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="h-6 bg-slate-200 rounded w-1/3"></div>
+            <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
+            <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
+            <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
+          </div>
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="h-6 bg-slate-200 rounded w-1/3"></div>
+            <div className="h-16 bg-slate-50 rounded-xl w-full"></div>
+            <div className="h-12 bg-amber-50/50 rounded-xl w-full border border-amber-100/40"></div>
+            <div className="h-12 bg-red-50/50 rounded-xl w-full border border-red-100/40"></div>
+          </div>
+        </aside>
+      </div>
+    );
+  }
+
+  if (submitting && isFinalQuestion) {
+    return (
+      <div className="grid gap-6 animate-pulse">
+        <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 p-6 shadow-sm space-y-4">
+          <div className="h-6 bg-emerald-100/50 rounded-full w-32"></div>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="space-y-2 w-2/3">
+              <div className="h-9 bg-slate-200 rounded w-3/4"></div>
+              <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+            </div>
+            <div className="rounded-2xl bg-white px-5 py-4 shadow-sm w-36 h-20 flex flex-col justify-center border border-emerald-100/30">
+              <div className="h-3 bg-emerald-200/50 rounded w-3/4"></div>
+              <div className="h-8 bg-emerald-200/80 rounded w-1/2 mt-1"></div>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <div className="h-4 bg-slate-200 rounded w-full"></div>
+            <div className="h-4 bg-slate-200 rounded w-11/12"></div>
+            <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+          </div>
+        </section>
+        <section className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(18rem,0.8fr)]">
+          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+            <div className="h-6 bg-slate-200 rounded w-1/4"></div>
+            <div className="h-32 bg-slate-50 rounded-2xl w-full"></div>
+            <div className="h-32 bg-slate-50 rounded-2xl w-full"></div>
+          </div>
+          <aside className="grid gap-6">
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-3">
+              <div className="h-6 bg-slate-200 rounded w-1/3"></div>
+              <div className="h-10 bg-emerald-50/50 rounded-xl w-full border border-emerald-100/40"></div>
+              <div className="h-10 bg-emerald-50/50 rounded-xl w-full border border-emerald-100/40"></div>
+            </div>
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-3">
+              <div className="h-6 bg-slate-200 rounded w-1/3"></div>
+              <div className="h-10 bg-amber-50/50 rounded-xl w-full border border-amber-100/40"></div>
+              <div className="h-10 bg-amber-50/50 rounded-xl w-full border border-amber-100/40"></div>
+            </div>
+          </aside>
+        </section>
+      </div>
+    );
+  }
+
   if (result) {
     return (
       <div className="grid gap-6">
@@ -423,7 +532,7 @@ export function Interview() {
                 Your mock interview results are ready
               </h1>
               <p className="mt-2 text-sm text-gray-600">
-                {result.cvFileName} · {result.jobPosition}
+                {result.cvFileName} · {result.jobPosition} · {result.level}
               </p>
             </div>
             <div className="rounded-2xl bg-white px-5 py-4 shadow-sm">
@@ -605,6 +714,25 @@ export function Interview() {
                 placeholder="Junior Software Engineer"
                 className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
               />
+            </div>
+            <div>
+              <label
+                htmlFor="interview-level"
+                className="text-sm font-semibold text-gray-900"
+              >
+                Candidate level
+              </label>
+              <select
+                id="interview-level"
+                value={interviewLevel}
+                onChange={(event) => setInterviewLevel(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
+              >
+                <option value="INTERN">Intern</option>
+                <option value="FRESHER">Fresher</option>
+                <option value="JUNIOR">Junior</option>
+                <option value="SENIOR">Senior</option>
+              </select>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -828,6 +956,9 @@ export function Interview() {
           <div className="mt-4 grid gap-3 text-sm text-gray-600">
             <div className="rounded-xl bg-red-50 px-4 py-3">
               Role: <strong>{session.jobPosition}</strong>
+            </div>
+            <div className="rounded-xl bg-red-50 px-4 py-3">
+              Level: <strong>{session.level}</strong>
             </div>
             <div className="rounded-xl bg-red-50 px-4 py-3">
               Mode:{" "}
