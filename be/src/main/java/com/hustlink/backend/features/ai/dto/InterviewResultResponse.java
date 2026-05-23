@@ -8,11 +8,13 @@ public record InterviewResultResponse(
                                       Long cvId,
                                       String cvFileName,
                                       String jobPosition,
+                                      String level,
                                       String languageCode,
                                       Integer overallScore,
                                       String summary,
                                       List<String> strengths,
                                       List<String> improvements,
                                       List<InterviewAnswerReviewResponse> reviews,
-                                      LocalDateTime completedAt) {
+                                      LocalDateTime completedAt,
+                                      RagDebugResponse ragDebug) {
 }

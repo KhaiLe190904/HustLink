@@ -35,6 +35,10 @@ public class InterviewSession {
   private String languageCode;
 
   @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private InterviewLevel interviewLevel;
+
+  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private InterviewSessionStatus status;
 
