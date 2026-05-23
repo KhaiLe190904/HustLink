@@ -14,10 +14,13 @@ interface AuthenticationResponse {
   token: string;
   messgage: string;
 }
+export type UserRole = "USER" | "RECRUITER" | "ADMIN";
+
 export interface IUser {
   id: string;
   email: string;
   emailVerified: boolean;
+  role: UserRole;
   firstName?: string;
   lastName?: string;
   company?: string;

@@ -3,6 +3,7 @@ package com.hustlink.backend.features.authentication.service;
 import com.hustlink.backend.features.authentication.dto.AuthenticationRequestBody;
 import com.hustlink.backend.features.authentication.dto.AuthenticationResponseBody;
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.authentication.repository.UserRepository;
 import com.hustlink.backend.features.authentication.utils.EmailService;
 import com.hustlink.backend.features.authentication.utils.Encoder;
@@ -187,6 +188,7 @@ public class AuthenticationService {
         String firstName = claims.get("given_name", String.class);
         String lastName = claims.get("family_name", String.class);
         User newUser = new User(email, null);
+        newUser.setRole(UserRole.USER);
         newUser.setEmailVerified(emailVerified);
         newUser.setFirstName(firstName);
         newUser.setLastName(lastName);
@@ -267,7 +269,9 @@ public class AuthenticationService {
       }
     }
 
-    User user = userRepository.save(new User(registerRequestBody.getEmail(), encoder.encode(registerRequestBody.getPassword())));
+    User newUser = new User(registerRequestBody.getEmail(), encoder.encode(registerRequestBody.getPassword()));
+    newUser.setRole(UserRole.USER);
+    User user = userRepository.save(newUser);
 
     String emailVerificationToken = generateEmailVerificationTokenOTP();
     String hashedToken = encoder.encode(emailVerificationToken);
