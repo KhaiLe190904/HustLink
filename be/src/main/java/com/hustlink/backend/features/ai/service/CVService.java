@@ -5,8 +5,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hustlink.backend.features.ai.dto.AIConfigResponse;
 import com.hustlink.backend.features.ai.dto.CVAnalysisResponse;
+import com.hustlink.backend.features.ai.dto.CVContextDebugResponse;
 import com.hustlink.backend.features.ai.dto.CVSummaryResponse;
 import com.hustlink.backend.features.ai.dto.CVUploadResponse;
+import com.hustlink.backend.features.ai.model.InterviewLevel;
 import com.hustlink.backend.features.ai.model.AIUsageLog;
 import com.hustlink.backend.features.ai.model.AIUsageType;
 import com.hustlink.backend.features.ai.model.CV;
@@ -40,6 +42,7 @@ public class CVService {
   private final InterviewSessionRepository interviewSessionRepository;
   private final CVParserService cvParserService;
   private final GeminiService geminiService;
+  private final CVContextBuilder cvContextBuilder;
   private final ObjectStorageService objectStorageService;
   private final ObjectMapper objectMapper;
 
@@ -131,8 +134,39 @@ public class CVService {
     return toAnalysisResponse(cv);
   }
 
+  public CVContextDebugResponse debugContext(User user, Long cvId, String jobPosition, String level) {
+    CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+    return cvContextBuilder.debug(cv, normalizeJobPosition(jobPosition, user.getPosition()), InterviewLevel.fromValue(level));
+  }
+
+  public CVContextDebugResponse debugUploadedContext(User user, MultipartFile file, String jobPosition, String level) {
+    validatePdf(file);
+    String extractedText;
+    try {
+      extractedText = cvParserService.extractTextFromPdf(file);
+    } catch (IOException exception) {
+      throw new ResponseStatusException(
+              HttpStatus.BAD_REQUEST, "The uploaded file is not a valid readable PDF.", exception);
+    }
+    CV cv = new CV();
+    cv.setUser(user);
+    cv.setOriginalFileName(file.getOriginalFilename() == null ? "cv.pdf" : file.getOriginalFilename());
+    cv.setExtractedText(extractedText);
+    return cvContextBuilder.debug(cv, normalizeJobPosition(jobPosition, user.getPosition()), InterviewLevel.fromValue(level));
+  }
+
   public boolean isGeminiConfigured() {
     return geminiService.isConfigured();
+  }
+
+  private String normalizeJobPosition(String requested, String fallback) {
+    if (requested != null && !requested.isBlank()) {
+      return requested.trim();
+    }
+    if (fallback != null && !fallback.isBlank()) {
+      return fallback.trim();
+    }
+    return "Software Engineer";
   }
 
   public AIConfigResponse getConfig(User user) {

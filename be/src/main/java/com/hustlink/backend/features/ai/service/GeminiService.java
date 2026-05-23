@@ -95,6 +95,11 @@ public class GeminiService {
 
   public List<InterviewQuestionDraft> generateInterviewQuestions(
                                                                  String cvText, String jobPosition, int numberOfQuestions) {
+    return generateInterviewQuestions(cvText, jobPosition, "JUNIOR", numberOfQuestions, List.of());
+  }
+
+  public List<InterviewQuestionDraft> generateInterviewQuestions(
+                                                                 String cvText, String jobPosition, String level, int numberOfQuestions, List<String> ragContext) {
     if (!isConfigured()) {
       throw new IllegalStateException("Gemini API key is not configured.");
     }
@@ -118,6 +123,14 @@ public class GeminiService {
 
             Rules:
             - Generate exactly %d questions.
+            - Calibrate difficulty for candidate level: %s.
+            - If level is INTERN/FRESHER, prioritize fundamentals and simple project depth.
+            - If level is JUNIOR, balance fundamentals, debugging, and real project trade-offs.
+            - If level is SENIOR, emphasize architecture, ownership, trade-offs, and leadership communication.
+            - The selected level is a hard constraint. Do not increase difficulty beyond the selected level even if the CV looks stronger.
+            - Use the CV only to personalize technologies, project examples, and domain context.
+            - For INTERN, avoid deep architecture, large-scale system design, or production incident ownership questions.
+            - For FRESHER, avoid senior-level trade-off or large-scale architecture questions unless they are simplified to fundamentals.
             - Balance the questions across technical skill, past experience, project work, and communication.
             - expectedPoints should contain 3 to 5 concise points.
             - questionOrder must start from 1 and increase by 1.
@@ -127,10 +140,13 @@ public class GeminiService {
             Target Job Position:
             %s
 
+            Reference Questions (do NOT copy verbatim, use as style/topic inspiration):
+            %s
+
             Candidate CV:
             %s
             """.formatted(
-            numberOfQuestions, numberOfQuestions, analysisLanguage.instructionLabel(), jobPosition, trimToMaxChars(cvText, 12000));
+            numberOfQuestions, numberOfQuestions, level, analysisLanguage.instructionLabel(), jobPosition, formatRagContext(ragContext), trimToMaxChars(cvText, 12000));
 
     Map<String, Object> payload = Map.of(
             "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.4, "responseMimeType", "application/json"));
@@ -164,6 +180,11 @@ public class GeminiService {
 
   public InterviewEvaluation evaluateInterview(
                                                String cvText, String jobPosition, List<InterviewQuestionAnswerDraft> questionAnswers) {
+    return evaluateInterview(cvText, jobPosition, "JUNIOR", questionAnswers, List.of());
+  }
+
+  public InterviewEvaluation evaluateInterview(
+                                               String cvText, String jobPosition, String level, List<InterviewQuestionAnswerDraft> questionAnswers, List<String> ragEvaluationContext) {
     if (!isConfigured()) {
       throw new IllegalStateException("Gemini API key is not configured.");
     }
@@ -200,6 +221,12 @@ public class GeminiService {
 
             Rules:
             - overallScore and each score must be between 0 and 100.
+            - Evaluate against expected level: %s.
+            - INTERN/FRESHER: reward clarity of fundamentals and learning mindset.
+            - JUNIOR: reward practical implementation details and debugging logic.
+            - SENIOR: reward system trade-offs, stakeholder communication, and risk management.
+            - The selected level is a hard constraint. Do not judge the candidate against a higher level even if the CV mentions stronger technologies or broader exposure.
+            - Treat CV strength as context only, not as a reason to raise the scoring bar above the selected level.
             - strengths and improvements should each contain 3 to 5 concise strings.
             - Each improvement should mention the exact weakness in the answer or interview performance and one short way to improve it.
             - Keep each improvement short enough to fit in 2 or 3 short sentences.
@@ -212,13 +239,19 @@ public class GeminiService {
                     Target Job Position:
                     %s
 
-                    Candidate CV Summary:
+                    Expected Candidate Level:
+                    %s
+
+                    Candidate CV Context (for personalization only, not to raise difficulty expectations):
+                    %s
+
+                    Reference Evaluation Rubrics (use as guidance, do not copy verbatim):
                     %s
 
                     Interview Transcript:
                     %s
                     """.formatted(
-            analysisLanguage.instructionLabel(), jobPosition, trimToMaxChars(cvText, 4000), questionAnswerBlock);
+            analysisLanguage.instructionLabel(), level, jobPosition, level, trimToMaxChars(cvText, 4000), formatRagContext(ragEvaluationContext), questionAnswerBlock);
 
     Map<String, Object> payload = Map.of(
             "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.2, "responseMimeType", "application/json"));
@@ -319,6 +352,13 @@ public class GeminiService {
       return text;
     }
     return text.substring(0, maxChars);
+  }
+
+  private String formatRagContext(List<String> ragContext) {
+    if (ragContext == null || ragContext.isEmpty()) {
+      return "- No external reference questions were retrieved.";
+    }
+    return ragContext.stream().filter(question -> question != null && !question.isBlank()).limit(12).map(question -> "- " + trimToMaxChars(question.trim(), 500)).reduce("", (left, right) -> left.isBlank() ? right : left + "\n" + right);
   }
 
   private List<String> resolveCandidateModels() {
