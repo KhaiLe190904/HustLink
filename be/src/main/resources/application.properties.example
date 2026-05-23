@@ -57,6 +57,19 @@ ai.daily-mock-interview-limit=${AI_DAILY_MOCK_INTERVIEW_LIMIT:1}
 ai.interview.question-count=${AI_INTERVIEW_QUESTION_COUNT:5}
 ai.interview.answer-time-limit-seconds=${AI_INTERVIEW_ANSWER_TIME_LIMIT_SECONDS:120}
 
+# Role / feature flags
+app.features.rag.enabled=${RAG_ENABLED:true}
+
+# Qdrant vector store
+qdrant.url=${QDRANT_URL:http://localhost:6333}
+qdrant.api-key=${QDRANT_API_KEY:}
+
+# Gemini embeddings
+gemini.embedding.model=${GEMINI_EMBEDDING_MODEL:gemini-embedding-002}
+gemini.embedding.fallback-models=${GEMINI_EMBEDDING_FALLBACK_MODELS:gemini-embedding-001}
+gemini.embedding.dimension=${GEMINI_EMBEDDING_DIMENSION:3072}
+gemini.embedding.output-dimensionality=${GEMINI_EMBEDDING_OUTPUT_DIMENSIONALITY:768}
+
 # Server Configuration
 server.port=8080
 

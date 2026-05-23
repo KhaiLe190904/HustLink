@@ -1,0 +1,122 @@
+[
+  {
+    "id": "backend-junior-api-design-001",
+    "targetPosition": "Backend Java",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "questionText": "Describe a REST API you would design for a student job application feature. What endpoints and validations would you include?",
+    "expectedPoints": ["create application endpoint", "duplicate apply prevention", "authorization and ownership", "status retrieval or tracking"],
+    "candidateAnswer": "I would create an endpoint to apply for a job, another endpoint to fetch my applications, and probably one for recruiters to review them. I would validate the CV id, job id, and prevent duplicate applications from the same user. I would also check that only the candidate can apply for themselves and only recruiters can review applications.",
+    "humanScore": 78,
+    "missingPoints": ["clear status transition design", "error handling details"],
+    "feedback": "Strong practical structure and good validation awareness. The answer would be stronger with application status flow and more detail on response design."
+  },
+  {
+    "id": "backend-senior-rollout-001",
+    "targetPosition": "Backend Java",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "questionText": "When adding RAG into a stable service, how would you roll it out safely?",
+    "expectedPoints": ["feature flag", "limited rollout or A/B test", "metrics and alerts", "rollback plan"],
+    "candidateAnswer": "I would deploy it behind a feature flag and start with internal users or a small percentage of traffic. I would compare response quality, latency, and error rate to the old flow, and I would keep the non-RAG path available for immediate rollback if the metrics degrade.",
+    "humanScore": 90,
+    "missingPoints": ["data reindexing risk not mentioned"],
+    "feedback": "This is a senior-quality rollout answer with clear risk control. Mentioning data migration or indexing readiness would make it even more complete."
+  },
+  {
+    "id": "frontend-intern-state-001",
+    "targetPosition": "Frontend React",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "questionText": "What is the difference between controlled and uncontrolled components in React?",
+    "expectedPoints": ["state ownership", "form behavior", "React state updates", "simple use case"],
+    "candidateAnswer": "Controlled components keep the value inside React state, while uncontrolled components let the DOM keep the current value. Controlled inputs are easier when I need validation or live UI updates, while uncontrolled ones can be okay for simpler forms.",
+    "humanScore": 84,
+    "missingPoints": ["ref-based access example"],
+    "feedback": "Clear and correct intern-level answer. One concrete example with refs would make it more complete."
+  },
+  {
+    "id": "frontend-senior-stt-001",
+    "targetPosition": "Frontend React",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "questionText": "A speech-to-text transcript keeps flickering and overwriting user edits. How would you redesign the UI state flow?",
+    "expectedPoints": ["separate live transcript and committed text", "user edit ownership", "synchronization strategy", "good user experience"],
+    "candidateAnswer": "I would stop binding the live recognizer output directly to the final textarea value. Instead, I would keep a temporary live transcript and only merge it into the confirmed answer at clear checkpoints, so manual edits are never overwritten unexpectedly.",
+    "humanScore": 74,
+    "missingPoints": ["conflict resolution details", "replay or recovery behavior"],
+    "feedback": "Good direction and strong intuition. The answer needs more detail on synchronization rules and edge cases to feel fully senior."
+  },
+  {
+    "id": "data-senior-calibration-001",
+    "targetPosition": "Data Analyst",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "questionText": "How would you detect whether a level-based interview scoring system is too lenient for interns or too harsh for seniors?",
+    "expectedPoints": ["segment by level", "compare to human labels", "distribution or calibration analysis", "recommendation for recalibration"],
+    "candidateAnswer": "I would split the evaluation dataset by level and compare AI scores to human-reviewed scores in each segment. Then I would look at average error and score distributions. If senior answers are consistently scored lower than humans expect, I would recalibrate thresholds or offsets for that group.",
+    "humanScore": 88,
+    "missingPoints": ["fairness metric or uncertainty discussion"],
+    "feedback": "Strong analysis answer with the right structure. Adding calibration plots or inter-rater agreement would make it even better."
+  },
+  {
+    "id": "devops-fresher-prod-db-001",
+    "targetPosition": "DevOps Engineer",
+    "level": "FRESHER",
+    "category": "PROBLEM_SOLVING",
+    "questionText": "A deployment succeeds but the application cannot connect to SQL Server in production. What would you check first?",
+    "expectedPoints": ["network reachability", "credentials or env vars", "database availability", "logs or health checks"],
+    "candidateAnswer": "I would first check whether the database is up and reachable from the app host. Then I would verify environment variables like hostname, port, username, and password, and inspect application logs for authentication or timeout errors.",
+    "humanScore": 82,
+    "missingPoints": ["security group or firewall mention"],
+    "feedback": "Good fresher-level troubleshooting answer. Adding network policy or firewall checks would strengthen it."
+  },
+  {
+    "id": "qa-junior-golden-set-001",
+    "targetPosition": "QA Engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "questionText": "How would you define a practical test strategy for a product that mixes deterministic backend logic with non-deterministic AI behavior?",
+    "expectedPoints": ["separate deterministic and AI tests", "golden dataset", "tolerance or acceptance range", "regression plan"],
+    "candidateAnswer": "I would test deterministic APIs with exact assertions, but for AI scoring I would use curated examples with expected score ranges and review trends over time instead of exact equality. I would also rerun the same gold set after prompt or model changes to catch regressions.",
+    "humanScore": 91,
+    "missingPoints": ["monitor false positives or fairness by segment"],
+    "feedback": "Very strong answer with a practical testing mindset. Segment-level monitoring would make it even more complete."
+  },
+  {
+    "id": "pm-senior-fairness-001",
+    "targetPosition": "Product Manager",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "questionText": "If users say AI scoring feels unfair, how would you design the feedback and improvement loop?",
+    "expectedPoints": ["structured feedback capture", "measure prevalence and impact", "cross-functional review", "prioritized iteration"],
+    "candidateAnswer": "I would add a structured appeal or feedback step after scoring, capture the reason users disagree, and segment it by level and question type. Then I would review patterns with engineering, QA, and data to prioritize the highest-impact fixes before changing the scoring logic broadly.",
+    "humanScore": 87,
+    "missingPoints": ["success metric after change"],
+    "feedback": "Thoughtful product answer with a strong loop for learning. Defining a post-fix success metric would make it sharper."
+  },
+  {
+    "id": "ml-junior-embedding-benchmark-001",
+    "targetPosition": "Machine Learning Engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "questionText": "How would you evaluate whether a new embedding model is actually better for this interview RAG system?",
+    "expectedPoints": ["retrieval benchmark", "human relevance review", "latency or cost comparison", "decision threshold"],
+    "candidateAnswer": "I would build a benchmark set of query to relevant-question pairs, compare recall or top-k relevance across the old and new embeddings, and also compare latency and cost. If the new model only gives a tiny relevance gain but increases cost a lot, I would probably keep the current one.",
+    "humanScore": 89,
+    "missingPoints": ["online validation or shadow test"],
+    "feedback": "Strong junior ML answer with the right trade-off framing. Mentioning a limited production shadow test would improve it."
+  },
+  {
+    "id": "backend-junior-short-answer-001",
+    "targetPosition": "Backend Java",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "questionText": "A file upload endpoint works locally but fails intermittently in staging. How would you narrow down the problem?",
+    "expectedPoints": ["compare environments", "inspect logs", "check dependency behavior", "reproducible validation"],
+    "candidateAnswer": "I would check the logs and compare staging with local.",
+    "humanScore": 38,
+    "missingPoints": ["specific environment comparison", "storage/network dependency checks", "reproduction strategy"],
+    "feedback": "The answer is too short and generic. It shows the right direction but lacks the structured troubleshooting depth expected at junior level."
+  }
+]

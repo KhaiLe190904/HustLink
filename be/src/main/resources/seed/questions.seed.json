@@ -1,0 +1,1262 @@
+[
+  {
+    "questionText": "Can you explain what happens from the moment a Spring Boot API receives an HTTP request until it returns a response?",
+    "targetPosition": "backend_developer",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "controller receives request",
+      "service layer handles business logic",
+      "repository/database interaction",
+      "response serialization"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a simple Java project or coursework where you had to debug a problem. How did you approach it?",
+    "targetPosition": "backend_developer",
+    "level": "INTERN",
+    "category": "PROJECT",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "clear context",
+      "debugging steps",
+      "root cause",
+      "what was learned"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "What is the difference between GET and POST in REST APIs?",
+    "targetPosition": "backend_developer",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "purpose of GET",
+      "purpose of POST",
+      "idempotency",
+      "data location and side effects"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "If a teammate asks you to add a new field to an existing API response, what parts of the backend would you inspect first?",
+    "targetPosition": "backend_developer",
+    "level": "INTERN",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "controller or DTO",
+      "service mapping",
+      "entity or repository impact",
+      "tests or validation"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "What is the difference between an interface and an abstract class in Java, and when would you use each?",
+    "targetPosition": "backend_developer",
+    "level": "FRESHER",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "abstraction difference",
+      "multiple implementation via interface",
+      "shared base behavior via abstract class",
+      "practical example"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Imagine your API is returning duplicate records to the frontend. What steps would you take to investigate and fix it?",
+    "targetPosition": "backend_developer",
+    "level": "FRESHER",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "reproduce issue",
+      "inspect query or join",
+      "check mapping or collection logic",
+      "verify fix with tests"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you explain transaction management in Spring to someone new to backend development?",
+    "targetPosition": "backend_developer",
+    "level": "FRESHER",
+    "category": "COMMUNICATION",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "all or nothing concept",
+      "@Transactional meaning",
+      "data consistency",
+      "simple example"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Describe a REST API you would design for a student job application feature. What endpoints and validations would you include?",
+    "targetPosition": "backend_developer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "core endpoints",
+      "request and response structure",
+      "input validation",
+      "authorization or ownership checks"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a time you improved performance, code quality, or maintainability in a backend module.",
+    "targetPosition": "backend_developer",
+    "level": "JUNIOR",
+    "category": "BEHAVIORAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "before state",
+      "change made",
+      "reasoning",
+      "measurable result"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A file upload endpoint works locally but fails intermittently in staging. How would you narrow down the problem?",
+    "targetPosition": "backend_developer",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "compare environments",
+      "inspect logs",
+      "check storage or network dependency",
+      "build a reproducible test"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you troubleshoot a production issue where a Spring Boot service has high latency but CPU usage is normal?",
+    "targetPosition": "backend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "measure dependencies",
+      "inspect slow queries or I O",
+      "review thread pools and timeouts",
+      "mitigation and follow-up"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "When would you split a monolithic backend into smaller services, and what trade-offs would you explain to the team?",
+    "targetPosition": "backend_developer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "criteria for split",
+      "operational complexity",
+      "data consistency trade-offs",
+      "team impact"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Một API upload CV trong Spring Boot cần kiểm tra những gì trước khi lưu file để tránh lỗi và rủi ro bảo mật?",
+    "targetPosition": "backend_developer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "kiểm tra mime hoặc extension",
+      "giới hạn kích thước",
+      "quyền truy cập",
+      "xử lý tên file an toàn"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "Nếu database SQL Server bị chậm khi số lượng bản ghi tăng lên, bạn sẽ kiểm tra index, query và luồng ứng dụng như thế nào?",
+    "targetPosition": "backend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "xem execution plan",
+      "kiểm tra index",
+      "đo query nóng",
+      "đề xuất cải tiến có đánh đổi"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "What is the difference between controlled and uncontrolled components in React?",
+    "targetPosition": "frontend_developer",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "state ownership",
+      "form input behavior",
+      "when each is useful",
+      "simple example"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Describe a small UI you built. How did you structure components and manage state?",
+    "targetPosition": "frontend_developer",
+    "level": "INTERN",
+    "category": "PROJECT",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "component breakdown",
+      "state placement",
+      "user flow",
+      "lesson learned"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How do `useEffect` dependencies work, and what kind of bugs happen when they are wrong?",
+    "targetPosition": "frontend_developer",
+    "level": "FRESHER",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "dependency array behavior",
+      "stale closure or loop risk",
+      "re-render impact",
+      "practical example"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A page feels slow after adding a large table and several charts. How would you debug and improve the user experience?",
+    "targetPosition": "frontend_developer",
+    "level": "FRESHER",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "measure bottleneck",
+      "reduce render work",
+      "optimize data or layout",
+      "validate with tooling"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you design the frontend architecture for an interview practice page with voice input, timers, and result history?",
+    "targetPosition": "frontend_developer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "state boundaries",
+      "async flow",
+      "reusable components",
+      "error and loading states"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a time you had to balance visual polish with delivery speed on a frontend task.",
+    "targetPosition": "frontend_developer",
+    "level": "JUNIOR",
+    "category": "BEHAVIORAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "context",
+      "trade-off decision",
+      "communication",
+      "outcome"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you improve the performance and maintainability of a React application whose bundle size and re-render frequency keep growing?",
+    "targetPosition": "frontend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "measure first",
+      "code splitting or architecture changes",
+      "render optimization strategy",
+      "team conventions"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How do you lead a frontend migration when design requirements, accessibility, and delivery deadlines are all competing?",
+    "targetPosition": "frontend_developer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "prioritization framework",
+      "stakeholder alignment",
+      "risk management",
+      "incremental rollout"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Khi build một form React có validation, loading và error state, bạn tổ chức component như thế nào để dễ bảo trì?",
+    "targetPosition": "frontend_developer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "tách component hợp lý",
+      "quản lý state",
+      "validation rõ ràng",
+      "khả năng tái sử dụng"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "Nếu Lighthouse báo hiệu năng thấp trên mobile, bạn sẽ ưu tiên tối ưu những phần nào trước và vì sao?",
+    "targetPosition": "frontend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "đọc metric đúng",
+      "ưu tiên ảnh hoặc js",
+      "render path quan trọng",
+      "đo lại sau tối ưu"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "What is the difference between supervised and unsupervised learning? Give one example of each.",
+    "targetPosition": "data_analyst",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "definition of supervised",
+      "definition of unsupervised",
+      "example for each",
+      "business intuition"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a dataset you explored in school or a side project. What was the question and what did you find?",
+    "targetPosition": "data_analyst",
+    "level": "INTERN",
+    "category": "PROJECT",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "problem statement",
+      "analysis steps",
+      "insight found",
+      "limitations"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you explain overfitting to a non-technical stakeholder?",
+    "targetPosition": "data_analyst",
+    "level": "FRESHER",
+    "category": "COMMUNICATION",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "simple definition",
+      "practical analogy",
+      "why it matters",
+      "how to reduce it"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A dashboard metric suddenly drops by 40 percent overnight. What checks would you do before concluding that the business is in trouble?",
+    "targetPosition": "data_analyst",
+    "level": "FRESHER",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "validate data pipeline",
+      "check tracking changes",
+      "segment comparison",
+      "business interpretation carefully"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you evaluate whether a recommendation model is useful in practice, not just in offline experiments?",
+    "targetPosition": "data_analyst",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "offline metrics",
+      "online metrics or A B test",
+      "user impact",
+      "guardrail metrics"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Describe a time you had to clean messy data before analysis. What was difficult and how did you avoid misleading results?",
+    "targetPosition": "data_analyst",
+    "level": "JUNIOR",
+    "category": "BEHAVIORAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "data issue",
+      "cleaning process",
+      "validation",
+      "impact on result quality"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you design an experiment to measure whether an AI interview feature actually improves candidate readiness?",
+    "targetPosition": "data_analyst",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "define hypothesis",
+      "treatment and control",
+      "outcome metrics",
+      "bias and validity risks"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How do you decide when a model should be simpler and more interpretable instead of more accurate but harder to explain?",
+    "targetPosition": "data_analyst",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "business context",
+      "risk and regulation",
+      "trust and explainability",
+      "cost benefit trade-off"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu phải đánh giá chất lượng một hệ thống gợi ý học tập cá nhân hóa, bạn sẽ chọn metric nào và vì sao?",
+    "targetPosition": "data_analyst",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "metric gắn mục tiêu",
+      "offline và online",
+      "coverage hoặc diversity",
+      "tính giải thích"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "Khi stakeholder hiểu sai kết quả phân tích, bạn sẽ trình bày lại thế nào để vừa chính xác vừa dễ tiếp nhận?",
+    "targetPosition": "data_analyst",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "điều chỉnh ngôn ngữ",
+      "nhắc lại giả định",
+      "visual hoặc ví dụ cụ thể",
+      "xử lý hiểu lầm bình tĩnh"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "What is the purpose of Docker in a development workflow?",
+    "targetPosition": "devops_engineer",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "consistent environment",
+      "packaging dependencies",
+      "local reproducibility",
+      "basic deployment benefit"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Describe a time you automated a repetitive task, even if it was just for a class or personal project.",
+    "targetPosition": "devops_engineer",
+    "level": "INTERN",
+    "category": "PROJECT",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "problem described",
+      "tool or script used",
+      "time saved",
+      "lesson learned"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you explain CI/CD to a backend developer who has never set up a pipeline before?",
+    "targetPosition": "devops_engineer",
+    "level": "FRESHER",
+    "category": "COMMUNICATION",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "continuous integration concept",
+      "delivery or deployment flow",
+      "benefits",
+      "simple example stages"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A deployment succeeds but the application cannot connect to SQL Server in production. What would you check first?",
+    "targetPosition": "devops_engineer",
+    "level": "FRESHER",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "network and firewall",
+      "credentials and env vars",
+      "service availability",
+      "logs and health checks"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you design logging, metrics, and alerts for an AI interview service so that issues are detectable early?",
+    "targetPosition": "devops_engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "key application logs",
+      "latency and error metrics",
+      "dependency visibility",
+      "alert thresholds"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a time an environment difference between local and production caused a failure. How did you respond?",
+    "targetPosition": "devops_engineer",
+    "level": "JUNIOR",
+    "category": "BEHAVIORAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "incident description",
+      "root cause",
+      "communication",
+      "preventive change"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you improve the resilience of a service that depends on Gemini APIs, Qdrant, SQL Server, and object storage?",
+    "targetPosition": "devops_engineer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "dependency isolation",
+      "timeouts and retries",
+      "fallback behavior",
+      "observability and recovery plan"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How do you decide when to optimize cost, latency, or reliability first in a production infrastructure roadmap?",
+    "targetPosition": "devops_engineer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "business context",
+      "service criticality",
+      "trade-off framing",
+      "roadmap sequencing"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu một pipeline CI/CD bị fail ngắt quãng không ổn định, bạn sẽ thu hẹp nguyên nhân như thế nào?",
+    "targetPosition": "devops_engineer",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "tái hiện có kiểm soát",
+      "xem log theo bước",
+      "kiểm tra race condition hoặc dependency",
+      "thêm quan sát"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "Khi thiết kế monitoring cho hệ thống có AI call và vector database, bạn ưu tiên metric nào trước?",
+    "targetPosition": "devops_engineer",
+    "level": "SENIOR",
+    "category": "TECHNICAL",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "latency",
+      "error rate",
+      "quota hoặc saturation",
+      "dependency health"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "What is the difference between a test case, a test suite, and a bug report?",
+    "targetPosition": "qa_engineer",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "definition of each",
+      "relationship between them",
+      "example context",
+      "why distinction matters"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Describe a time you found an issue that others had missed. How did you report it?",
+    "targetPosition": "qa_engineer",
+    "level": "INTERN",
+    "category": "BEHAVIORAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "bug context",
+      "how it was found",
+      "clear report",
+      "impact or outcome"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you test an interview feature that includes text input, voice recording, timers, and AI scoring?",
+    "targetPosition": "qa_engineer",
+    "level": "FRESHER",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "functional coverage",
+      "edge cases",
+      "browser or device coverage",
+      "AI-specific validation strategy"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A bug only appears on one browser and only after the third interview question. How would you reproduce and isolate it?",
+    "targetPosition": "qa_engineer",
+    "level": "FRESHER",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "reproduction strategy",
+      "variable isolation",
+      "logging or devtools usage",
+      "clear defect narrowing"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you define a practical test strategy for a product that mixes deterministic backend logic with non-deterministic AI behavior?",
+    "targetPosition": "qa_engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "separate deterministic and probabilistic checks",
+      "golden datasets",
+      "tolerance ranges",
+      "regression strategy"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a time you had to push back on a release because quality risk was too high. How did you communicate it?",
+    "targetPosition": "qa_engineer",
+    "level": "JUNIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "risk framing",
+      "evidence used",
+      "communication style",
+      "decision outcome"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you validate whether an AI evaluation score is consistent and fair across intern, junior, and senior answer samples?",
+    "targetPosition": "qa_engineer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "benchmark dataset",
+      "human label comparison",
+      "bias by level analysis",
+      "consistency metrics"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How do you decide which failures should block release immediately versus be tracked for later improvement?",
+    "targetPosition": "qa_engineer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "severity and impact",
+      "likelihood",
+      "customer risk",
+      "release decision framework"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu phải kiểm thử tính đúng đắn của phần chấm điểm AI, bạn sẽ xây test data và oracle như thế nào?",
+    "targetPosition": "qa_engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "bộ câu trả lời chuẩn",
+      "nhãn người thật",
+      "ngưỡng so sánh",
+      "test regression"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "Khi một lỗi chỉ xảy ra ngắt quãng trên production nhưng không tái hiện được local, bạn sẽ phối hợp với dev và DevOps ra sao?",
+    "targetPosition": "qa_engineer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "thu thập bằng chứng",
+      "phân chia trách nhiệm",
+      "ưu tiên tái hiện và giám sát",
+      "cập nhật minh bạch"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "How would you design a pagination and filtering API for a job board that may eventually have hundreds of thousands of jobs?",
+    "targetPosition": "backend_developer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "query parameters",
+      "sorting and paging strategy",
+      "database efficiency",
+      "response shape"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "What techniques would you use to keep a backend codebase understandable as more AI and search features are added?",
+    "targetPosition": "backend_developer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "module boundaries",
+      "clear contracts",
+      "observability",
+      "incremental refactor strategy"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "If a user reports that interview history is missing some completed sessions, how would you investigate whether the problem is in persistence, querying, or frontend rendering?",
+    "targetPosition": "backend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "trace data end to end",
+      "validate transaction completion",
+      "inspect query filters",
+      "compare API vs UI state"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Khi thêm RAG vào một service đã chạy ổn định, bạn sẽ rollout theo từng bước thế nào để hạn chế rủi ro?",
+    "targetPosition": "backend_developer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "feature flag",
+      "A/B hoặc dark launch",
+      "monitoring",
+      "rollback plan"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "How would you build a reusable design pattern for tables, filters, and bulk actions so that multiple admin pages feel consistent?",
+    "targetPosition": "frontend_developer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "shared primitives",
+      "state and props design",
+      "composition",
+      "consistency with flexibility"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A speech-to-text transcript keeps flickering and overwriting user edits. How would you redesign the UI state flow to avoid that frustration?",
+    "targetPosition": "frontend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "separate live and confirmed text",
+      "clear editing ownership",
+      "state synchronization",
+      "user experience reasoning"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you explain the trade-off between shipping a polished interface and validating whether users actually need the feature first?",
+    "targetPosition": "frontend_developer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "product risk",
+      "user validation",
+      "iteration strategy",
+      "balancing quality and learning"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu một trang admin import dữ liệu lớn bị chậm và dễ treo trình duyệt, bạn sẽ cải thiện cả UX và kỹ thuật như thế nào?",
+    "targetPosition": "frontend_developer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "preview giới hạn",
+      "stream hoặc chunk nếu cần",
+      "feedback tiến trình",
+      "tránh block main thread"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "How would you detect whether a level-based interview scoring system is too lenient for interns or too harsh for seniors?",
+    "targetPosition": "data_analyst",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "segment by level",
+      "compare against human labels",
+      "distribution analysis",
+      "calibration proposal"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Suppose an interviewer dashboard shows a high completion rate but low repeat usage. What hypotheses would you form and how would you test them?",
+    "targetPosition": "data_analyst",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "candidate hypotheses",
+      "behavioral segmentation",
+      "funnel or cohort analysis",
+      "follow-up experiment"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "When building a rubric from many real job descriptions, how would you normalize inconsistent titles, skills, and seniority labels?",
+    "targetPosition": "data_analyst",
+    "level": "SENIOR",
+    "category": "TECHNICAL",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "taxonomy design",
+      "mapping rules",
+      "manual review loop",
+      "quality checks"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu dữ liệu answer được alumni chấm có độ lệch giữa người chấm với nhau, bạn sẽ xử lý thế nào để vẫn dùng làm gold set?",
+    "targetPosition": "data_analyst",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "đo inter-rater agreement",
+      "hướng dẫn rubric rõ hơn",
+      "adjudication",
+      "lưu uncertainty nếu cần"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "How would you design a backup and disaster recovery plan for Qdrant and SQL Server in a small but growing product?",
+    "targetPosition": "devops_engineer",
+    "level": "SENIOR",
+    "category": "TECHNICAL",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "backup scope",
+      "restore testing",
+      "RPO RTO thinking",
+      "operational trade-offs"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A team wants to call external AI APIs synchronously in the request path everywhere because it is simpler. How would you respond?",
+    "targetPosition": "devops_engineer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "latency and reliability risks",
+      "where sync is acceptable",
+      "async alternatives",
+      "cost and user experience impact"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you investigate a spike in Qdrant latency that only appears after reindexing large datasets?",
+    "targetPosition": "devops_engineer",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "resource usage",
+      "indexing workload",
+      "request patterns",
+      "mitigation options"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu phải tối ưu chi phí cho hệ thống dùng nhiều embedding và AI evaluation, bạn sẽ theo dõi và cắt giảm ở những lớp nào trước?",
+    "targetPosition": "devops_engineer",
+    "level": "SENIOR",
+    "category": "TECHNICAL",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "theo dõi usage",
+      "cache và batching",
+      "giảm dimension hợp lý",
+      "ưu tiên đường gọi tốn kém"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "How would you design a QA strategy for JSON seed files so malformed data is caught before it reaches production?",
+    "targetPosition": "qa_engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "schema validation",
+      "sample import test",
+      "required field checks",
+      "pipeline integration"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "What kinds of test cases would you add to validate the admin RAG import page beyond the happy path?",
+    "targetPosition": "qa_engineer",
+    "level": "FRESHER",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "invalid JSON",
+      "missing fields",
+      "permission check",
+      "large file or duplicate behavior"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you explain to stakeholders why AI scoring cannot be tested with exact equality assertions in every case?",
+    "targetPosition": "qa_engineer",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "non-determinism",
+      "acceptable tolerance",
+      "golden set approach",
+      "risk-based validation"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu import xong nhưng thống kê theo level bị lệch nặng, bạn sẽ kiểm tra dữ liệu hay hệ thống theo thứ tự nào?",
+    "targetPosition": "qa_engineer",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "kiểm tra source file",
+      "xác minh API import",
+      "so DB với stats",
+      "tách lỗi dữ liệu và lỗi xử lý"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "How would you prioritize features for a job-seeking student platform when users, recruiters, and admins all want different things?",
+    "targetPosition": "product_manager",
+    "level": "INTERN",
+    "category": "COMMUNICATION",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "identify user groups",
+      "clarify goals",
+      "trade-offs",
+      "simple prioritization logic"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Tell me about a time you turned vague feedback into a concrete product improvement.",
+    "targetPosition": "product_manager",
+    "level": "FRESHER",
+    "category": "BEHAVIORAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "feedback source",
+      "problem framing",
+      "decision made",
+      "result"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you decide whether an interview evaluation feature should focus first on better question generation or better scoring quality?",
+    "targetPosition": "product_manager",
+    "level": "JUNIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "user value comparison",
+      "measurement plan",
+      "cost and effort",
+      "sequencing recommendation"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How do you communicate roadmap decisions when engineering complexity and business urgency strongly disagree?",
+    "targetPosition": "product_manager",
+    "level": "SENIOR",
+    "category": "COMMUNICATION",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "shared decision framing",
+      "trade-off transparency",
+      "risk communication",
+      "alignment plan"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu người dùng nói điểm chấm AI không công bằng, bạn sẽ thiết kế vòng phản hồi và cải tiến sản phẩm ra sao?",
+    "targetPosition": "product_manager",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "thu phản hồi có cấu trúc",
+      "đo mức độ ảnh hưởng",
+      "phối hợp data và QA",
+      "ưu tiên cải tiến rõ ràng"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  },
+  {
+    "questionText": "What is the difference between embeddings and generative models in an AI product stack?",
+    "targetPosition": "machine_learning_engineer",
+    "level": "INTERN",
+    "category": "TECHNICAL",
+    "difficulty": "EASY",
+    "expectedPoints": [
+      "purpose of embeddings",
+      "purpose of generation",
+      "retrieval use case",
+      "how they work together"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you explain cosine similarity to a teammate who only cares whether search feels relevant?",
+    "targetPosition": "machine_learning_engineer",
+    "level": "FRESHER",
+    "category": "COMMUNICATION",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "vector closeness intuition",
+      "relevance relation",
+      "simple analogy",
+      "practical implication"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "How would you evaluate whether a new embedding model is actually better for this interview RAG system?",
+    "targetPosition": "machine_learning_engineer",
+    "level": "JUNIOR",
+    "category": "TECHNICAL",
+    "difficulty": "MEDIUM",
+    "expectedPoints": [
+      "retrieval benchmark",
+      "human relevance check",
+      "latency or cost comparison",
+      "decision criteria"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "A larger embedding model improves retrieval slightly but doubles cost and latency. How would you decide whether to adopt it?",
+    "targetPosition": "machine_learning_engineer",
+    "level": "SENIOR",
+    "category": "PROBLEM_SOLVING",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "measure incremental value",
+      "cost-benefit framing",
+      "segment-specific rollout",
+      "fallback or hybrid strategy"
+    ],
+    "source": "seed_curated",
+    "languageCode": "en"
+  },
+  {
+    "questionText": "Nếu muốn dùng dữ liệu JD thật để tăng độ chính xác cho scoring, bạn sẽ biến dữ liệu đó thành rubric dùng được như thế nào?",
+    "targetPosition": "machine_learning_engineer",
+    "level": "SENIOR",
+    "category": "TECHNICAL",
+    "difficulty": "HARD",
+    "expectedPoints": [
+      "chuẩn hóa title và skill",
+      "trích yêu cầu cốt lõi",
+      "map theo level",
+      "đưa vào pipeline retrieval"
+    ],
+    "source": "seed_curated_vi",
+    "languageCode": "vi"
+  }
+]

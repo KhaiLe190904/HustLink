@@ -1,5 +1,6 @@
 package com.hustlink.backend.configuration;
 
+import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.repository.UserRepository;
 import com.hustlink.backend.features.authentication.utils.Encoder;
@@ -28,10 +29,30 @@ public class LoadDatabaseConfig {
   @Bean
   public CommandLineRunner initDatabase(UserRepository userRepository, PostRepository postRepository, ConnectionRepository connectionRepository) {
     return args -> {
+      ensureAdminUser(userRepository);
+      if (userRepository.count() > 1) {
+        return;
+      }
+
       List<User> users = createUsers(userRepository);
       createConnections(connectionRepository, users);
       createPosts(postRepository, users);
     };
+  }
+
+  private void ensureAdminUser(UserRepository userRepository) {
+    User adminUser = userRepository.findByEmail("admin@gmail.com").orElseGet(() -> createUser("admin@gmail.com", "admin123", "Admin", "HustLink", "Platform Administrator", "HustLink", "Hanoi, Vietnam", null));
+
+    adminUser.setRole(UserRole.ADMIN);
+    adminUser.setEmailVerified(true);
+    adminUser.setFirstName("Admin");
+    adminUser.setLastName("HustLink");
+    adminUser.setPosition("Platform Administrator");
+    adminUser.setCompany("HustLink");
+    adminUser.setLocationDisplay("Hanoi, Vietnam");
+    adminUser.setLocationKey("hanoi-vietnam");
+    adminUser.setPassword(encoder.encode("admin123"));
+    userRepository.save(adminUser);
   }
 
   private List<User> createUsers(UserRepository userRepository) {
@@ -141,6 +162,7 @@ public class LoadDatabaseConfig {
     user.setLocationDisplay(location);
     user.setLocationKey(location.toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("(^-|-$)", ""));
     user.setProfilePicture(profilePicture);
+    user.setRole(UserRole.USER);
     // user.setAbout("I'm a passionate " + position + " at " + company + " with
     // expertise in
     // " +

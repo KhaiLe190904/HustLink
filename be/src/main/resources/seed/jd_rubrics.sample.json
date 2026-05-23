@@ -1,0 +1,170 @@
+[
+  {
+    "targetPosition": "Backend Java",
+    "level": "INTERN",
+    "source": "curated_jd_template",
+    "skills": ["Java basics", "OOP", "REST API fundamentals", "SQL basics", "Git"],
+    "requirements": [
+      "Understands basic backend request-response flow",
+      "Can explain simple Java and database concepts",
+      "Shows learning mindset and debugging discipline"
+    ],
+    "responsibilities": [
+      "Support implementation of small API features",
+      "Fix simple bugs with guidance",
+      "Write basic tests and documentation"
+    ],
+    "evaluationRubric": [
+      "Reward clarity of fundamentals over advanced architecture depth",
+      "Expect simple but correct examples",
+      "Penalize confusion around basic HTTP, Java, or SQL concepts"
+    ]
+  },
+  {
+    "targetPosition": "Backend Java",
+    "level": "SENIOR",
+    "source": "curated_jd_template",
+    "skills": ["Spring Boot", "SQL tuning", "distributed systems", "system design", "observability"],
+    "requirements": [
+      "Can reason about reliability and performance trade-offs",
+      "Can design scalable service boundaries",
+      "Can lead rollout and incident response decisions"
+    ],
+    "responsibilities": [
+      "Own critical backend services",
+      "Mentor junior engineers",
+      "Drive architecture and production quality"
+    ],
+    "evaluationRubric": [
+      "Expect concrete trade-off reasoning and operational thinking",
+      "Reward ability to communicate rollout and risk clearly",
+      "Penalize answers that stay generic at a senior level"
+    ]
+  },
+  {
+    "targetPosition": "Frontend React",
+    "level": "JUNIOR",
+    "source": "curated_jd_template",
+    "skills": ["React", "TypeScript", "component design", "API integration", "state management"],
+    "requirements": [
+      "Can build maintainable product flows with loading and error states",
+      "Understands accessibility and responsive UI basics",
+      "Can debug component and rendering issues"
+    ],
+    "responsibilities": [
+      "Implement feature pages and shared components",
+      "Collaborate with backend and design",
+      "Keep UI quality and performance at a solid baseline"
+    ],
+    "evaluationRubric": [
+      "Reward clean state flow and practical UI architecture",
+      "Expect realistic handling of async and error states",
+      "Penalize answers that focus only on visuals without product behavior"
+    ]
+  },
+  {
+    "targetPosition": "Data Analyst",
+    "level": "SENIOR",
+    "source": "curated_jd_template",
+    "skills": ["experimentation", "SQL", "Python", "stakeholder communication", "model evaluation"],
+    "requirements": [
+      "Can connect metrics to business decisions",
+      "Can evaluate bias, calibration, and data quality",
+      "Can guide other teams on correct interpretation of data"
+    ],
+    "responsibilities": [
+      "Define success metrics for key features",
+      "Own analysis quality for product decisions",
+      "Translate data findings into decisions and follow-up experiments"
+    ],
+    "evaluationRubric": [
+      "Reward strong experiment design and bias awareness",
+      "Expect both technical depth and communication clarity",
+      "Penalize metric choices that are disconnected from product outcomes"
+    ]
+  },
+  {
+    "targetPosition": "DevOps Engineer",
+    "level": "JUNIOR",
+    "source": "curated_jd_template",
+    "skills": ["CI/CD", "Docker", "monitoring", "cloud basics", "incident debugging"],
+    "requirements": [
+      "Can reason about deployment and environment issues",
+      "Can set up actionable logs and metrics",
+      "Can investigate production-adjacent failures methodically"
+    ],
+    "responsibilities": [
+      "Support reliable delivery workflows",
+      "Improve observability and runbooks",
+      "Work with developers to reduce environment drift"
+    ],
+    "evaluationRubric": [
+      "Reward structured troubleshooting and observability mindset",
+      "Expect practical operational steps, not only definitions",
+      "Penalize answers that ignore dependency and environment realities"
+    ]
+  },
+  {
+    "targetPosition": "QA Engineer",
+    "level": "SENIOR",
+    "source": "curated_jd_template",
+    "skills": ["test strategy", "automation", "quality risk analysis", "AI validation", "release communication"],
+    "requirements": [
+      "Can define testing strategy for mixed deterministic and AI features",
+      "Can communicate release risk clearly",
+      "Can build datasets and heuristics for AI quality validation"
+    ],
+    "responsibilities": [
+      "Own cross-layer quality strategy",
+      "Guide release readiness decisions",
+      "Improve AI testing reliability and fairness checks"
+    ],
+    "evaluationRubric": [
+      "Reward risk-based thinking and realistic testing approaches",
+      "Expect tolerance-based AI validation ideas",
+      "Penalize test plans that assume AI outputs are fully deterministic"
+    ]
+  },
+  {
+    "targetPosition": "Product Manager",
+    "level": "SENIOR",
+    "source": "curated_jd_template",
+    "skills": ["prioritization", "user research", "roadmapping", "cross-functional leadership", "metric design"],
+    "requirements": [
+      "Can navigate trade-offs between user value, engineering effort, and business pressure",
+      "Can build loops for feedback and product learning",
+      "Can define success metrics beyond vanity numbers"
+    ],
+    "responsibilities": [
+      "Lead roadmap decisions for major features",
+      "Align engineering, design, and business stakeholders",
+      "Turn user feedback into measurable product improvements"
+    ],
+    "evaluationRubric": [
+      "Reward explicit trade-off reasoning and user-centered prioritization",
+      "Expect clear measurement thinking",
+      "Penalize answers that stay abstract and avoid difficult prioritization choices"
+    ]
+  },
+  {
+    "targetPosition": "Machine Learning Engineer",
+    "level": "JUNIOR",
+    "source": "curated_jd_template",
+    "skills": ["embeddings", "retrieval evaluation", "Python", "ML metrics", "cost-latency trade-offs"],
+    "requirements": [
+      "Can compare models with benchmark data",
+      "Can reason about retrieval quality and production cost together",
+      "Can communicate when a more expensive model is not worth it"
+    ],
+    "responsibilities": [
+      "Support model and embedding evaluations",
+      "Work with product and backend to improve retrieval quality",
+      "Build repeatable model comparison workflows"
+    ],
+    "evaluationRubric": [
+      "Reward benchmark-driven evaluation instead of intuition only",
+      "Expect cost and latency awareness alongside relevance quality",
+      "Penalize model decisions that ignore production constraints"
+    ]
+  }
+]
