@@ -229,6 +229,15 @@ export function Header() {
     },
   ];
 
+  if (user?.role === "ADMIN") {
+    navItems.splice(2, 0, {
+      to: "/admin/rag",
+      label: "RAG Admin",
+      icon: FiFileText,
+      badge: 0,
+    });
+  }
+
   const closeMenus = () => {
     setShowProfileMenu(false);
     if (window.innerWidth <= 1080) {

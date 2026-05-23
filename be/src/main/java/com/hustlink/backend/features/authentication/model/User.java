@@ -46,6 +46,10 @@ public class User {
   private String company = null;
   @FullTextField(analyzer = "standard")
   private String position = null;
+  @Builder.Default
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 20)
+  private UserRole role = UserRole.USER;
   private String locationDisplay = null;
   private String locationKey = null;
   private Boolean profileComplete = false;
@@ -90,6 +94,14 @@ public class User {
   public User(String email, String password) {
     this.email = email;
     this.password = password;
+    this.role = UserRole.USER;
+  }
+
+  @PrePersist
+  void onCreate() {
+    if (role == null) {
+      role = UserRole.USER;
+    }
   }
 
   public void updateProfileComplete() {

@@ -29,6 +29,8 @@ import { Profile } from "./features/profile/pages/Profile/Profile";
 import { CVUpload } from "./features/ai/pages/CVUpload/CVUpload";
 import { Interview } from "./features/ai/pages/Interview/Interview";
 import { InterviewHistory } from "./features/ai/pages/InterviewHistory/InterviewHistory";
+import { RoleGuard } from "./features/authentication/components/RoleGuard/RoleGuard";
+import { RagAdmin } from "./features/admin/pages/RagAdmin/RagAdmin";
 const router = createBrowserRouter([
   {
     element: <AuthenticationContextProvider />,
@@ -78,6 +80,14 @@ const router = createBrowserRouter([
           {
             path: "ai/interview/history",
             element: <InterviewHistory />,
+          },
+          {
+            path: "admin/rag",
+            element: (
+              <RoleGuard allow={["ADMIN"]}>
+                <RagAdmin />
+              </RoleGuard>
+            ),
           },
           {
             path: "messaging",
