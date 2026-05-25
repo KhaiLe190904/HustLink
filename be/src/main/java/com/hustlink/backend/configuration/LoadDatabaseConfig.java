@@ -29,8 +29,7 @@ public class LoadDatabaseConfig {
   @Bean
   public CommandLineRunner initDatabase(UserRepository userRepository, PostRepository postRepository, ConnectionRepository connectionRepository) {
     return args -> {
-      ensureAdminUser(userRepository);
-      if (userRepository.count() > 1) {
+      if (userRepository.count() > 0) {
         return;
       }
 
@@ -38,23 +37,6 @@ public class LoadDatabaseConfig {
       createConnections(connectionRepository, users);
       createPosts(postRepository, users);
     };
-  }
-
-  private void ensureAdminUser(UserRepository userRepository) {
-    if (userRepository.findByEmail("admin@gmail.com").isPresent()) {
-      return;
-    }
-    User adminUser = createUser("admin@gmail.com", "admin123", "Admin", "HustLink", "Platform Administrator", "HustLink", "Hanoi, Vietnam", null);
-
-    adminUser.setRole(UserRole.ADMIN);
-    adminUser.setEmailVerified(true);
-    adminUser.setFirstName("Admin");
-    adminUser.setLastName("HustLink");
-    adminUser.setPosition("Platform Administrator");
-    adminUser.setCompany("HustLink");
-    adminUser.setLocationDisplay("Hanoi, Vietnam");
-    adminUser.setLocationKey("hanoi-vietnam");
-    userRepository.save(adminUser);
   }
 
   private List<User> createUsers(UserRepository userRepository) {
