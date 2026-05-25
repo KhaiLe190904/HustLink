@@ -123,7 +123,7 @@ public class CVContextBuilder {
       if (looksLikeSectionHeading(line, isMarkdown)) {
         break;
       }
-      if (!builder.isEmpty()) {
+      if (builder.length() > 0) {
         builder.append('\n');
       }
       builder.append(line);
