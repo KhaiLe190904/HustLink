@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +37,8 @@ public class QdrantVectorStoreClient implements VectorStoreClient {
 
   @Value("${qdrant.api-key:}")
   private String apiKey;
+
+  private final Set<String> knownCollections = ConcurrentHashMap.newKeySet();
 
   @Override
   public void upsert(String collection, String id, float[] vector, Map<String, Object> payload) {
@@ -82,8 +86,12 @@ public class QdrantVectorStoreClient implements VectorStoreClient {
 
   @Override
   public void ensureCollection(String collection, int dim) {
+    if (knownCollections.contains(collection)) {
+      return;
+    }
     try {
       exchange("/collections/%s".formatted(collection), HttpMethod.GET, null, JsonNode.class);
+      knownCollections.add(collection);
       return;
     } catch (RestClientResponseException exception) {
       if (exception.getStatusCode().value() != 404) {
@@ -95,6 +103,7 @@ public class QdrantVectorStoreClient implements VectorStoreClient {
             "vectors", Map.of(
                     "size", dim, "distance", "Cosine"));
     exchange("/collections/%s".formatted(collection), HttpMethod.PUT, body, JsonNode.class);
+    knownCollections.add(collection);
     log.info("op=qdrant_collection_created collection={} dim={}", collection, dim);
   }
 
@@ -102,8 +111,10 @@ public class QdrantVectorStoreClient implements VectorStoreClient {
   public void deleteCollection(String collection) {
     try {
       exchange("/collections/%s".formatted(collection), HttpMethod.DELETE, null, JsonNode.class);
+      knownCollections.remove(collection);
       log.info("op=qdrant_collection_deleted collection={}", collection);
     } catch (RestClientResponseException exception) {
+      knownCollections.remove(collection);
       if (exception.getStatusCode().value() == 404) {
         log.info("op=qdrant_collection_delete_skipped collection={} reason=not_found", collection);
         return;
