@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequireRole(UserRole.ADMIN)
 @RequiredArgsConstructor
 public class RagAdminController {
-  private final RagInterviewServiceImpl ragInterviewService;
+  private final RagInterviewService ragInterviewService;
 
   @PostMapping("/import")
   public RagImportResponse importQuestions(

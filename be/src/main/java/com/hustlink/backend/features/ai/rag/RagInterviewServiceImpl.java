@@ -165,6 +165,7 @@ public class RagInterviewServiceImpl implements RagInterviewService {
     });
   }
 
+  @Override
   @Transactional
   public RagImportResponse importQuestions(User admin, List<InterviewQuestionBankImportRequest> requests) {
     if (requests == null || requests.isEmpty()) {
@@ -192,6 +193,7 @@ public class RagInterviewServiceImpl implements RagInterviewService {
     return new RagImportResponse(imported, skippedCount, Math.max(0, pendingQuestions.size() - imported));
   }
 
+  @Override
   @Transactional
   public RagStatsResponse reindexAllAndStats(User admin) {
     reindexAll();
@@ -199,6 +201,7 @@ public class RagInterviewServiceImpl implements RagInterviewService {
     return getStats();
   }
 
+  @Override
   @Transactional(readOnly = true)
   public RagStatsResponse getStats() {
     List<InterviewQuestionBank> questions = questionBankRepository.findAll();
