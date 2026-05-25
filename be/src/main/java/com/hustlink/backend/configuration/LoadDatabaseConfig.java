@@ -41,7 +41,10 @@ public class LoadDatabaseConfig {
   }
 
   private void ensureAdminUser(UserRepository userRepository) {
-    User adminUser = userRepository.findByEmail("admin@gmail.com").orElseGet(() -> createUser("admin@gmail.com", "admin123", "Admin", "HustLink", "Platform Administrator", "HustLink", "Hanoi, Vietnam", null));
+    if (userRepository.findByEmail("admin@gmail.com").isPresent()) {
+      return;
+    }
+    User adminUser = createUser("admin@gmail.com", "admin123", "Admin", "HustLink", "Platform Administrator", "HustLink", "Hanoi, Vietnam", null);
 
     adminUser.setRole(UserRole.ADMIN);
     adminUser.setEmailVerified(true);
@@ -51,7 +54,6 @@ public class LoadDatabaseConfig {
     adminUser.setCompany("HustLink");
     adminUser.setLocationDisplay("Hanoi, Vietnam");
     adminUser.setLocationKey("hanoi-vietnam");
-    adminUser.setPassword(encoder.encode("admin123"));
     userRepository.save(adminUser);
   }
 
