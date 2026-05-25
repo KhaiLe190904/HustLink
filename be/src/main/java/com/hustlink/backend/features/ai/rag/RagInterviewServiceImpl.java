@@ -34,6 +34,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 @Service
 @Slf4j
@@ -216,10 +218,10 @@ public class RagInterviewServiceImpl implements RagInterviewService {
 
   private InterviewQuestionBank toQuestionBank(InterviewQuestionBankImportRequest request) {
     if (request == null || request.questionText() == null || request.questionText().isBlank()) {
-      throw new IllegalArgumentException("questionText is required.");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "questionText is required.");
     }
     if (request.targetPosition() == null || request.targetPosition().isBlank()) {
-      throw new IllegalArgumentException("targetPosition is required.");
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "targetPosition is required.");
     }
 
     InterviewQuestionBank question = new InterviewQuestionBank();
