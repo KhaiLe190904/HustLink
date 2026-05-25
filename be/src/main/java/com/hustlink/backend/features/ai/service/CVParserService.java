@@ -71,11 +71,11 @@ public class CVParserService {
     }
   }
 
-  private String convertElementsToMarkdown(String jsonResponse) {
+  private String convertElementsToMarkdown(String jsonResponse) throws IOException {
     try {
       JsonNode root = objectMapper.readTree(jsonResponse);
       if (!root.isArray()) {
-        return "";
+        throw new IOException("Unstructured API response is not a valid JSON array.");
       }
 
       StringBuilder markdown = new StringBuilder();
@@ -110,7 +110,7 @@ public class CVParserService {
       return markdown.toString().replaceAll("\\n{3,}", "\n\n").trim();
     } catch (Exception e) {
       log.error("Failed to convert Unstructured JSON to Markdown", e);
-      return "";
+      throw new IOException("Failed to convert Unstructured JSON to Markdown", e);
     }
   }
 

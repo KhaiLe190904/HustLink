@@ -251,7 +251,7 @@ public class GeminiService {
                     Interview Transcript:
                     %s
                     """.formatted(
-            analysisLanguage.instructionLabel(), level, jobPosition, level, trimToMaxChars(cvText, 4000), formatRagContext(ragEvaluationContext), questionAnswerBlock);
+            level, analysisLanguage.instructionLabel(), jobPosition, level, trimToMaxChars(cvText, 4000), formatRagContext(ragEvaluationContext), questionAnswerBlock);
 
     Map<String, Object> payload = Map.of(
             "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.2, "responseMimeType", "application/json"));
