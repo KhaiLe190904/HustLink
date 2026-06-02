@@ -28,6 +28,6 @@ public class SearchController {
   @RequireRole(UserRole.ADMIN)
   public Map<String, String> reindexUserProfiles() {
     searchService.reindexAllUserProfiles();
-    return Map.of("message", "User profiles reindexing started and completed successfully.");
+    return Map.of("message", "User profiles reindexed successfully.");
   }
 }
