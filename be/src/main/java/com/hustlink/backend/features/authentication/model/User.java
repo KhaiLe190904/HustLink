@@ -28,14 +28,26 @@ public class User {
   private String email;
 
   private Boolean emailVerified = false;
+
+  @JsonIgnore
   private String emailVerificationToken = null;
+
+  @JsonIgnore
   private LocalDateTime emailVerificationTokenExpiryDate = null;
+
+  @JsonIgnore
   private String emailVerificationDeliveryStatus = null;
+
+  @JsonIgnore
   private String emailVerificationProviderMessageId = null;
 
   @JsonIgnore
   private String password;
+
+  @JsonIgnore
   private String passwordResetToken = null;
+
+  @JsonIgnore
   private LocalDateTime passwordResetTokenExpiryDate = null;
 
   @FullTextField(analyzer = "standard")
@@ -133,6 +145,7 @@ public class User {
     updateProfileComplete();
   }
 
+  @JsonIgnore
   public String getLocationForMatching() {
     if (locationKey != null && !locationKey.isBlank()) {
       return locationKey.trim().toLowerCase();
