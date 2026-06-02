@@ -14,9 +14,11 @@ export function Search() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const debounceRef = useRef<any>(null);
+  const latestRequestIdRef = useRef(0);
 
   const fetchSuggestions = async (query: string) => {
-    if (loading) return;
+    latestRequestIdRef.current += 1;
+    const currentRequestId = latestRequestIdRef.current;
     setLoading(true);
     request<IUser[]>({
       endpoint:
@@ -25,12 +27,16 @@ export function Search() {
         "&mode=" +
         searchMode,
       onSuccess: (data) => {
-        setSuggestions(data);
-        setLoading(false);
+        if (currentRequestId === latestRequestIdRef.current) {
+          setSuggestions(data);
+          setLoading(false);
+        }
       },
       onFailure: () => {
-        setSuggestions([]);
-        setLoading(false);
+        if (currentRequestId === latestRequestIdRef.current) {
+          setSuggestions([]);
+          setLoading(false);
+        }
       },
     });
   };
@@ -38,6 +44,8 @@ export function Search() {
   useEffect(() => {
     const query = searchTerm.trim();
     if (query.length < 2) {
+      latestRequestIdRef.current += 1;
+      setLoading(false);
       setSuggestions([]);
       return;
     }
