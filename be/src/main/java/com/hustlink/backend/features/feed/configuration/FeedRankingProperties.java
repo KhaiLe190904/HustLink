@@ -17,5 +17,7 @@ public record FeedRankingProperties(
                                     @DefaultValue("100") double recentlyViewedPenalty,
                                     @DefaultValue("12") int servedWindowHours,
                                     @DefaultValue("30") double recentlyServedPenalty,
-                                    @DefaultValue("50") double sameAuthorStreakPenalty) {
+                                    @DefaultValue("50") double sameAuthorStreakPenalty,
+                                    @DefaultValue("3") int fatigueThreshold,
+                                    @DefaultValue("9999") double fatiguePenalty) {
 }

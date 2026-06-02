@@ -35,4 +35,8 @@ public class PostImpression {
   private LocalDateTime servedAt;
 
   private LocalDateTime viewedAt;
+
+  @Column(name = "served_count")
+  @Builder.Default
+  private Integer servedCount = 1;
 }

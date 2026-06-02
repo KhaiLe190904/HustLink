@@ -25,6 +25,7 @@ export function Feed() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [error, setError] = useState("");
   const [nextFeedPage, setNextFeedPage] = useState(0);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const { user } = useAuthentication();
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ export function Feed() {
   const pendingViewedIdsRef = useRef<Set<number>>(new Set());
   const markViewedInFlightRef = useRef(false);
   const viewedPostsRetryTimeoutRef = useRef<number | null>(null);
+  const inFlightRequestsRef = useRef<Set<string>>(new Set());
 
   const scheduleViewedPostsRetry = () => {
     if (viewedPostsRetryTimeoutRef.current !== null) {
@@ -92,33 +94,43 @@ export function Feed() {
       return;
     }
 
+    const requestKey = `${replace ? "replace" : "append"}-${page}`;
+    if (inFlightRequestsRef.current.has(requestKey)) {
+      return;
+    }
+    inFlightRequestsRef.current.add(requestKey);
+
     setLoadingPosts(true);
 
-    await request<Page<IPost>>({
-      endpoint: `/api/v1/feed/paginated?page=${page}&size=${FEED_BATCH_SIZE}`,
-      onSuccess: (data) => {
-        setError("");
-        setPosts((currentPosts) => {
-          const basePosts = replace ? [] : currentPosts;
-          const existingIds = new Set(basePosts.map((post) => post.id));
-          const incomingPosts = data.content.filter(
-            (post) => !existingIds.has(post.id)
-          );
-          return [...basePosts, ...incomingPosts];
-        });
-        setHasMorePosts(!data.last);
-        setNextFeedPage(page + 1);
+    try {
+      await request<Page<IPost>>({
+        endpoint: `/api/v1/feed/paginated?page=${page}&size=${FEED_BATCH_SIZE}`,
+        onSuccess: (data) => {
+          setError("");
+          setPosts((currentPosts) => {
+            const basePosts = replace ? [] : currentPosts;
+            const existingIds = new Set(basePosts.map((post) => post.id));
+            const incomingPosts = data.content.filter(
+              (post) => !existingIds.has(post.id)
+            );
+            return [...basePosts, ...incomingPosts];
+          });
+          setHasMorePosts(!data.last);
+          setNextFeedPage(page + 1);
 
-        if (replace) {
-          viewedPostIdsRef.current.clear();
-          pendingViewedIdsRef.current.clear();
-          setNextFeedPage(1);
-        }
-      },
-      onFailure: (requestError) => setError(requestError),
-    });
-
-    setLoadingPosts(false);
+          if (replace) {
+            viewedPostIdsRef.current.clear();
+            pendingViewedIdsRef.current.clear();
+            setNextFeedPage(1);
+            setInitialLoadComplete(true);
+          }
+        },
+        onFailure: (requestError) => setError(requestError),
+      });
+    } finally {
+      setLoadingPosts(false);
+      inFlightRequestsRef.current.delete(requestKey);
+    }
   };
 
   useEffect(() => {
@@ -134,14 +146,19 @@ export function Feed() {
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (!entry?.isIntersecting || loadingPosts || !hasMorePosts) {
+        if (
+          !entry?.isIntersecting ||
+          loadingPosts ||
+          !hasMorePosts ||
+          !initialLoadComplete
+        ) {
           return;
         }
 
         void fetchPosts({ page: nextFeedPage });
       },
       {
-        rootMargin: "300px 0px",
+        rootMargin: "10px 0px",
         threshold: 0.1,
       }
     );
@@ -151,7 +168,7 @@ export function Feed() {
     return () => {
       observer.disconnect();
     };
-  }, [hasMorePosts, loadingPosts, nextFeedPage]);
+  }, [hasMorePosts, loadingPosts, nextFeedPage, initialLoadComplete]);
 
   useEffect(() => {
     const container = postsContainerRef.current;
@@ -223,6 +240,10 @@ export function Feed() {
   }, []);
 
   useEffect(() => {
+    if (!initialLoadComplete) {
+      return;
+    }
+
     const subscription = ws?.subscribe(
       `/topic/feed/${user?.id}/post`,
       (data) => {
@@ -241,7 +262,7 @@ export function Feed() {
     );
 
     return () => subscription?.unsubscribe();
-  }, [user?.id, ws]);
+  }, [user?.id, ws, initialLoadComplete]);
 
   useEffect(() => {
     if (!user) {
@@ -392,11 +413,15 @@ export function Feed() {
               </div>
             ))}
 
-            {loadingPosts && (
-              <div className="rounded-2xl bg-white p-5 text-center text-sm font-medium text-slate-500">
-                Loading more posts...
-              </div>
+            {posts.length === 0 && loadingPosts && (
+              <>
+                <PostSkeleton />
+                <PostSkeleton />
+                <PostSkeleton />
+              </>
             )}
+
+            {posts.length > 0 && loadingPosts && <PostSkeleton />}
 
             {!loadingPosts && hasMorePosts && (
               <div ref={loadMoreRef} className="h-6" />
@@ -414,6 +439,41 @@ export function Feed() {
         <div className="hidden xl:block h-full">
           <RightSidebar />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function PostSkeleton() {
+  return (
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] animate-pulse">
+      {/* Top author details */}
+      <div className="flex items-start gap-3 pb-3">
+        {/* Avatar skeleton */}
+        <div className="h-[52px] w-[52px] rounded-full bg-slate-200/80" />
+
+        {/* Text details skeleton */}
+        <div className="flex-1 min-w-0 space-y-2 mt-1">
+          <div className="h-4 w-32 rounded bg-slate-200/80" />
+          <div className="h-3 w-48 rounded bg-slate-100" />
+          <div className="h-3 w-20 rounded bg-slate-100/80" />
+        </div>
+      </div>
+
+      {/* Content lines skeleton */}
+      <div className="space-y-2.5 py-4">
+        <div className="h-4 w-full rounded bg-slate-200/60" />
+        <div className="h-4 w-[92%] rounded bg-slate-200/60" />
+        <div className="h-4 w-[65%] rounded bg-slate-200/60" />
+      </div>
+
+      {/* Optional image placeholder to look premium */}
+      <div className="my-2 h-48 w-full rounded-2xl bg-slate-100/80" />
+
+      {/* Bottom stats and action buttons skeleton */}
+      <div className="flex items-center justify-between border-t border-slate-100 mt-4 pt-3">
+        <div className="h-3 w-16 rounded bg-slate-100" />
+        <div className="h-3 w-20 rounded bg-slate-100" />
       </div>
     </div>
   );
