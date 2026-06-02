@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IUser } from "../../../../features/authentication/context/AuthenticationContextProvider";
 import { request } from "../../../../utils/api";
@@ -47,6 +47,9 @@ export function Search() {
   useEffect(() => {
     const query = searchTerm.trim();
     if (query.length < 2) {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
       latestRequestIdRef.current += 1;
       setLoading(false);
       setSuggestions([]);

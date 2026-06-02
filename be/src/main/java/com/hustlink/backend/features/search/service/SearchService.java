@@ -11,7 +11,6 @@ import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -66,6 +65,7 @@ public class SearchService {
         log.info("op=index_user_profile action=delete user_id={} reason=profile_incomplete", user.getId());
       } catch (Exception e) {
         // ignore if not found
+        log.warn("op=index_user_profile action=delete_failed user_id={} error={}", user.getId(), e.getMessage());
       }
       return;
     }
@@ -114,7 +114,6 @@ public class SearchService {
     log.info("op=index_user_profiles_batch count={}", users.size());
   }
 
-  @Transactional
   public void reindexAllUserProfiles() {
     List<User> users = userRepository.findAll();
     List<User> completeUsers = users.stream().filter(user -> Boolean.TRUE.equals(user.getProfileComplete())).toList();
@@ -159,7 +158,6 @@ public class SearchService {
   }
 
   @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
-  @Transactional
   public void initLuceneIndex() {
     log.info("op=init_lucene_index action=started");
     try {
