@@ -161,10 +161,27 @@ public class RagInterviewServiceImpl implements RagInterviewService {
   @Override
   @Transactional
   public void reindexAll() {
-    questionBankRepository.findAll().forEach(question -> {
-      indexQuestion(question);
-      questionBankRepository.save(question);
-    });
+    List<InterviewQuestionBank> questions = questionBankRepository.findAll();
+    log.info("op=rag_reindex_all total_questions={}", questions.size());
+
+    int batchSize = 50;
+    for (int start = 0; start < questions.size(); start += batchSize) {
+      int end = Math.min(start + batchSize, questions.size());
+      List<InterviewQuestionBank> batch = questions.subList(start, end);
+
+      indexQuestionBatch(batch);
+      questionBankRepository.saveAll(batch);
+      log.info("op=rag_reindex_batch progress={}/{}", end, questions.size());
+
+      if (end < questions.size()) {
+        try {
+          Thread.sleep(1500);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("Reindex sleep interrupted", e);
+        }
+      }
+    }
   }
 
   @Override
