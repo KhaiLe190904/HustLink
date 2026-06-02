@@ -184,7 +184,7 @@ public class FeedService {
     int pageSize = Math.max(1, requestedPageSize);
 
     // Luôn lấy một tập ứng viên lớn từ đầu (ví dụ: top 150 bài viết mới nhất) để xếp hạng toàn diện
-    int poolSize = Math.max(150, feedRankingProperties.maxCandidatePoolSize());
+    int poolSize = Math.min(feedRankingProperties.maxCandidatePoolSize(), Math.max(150, feedRankingProperties.candidatePoolSize()));
     Pageable candidateRequest = PageRequest.of(0, poolSize);
     Page<Post> candidatePage = postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, candidateRequest);
 
@@ -205,7 +205,7 @@ public class FeedService {
             scoredPost.post(), likesCountByPostId.getOrDefault(scoredPost.post().getId(), 0), commentsCountByPostId.getOrDefault(scoredPost.post().getId(), 0), likedPostIds.contains(scoredPost.post().getId()), scoredPost.score(), scoredPost.breakdown())).collect(Collectors.toList());
 
     boolean hasNextWithinWindow = offset + pageSize < rankedPosts.size();
-    long syntheticTotalElements = hasNextWithinWindow || candidatePage.hasNext() ? offset + postDtos.size() + 1 : offset + postDtos.size();
+    long syntheticTotalElements = hasNextWithinWindow ? offset + postDtos.size() + 1 : offset + postDtos.size();
 
     return new PageImpl<>(postDtos, pageable, syntheticTotalElements);
   }
