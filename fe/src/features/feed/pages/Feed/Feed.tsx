@@ -135,6 +135,7 @@ export function Feed() {
 
   useEffect(() => {
     void fetchPosts({ replace: true, page: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -168,6 +169,7 @@ export function Feed() {
     return () => {
       observer.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMorePosts, loadingPosts, nextFeedPage, initialLoadComplete]);
 
   useEffect(() => {
@@ -210,6 +212,7 @@ export function Feed() {
     return () => {
       observer.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [posts]);
 
   useEffect(() => {
@@ -237,6 +240,7 @@ export function Feed() {
         }
       );
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

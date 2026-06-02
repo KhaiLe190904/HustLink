@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IUser } from "../../../../features/authentication/context/AuthenticationContextProvider";
 import { request } from "../../../../utils/api";
@@ -13,33 +13,36 @@ export function Search() {
   );
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const debounceRef = useRef<any>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestRequestIdRef = useRef(0);
 
-  const fetchSuggestions = async (query: string) => {
-    latestRequestIdRef.current += 1;
-    const currentRequestId = latestRequestIdRef.current;
-    setLoading(true);
-    request<IUser[]>({
-      endpoint:
-        "/api/v1/search/users?query=" +
-        encodeURIComponent(query) +
-        "&mode=" +
-        searchMode,
-      onSuccess: (data) => {
-        if (currentRequestId === latestRequestIdRef.current) {
-          setSuggestions(data);
-          setLoading(false);
-        }
-      },
-      onFailure: () => {
-        if (currentRequestId === latestRequestIdRef.current) {
-          setSuggestions([]);
-          setLoading(false);
-        }
-      },
-    });
-  };
+  const fetchSuggestions = useCallback(
+    async (query: string) => {
+      latestRequestIdRef.current += 1;
+      const currentRequestId = latestRequestIdRef.current;
+      setLoading(true);
+      request<IUser[]>({
+        endpoint:
+          "/api/v1/search/users?query=" +
+          encodeURIComponent(query) +
+          "&mode=" +
+          searchMode,
+        onSuccess: (data) => {
+          if (currentRequestId === latestRequestIdRef.current) {
+            setSuggestions(data);
+            setLoading(false);
+          }
+        },
+        onFailure: () => {
+          if (currentRequestId === latestRequestIdRef.current) {
+            setSuggestions([]);
+            setLoading(false);
+          }
+        },
+      });
+    },
+    [searchMode]
+  );
 
   useEffect(() => {
     const query = searchTerm.trim();
@@ -63,7 +66,7 @@ export function Search() {
         clearTimeout(debounceRef.current);
       }
     };
-  }, [searchTerm, searchMode]);
+  }, [searchTerm, searchMode, fetchSuggestions]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
