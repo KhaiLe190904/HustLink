@@ -442,9 +442,7 @@ public class FeedService {
 
     if (impression != null) {
       boolean hasViewedPenalty = false;
-      if (impression.getViewedAt() != null 
-          && impression.getViewedAt().isAfter(now.minusHours(feedRankingProperties.viewedWindowHours()))
-          && impression.getViewedAt().isBefore(now.minusMinutes(5))) {
+      if (impression.getViewedAt() != null && impression.getViewedAt().isAfter(now.minusHours(feedRankingProperties.viewedWindowHours())) && impression.getViewedAt().isBefore(now.minusMinutes(5))) {
         breakdown.put("recentlyViewedPenalty", -feedRankingProperties.recentlyViewedPenalty());
         hasViewedPenalty = true;
       }
