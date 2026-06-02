@@ -125,7 +125,12 @@ export function Feed() {
             setInitialLoadComplete(true);
           }
         },
-        onFailure: (requestError) => setError(requestError),
+        onFailure: (requestError) => {
+          setError(requestError);
+          if (replace) {
+            setInitialLoadComplete(true);
+          }
+        },
       });
     } finally {
       setLoadingPosts(false);

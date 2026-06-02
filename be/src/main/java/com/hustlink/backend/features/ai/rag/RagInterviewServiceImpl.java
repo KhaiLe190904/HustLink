@@ -159,7 +159,6 @@ public class RagInterviewServiceImpl implements RagInterviewService {
   }
 
   @Override
-  @Transactional
   public void reindexAll() {
     List<InterviewQuestionBank> questions = questionBankRepository.findAll();
     log.info("op=rag_reindex_all total_questions={}", questions.size());
