@@ -27,6 +27,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import org.springframework.context.ApplicationEventPublisher;
+import com.hustlink.backend.features.search.event.UserProfileUpdatedEvent;
+
 @Service
 public class AuthenticationService {
   private static final Logger logger = LoggerFactory.getLogger(AuthenticationService.class);
@@ -38,6 +41,7 @@ public class AuthenticationService {
   private final UserRepository userRepository;
   private final EmailService emailService;
   private final RestTemplate restTemplate;
+  private final ApplicationEventPublisher eventPublisher;
 
   @PersistenceContext
   private EntityManager entityManager;
@@ -48,12 +52,13 @@ public class AuthenticationService {
   @Value("${frontend.url}")
   private String frontendUrl;
 
-  public AuthenticationService(JsonWebToken jsonWebToken, Encoder encoder, UserRepository userRepository, EmailService emailService, RestTemplate restTemplate) {
+  public AuthenticationService(JsonWebToken jsonWebToken, Encoder encoder, UserRepository userRepository, EmailService emailService, RestTemplate restTemplate, ApplicationEventPublisher eventPublisher) {
     this.jsonWebToken = jsonWebToken;
     this.encoder = encoder;
     this.userRepository = userRepository;
     this.emailService = emailService;
     this.restTemplate = restTemplate;
+    this.eventPublisher = eventPublisher;
   }
 
   public static String generateEmailVerificationTokenOTP() {
@@ -419,7 +424,9 @@ public class AuthenticationService {
       user.setExperience(experience);
     if (education != null)
       user.setEducation(education);
-    return userRepository.save(user);
+    User savedUser = userRepository.save(user);
+    eventPublisher.publishEvent(new UserProfileUpdatedEvent(this, savedUser));
+    return savedUser;
   }
 
   @Transactional
