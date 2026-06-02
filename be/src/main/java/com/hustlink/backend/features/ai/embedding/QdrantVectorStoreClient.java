@@ -43,8 +43,16 @@ public class QdrantVectorStoreClient implements VectorStoreClient {
   @Override
   public void upsert(String collection, String id, float[] vector, Map<String, Object> payload) {
     ensureCollection(collection, vector.length);
+    Object finalId = id;
+    if (id != null && id.matches("\\d+")) {
+      try {
+        finalId = Long.parseLong(id);
+      } catch (NumberFormatException e) {
+        // fallback to string if parsing fails
+      }
+    }
     Map<String, Object> point = Map.of(
-            "id", id, "vector", toList(vector), "payload", payload == null ? Map.of() : payload);
+            "id", finalId, "vector", toList(vector), "payload", payload == null ? Map.of() : payload);
     Map<String, Object> body = Map.of("points", List.of(point));
     exchange("/collections/%s/points?wait=true".formatted(collection), HttpMethod.PUT, body, JsonNode.class);
     log.info("op=qdrant_upsert collection={} id={}", collection, id);
@@ -79,7 +87,15 @@ public class QdrantVectorStoreClient implements VectorStoreClient {
 
   @Override
   public void delete(String collection, String id) {
-    Map<String, Object> body = Map.of("points", List.of(id));
+    Object finalId = id;
+    if (id != null && id.matches("\\d+")) {
+      try {
+        finalId = Long.parseLong(id);
+      } catch (NumberFormatException e) {
+        // fallback
+      }
+    }
+    Map<String, Object> body = Map.of("points", List.of(finalId));
     exchange("/collections/%s/points/delete?wait=true".formatted(collection), HttpMethod.POST, body, JsonNode.class);
     log.info("op=qdrant_delete collection={} id={}", collection, id);
   }

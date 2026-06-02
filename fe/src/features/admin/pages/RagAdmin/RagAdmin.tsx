@@ -44,6 +44,7 @@ export function RagAdmin() {
   const [selectedFileName, setSelectedFileName] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
+  const [isReindexingProfiles, setIsReindexingProfiles] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetConfirmations, setResetConfirmations] = useState({
@@ -142,6 +143,20 @@ export function RagAdmin() {
     setIsReindexing(false);
   };
 
+  const reindexUserProfiles = async () => {
+    setIsReindexingProfiles(true);
+    await request<{ message: string }>({
+      endpoint: "/api/v1/search/admin/reindex",
+      method: "POST",
+      body: JSON.stringify({}),
+      onSuccess: (data) => {
+        toast.success(data.message || "Reindexed user profiles successfully.");
+      },
+      onFailure: (error) => toast.error(error),
+    });
+    setIsReindexingProfiles(false);
+  };
+
   const resetInterviewQuestionBank = async () => {
     if (!Object.values(resetConfirmations).every(Boolean)) {
       toast.error("Please confirm all three reset steps first.");
@@ -234,7 +249,18 @@ export function RagAdmin() {
                   onClick={reindexQuestions}
                   disabled={isReindexing}
                 >
-                  {isReindexing ? "Reindexing..." : "Reindex All"}
+                  {isReindexing ? "Reindexing..." : "Reindex Questions (RAG)"}
+                </Button>
+                <Button
+                  type="button"
+                  outline
+                  className="my-0 sm:w-fit"
+                  onClick={reindexUserProfiles}
+                  disabled={isReindexingProfiles}
+                >
+                  {isReindexingProfiles
+                    ? "Reindexing..."
+                    : "Reindex User Profiles"}
                 </Button>
                 <Button
                   type="button"
@@ -245,6 +271,26 @@ export function RagAdmin() {
                 >
                   {isInitializing ? "Initializing..." : "Init Vector Store"}
                 </Button>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm font-semibold text-slate-800">
+                  Phân biệt các nút Reindex hệ thống
+                </p>
+                <ul className="mt-2 list-disc pl-5 text-xs leading-5 text-slate-600 space-y-1">
+                  <li>
+                    <strong>Reindex Questions (RAG):</strong> Nhúng và đồng bộ
+                    toàn bộ bộ câu hỏi phỏng vấn trong database lên Qdrant
+                    collection <code>interview_question_bank</code> dùng cho
+                    Mock Interview AI.
+                  </li>
+                  <li>
+                    <strong>Reindex User Profiles:</strong> Nhúng và đồng bộ
+                    toàn bộ hồ sơ ứng viên (hoàn thiện) lên Qdrant collection{" "}
+                    <code>user_profile</code> phục vụ tìm kiếm ứng viên Hybrid
+                    (Semantic + BM25).
+                  </li>
+                </ul>
               </div>
 
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
