@@ -180,18 +180,20 @@ public class FeedService {
       return Page.empty(pageable);
     }
 
-    int virtualBatchPage = Math.max(0, pageable.getPageNumber());
     int requestedPageSize = pageable.getPageSize() > 0 ? pageable.getPageSize() : feedRankingProperties.batchSize();
     int pageSize = Math.max(1, requestedPageSize);
-    int candidatePoolSize = Math.min(
-            feedRankingProperties.maxCandidatePoolSize(), Math.max(feedRankingProperties.candidatePoolSize(), pageSize * 10));
-    int candidateWindowPage = (virtualBatchPage * pageSize) / candidatePoolSize;
-    int offsetInsideCandidateWindow = (virtualBatchPage * pageSize) % candidatePoolSize;
 
-    Pageable candidateRequest = PageRequest.of(candidateWindowPage, candidatePoolSize);
+    // Luôn lấy một tập ứng viên lớn từ đầu (ví dụ: top 150 bài viết mới nhất) để xếp hạng toàn diện
+    int poolSize = Math.max(150, feedRankingProperties.maxCandidatePoolSize());
+    Pageable candidateRequest = PageRequest.of(0, poolSize);
     Page<Post> candidatePage = postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, candidateRequest);
-    List<ScoredPost> rankedPosts = rankFeedPosts(authenticatedUserId, candidatePage.getContent(), candidatePoolSize);
-    List<ScoredPost> pagedRankedPosts = rankedPosts.stream().skip(offsetInsideCandidateWindow).limit(pageSize).toList();
+
+    // Xếp hạng toàn bộ ứng viên
+    List<ScoredPost> rankedPosts = rankFeedPosts(authenticatedUserId, candidatePage.getContent(), poolSize);
+
+    // Phân trang trực tiếp trên danh sách đã xếp hạng toàn diện theo offset của client
+    long offset = pageable.getOffset();
+    List<ScoredPost> pagedRankedPosts = rankedPosts.stream().skip(offset).limit(pageSize).toList();
     List<Long> pagedPostIds = pagedRankedPosts.stream().map(scoredPost -> scoredPost.post().getId()).toList();
     Map<Long, Integer> likesCountByPostId = buildLikesCountByPostId(pagedPostIds);
     Map<Long, Integer> commentsCountByPostId = buildCommentsCountByPostId(pagedPostIds);
@@ -202,8 +204,8 @@ public class FeedService {
     List<PostResponseDto> postDtos = pagedRankedPosts.stream().map(scoredPost -> PostResponseDto.from(
             scoredPost.post(), likesCountByPostId.getOrDefault(scoredPost.post().getId(), 0), commentsCountByPostId.getOrDefault(scoredPost.post().getId(), 0), likedPostIds.contains(scoredPost.post().getId()), scoredPost.score(), scoredPost.breakdown())).collect(Collectors.toList());
 
-    boolean hasNextWithinWindow = offsetInsideCandidateWindow + pageSize < rankedPosts.size();
-    long syntheticTotalElements = hasNextWithinWindow || candidatePage.hasNext() ? pageable.getOffset() + postDtos.size() + 1 : pageable.getOffset() + postDtos.size();
+    boolean hasNextWithinWindow = offset + pageSize < rankedPosts.size();
+    long syntheticTotalElements = hasNextWithinWindow || candidatePage.hasNext() ? offset + postDtos.size() + 1 : offset + postDtos.size();
 
     return new PageImpl<>(postDtos, pageable, syntheticTotalElements);
   }
@@ -345,6 +347,8 @@ public class FeedService {
       PostImpression existingImpression = existingImpressions.get(post.getId());
       if (existingImpression != null) {
         existingImpression.setServedAt(now);
+        int currentCount = existingImpression.getServedCount() == null ? 1 : existingImpression.getServedCount();
+        existingImpression.setServedCount(currentCount + 1);
         return existingImpression;
       }
 
@@ -437,12 +441,26 @@ public class FeedService {
     }
 
     if (impression != null) {
-      if (impression.getViewedAt() != null && impression.getViewedAt().isAfter(now.minusHours(feedRankingProperties.viewedWindowHours()))) {
+      boolean hasViewedPenalty = false;
+      if (impression.getViewedAt() != null 
+          && impression.getViewedAt().isAfter(now.minusHours(feedRankingProperties.viewedWindowHours()))
+          && impression.getViewedAt().isBefore(now.minusMinutes(5))) {
         breakdown.put("recentlyViewedPenalty", -feedRankingProperties.recentlyViewedPenalty());
-      } else
-        if (impression.getViewedAt() == null && impression.getServedAt() != null && impression.getServedAt().isAfter(now.minusHours(feedRankingProperties.servedWindowHours()))) {
+        hasViewedPenalty = true;
+      }
+
+      if (!hasViewedPenalty && impression.getServedAt() != null && impression.getServedAt().isAfter(now.minusHours(feedRankingProperties.servedWindowHours()))) {
+        // Chỉ áp dụng điểm phạt phục vụ nếu bài viết được phân phối trước phiên lướt hiện tại (khoảng 5 phút)
+        // Điều này giúp giữ bảng xếp hạng ổn định khi phân trang cuộn màn hình (paging) liên tục
+        if (impression.getServedAt().isBefore(now.minusMinutes(5))) {
           breakdown.put("recentlyServedPenalty", -feedRankingProperties.recentlyServedPenalty());
         }
+      }
+
+      int servedCount = impression.getServedCount() == null ? 1 : impression.getServedCount();
+      if (servedCount >= feedRankingProperties.fatigueThreshold()) {
+        breakdown.put("fatiguePenalty", -feedRankingProperties.fatiguePenalty());
+      }
     }
 
     double score = breakdown.values().stream().mapToDouble(Double::doubleValue).sum();
