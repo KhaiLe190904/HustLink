@@ -52,6 +52,18 @@ export function RagAdmin() {
     importAgain: false,
     spendTokensAgain: false,
   });
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    show: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const loadStats = async () => {
     await request<RagStatsResponse>({
@@ -246,7 +258,15 @@ export function RagAdmin() {
                   type="button"
                   outline
                   className="my-0 sm:w-fit"
-                  onClick={reindexQuestions}
+                  onClick={() =>
+                    setShowConfirmModal({
+                      show: true,
+                      title: "Reindex Interview Questions",
+                      message:
+                        "Are you sure you want to reindex all interview questions? This will generate embeddings and spend AI tokens.",
+                      onConfirm: () => reindexQuestions(),
+                    })
+                  }
                   disabled={isReindexing}
                 >
                   {isReindexing ? "Reindexing..." : "Reindex Questions (RAG)"}
@@ -255,7 +275,15 @@ export function RagAdmin() {
                   type="button"
                   outline
                   className="my-0 sm:w-fit"
-                  onClick={reindexUserProfiles}
+                  onClick={() =>
+                    setShowConfirmModal({
+                      show: true,
+                      title: "Reindex User Profiles",
+                      message:
+                        "Are you sure you want to reindex all user profiles? This will update the semantic search database.",
+                      onConfirm: () => reindexUserProfiles(),
+                    })
+                  }
                   disabled={isReindexingProfiles}
                 >
                   {isReindexingProfiles
@@ -299,59 +327,18 @@ export function RagAdmin() {
                 </p>
                 <p className="mt-2 text-sm leading-6 text-amber-800">
                   This removes only the <code>interview_question_bank</code>{" "}
-                  collection in Qdrant, then recreates it empty. It does not
-                  import anything by itself, so you stay in control of when
-                  embedding tokens are spent again.
+                  collection in Qdrant, then recreates it empty.
                 </p>
-
-                <div className="mt-4 grid gap-3">
-                  <ConfirmationRow
-                    checked={resetConfirmations.clearVectors}
-                    label="I understand this permanently clears the interview question vectors from Qdrant."
-                    onChange={(checked) =>
-                      setResetConfirmations((current) => ({
-                        ...current,
-                        clearVectors: checked,
-                      }))
-                    }
-                  />
-                  <ConfirmationRow
-                    checked={resetConfirmations.importAgain}
-                    label="I understand I will need to import questions or run Reindex All before RAG can use this bank again."
-                    onChange={(checked) =>
-                      setResetConfirmations((current) => ({
-                        ...current,
-                        importAgain: checked,
-                      }))
-                    }
-                  />
-                  <ConfirmationRow
-                    checked={resetConfirmations.spendTokensAgain}
-                    label="I understand a future import or reindex will call embeddings again and spend tokens."
-                    onChange={(checked) =>
-                      setResetConfirmations((current) => ({
-                        ...current,
-                        spendTokensAgain: checked,
-                      }))
-                    }
-                  />
-                </div>
 
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Button
                     type="button"
                     outline
                     className="my-0 border-amber-300 text-amber-900 hover:bg-amber-100 sm:w-fit"
-                    onClick={resetInterviewQuestionBank}
-                    disabled={isResetting || !allResetConfirmed}
+                    onClick={() => setShowClearModal(true)}
                   >
-                    {isResetting
-                      ? "Resetting..."
-                      : "Clear Qdrant Interview Bank"}
+                    Clear Qdrant Interview Bank
                   </Button>
-                  <span className="text-xs text-amber-700">
-                    Enabled only after all three confirmations are checked.
-                  </span>
                 </div>
               </div>
             </div>
@@ -409,6 +396,128 @@ export function RagAdmin() {
           </div>
         </aside>
       </section>
+
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900">
+              Clear Qdrant Interview Bank
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              This removes only the <code>interview_question_bank</code>{" "}
+              collection in Qdrant, then recreates it empty. It does not import
+              anything by itself.
+            </p>
+
+            <div className="mt-4 grid gap-3">
+              <ConfirmationRow
+                checked={resetConfirmations.clearVectors}
+                label="I understand this permanently clears the interview question vectors from Qdrant."
+                onChange={(checked) =>
+                  setResetConfirmations((current) => ({
+                    ...current,
+                    clearVectors: checked,
+                  }))
+                }
+              />
+              <ConfirmationRow
+                checked={resetConfirmations.importAgain}
+                label="I understand I will need to import questions or run Reindex All before RAG can use this bank again."
+                onChange={(checked) =>
+                  setResetConfirmations((current) => ({
+                    ...current,
+                    importAgain: checked,
+                  }))
+                }
+              />
+              <ConfirmationRow
+                checked={resetConfirmations.spendTokensAgain}
+                label="I understand a future import or reindex will call embeddings again and spend tokens."
+                onChange={(checked) =>
+                  setResetConfirmations((current) => ({
+                    ...current,
+                    spendTokensAgain: checked,
+                  }))
+                }
+              />
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                outline
+                className="my-0 px-4 py-2 border-slate-200 text-slate-700 hover:bg-slate-50 w-auto"
+                onClick={() => {
+                  setShowClearModal(false);
+                  setResetConfirmations({
+                    clearVectors: false,
+                    importAgain: false,
+                    spendTokensAgain: false,
+                  });
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="my-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white w-auto"
+                onClick={async () => {
+                  await resetInterviewQuestionBank();
+                  setShowClearModal(false);
+                }}
+                disabled={isResetting || !allResetConfirmed}
+              >
+                {isResetting ? "Resetting..." : "Clear Bank"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConfirmModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900">
+              {showConfirmModal.title}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              {showConfirmModal.message}
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                outline
+                className="my-0 px-4 py-2 border-slate-200 text-slate-700 hover:bg-slate-50 w-auto"
+                onClick={() =>
+                  setShowConfirmModal({
+                    show: false,
+                    title: "",
+                    message: "",
+                    onConfirm: () => {},
+                  })
+                }
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="my-0 px-4 py-2 bg-red-600 hover:bg-red-700 text-white w-auto font-bold"
+                onClick={() => {
+                  showConfirmModal.onConfirm();
+                  setShowConfirmModal({
+                    show: false,
+                    title: "",
+                    message: "",
+                    onConfirm: () => {},
+                  });
+                }}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
