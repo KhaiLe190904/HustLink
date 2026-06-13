@@ -3,6 +3,7 @@ package com.hustlink.backend.features.messaging.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.feed.model.Post;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
@@ -48,8 +49,13 @@ public class Message {
   @JsonProperty("isRead")
   private boolean isRead;
 
+  @ManyToOne(fetch = FetchType.EAGER)
+  @JoinColumn(name = "shared_post_id")
+  private Post sharedPost;
+
   @CreationTimestamp
   private LocalDateTime creationAt;
+
 
   public Message(User sender, User receiver, Conversation conversation, String content) {
     this.sender = sender;

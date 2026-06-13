@@ -1,5 +1,6 @@
 import { IUser } from "@/features/authentication/context/AuthenticationContextProvider";
 import { Message } from "@/features/messaging/components/Message/Message";
+import { IPost } from "@/features/feed/components/Post/Post";
 import {
   formatMessageDivider,
   shouldShowDivider,
@@ -16,6 +17,7 @@ export interface IMessage {
   attachmentContentType?: string;
   isRead: boolean;
   creationAt: string;
+  sharedPost?: IPost;
 }
 
 interface IMessagesProps {

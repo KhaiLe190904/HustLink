@@ -4,5 +4,6 @@ public record MessageDto(
                          Long receiverId,
                          String content,
                          Long attachmentObjectId,
-                         String attachmentKind) {
+                         String attachmentKind,
+                         Long sharedPostId) {
 }
