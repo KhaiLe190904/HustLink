@@ -1,7 +1,16 @@
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { resolveMediaUrl } from "@/utils/storage";
-import { FiChevronDown, FiFileText, FiLogOut, FiUser } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiFileText,
+  FiLogOut,
+  FiUser,
+  FiBriefcase,
+  FiCalendar,
+} from "react-icons/fi";
+import { request } from "@/utils/api";
 
 interface ProfileProps {
   setShowNavigationMenu: (show: boolean) => void;
@@ -16,6 +25,27 @@ export function Profile({
 }: ProfileProps) {
   const auth = useAuthentication();
   const navigate = useNavigate();
+  const [myCompanySlug, setMyCompanySlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (auth?.user) {
+      request<any>({
+        endpoint: "/api/v1/companies/my",
+        onSuccess: (data) => {
+          if (data && data.slug) {
+            setMyCompanySlug(data.slug);
+          } else {
+            setMyCompanySlug(null);
+          }
+        },
+        onFailure: () => {
+          setMyCompanySlug(null);
+        },
+      });
+    } else {
+      setMyCompanySlug(null);
+    }
+  }, [auth?.user]);
 
   if (!auth) return null;
 
@@ -43,6 +73,16 @@ export function Profile({
         <span className="hidden max-w-24 truncate text-sm font-bold lg:block">
           {user?.firstName}
         </span>
+        {user?.role === "ADMIN" && (
+          <span className="hidden lg:block rounded-md bg-red-50 border border-red-200 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-red-700 shrink-0">
+            Admin
+          </span>
+        )}
+        {user?.role === "RECRUITER" && (
+          <span className="hidden lg:block rounded-md bg-blue-50 border border-blue-200 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-blue-700 shrink-0">
+            Recruiter
+          </span>
+        )}
         <FiChevronDown
           className={`h-4 w-4 transition ${showProfileMenu ? "rotate-180" : ""}`}
         />
@@ -82,18 +122,64 @@ export function Profile({
               View Profile
             </button>
 
-            <button
-              className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
-              onClick={() => {
-                setShowProfileMenu(false);
-                navigate("/ai/cv");
-              }}
-            >
-              <span className="grid h-9 w-9 place-items-center rounded-2xl bg-slate-100 text-slate-700">
-                <FiFileText className="h-4 w-4" />
-              </span>
-              AI CV
-            </button>
+            {user?.role === "USER" && (
+              <button
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  navigate("/jobs/my-applications");
+                }}
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-2xl bg-slate-100 text-slate-700">
+                  <FiFileText className="h-4 w-4" />
+                </span>
+                My Applications
+              </button>
+            )}
+
+            {user?.role === "USER" && (
+              <button
+                className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
+                onClick={() => {
+                  setShowProfileMenu(false);
+                  navigate("/ai/cv");
+                }}
+              >
+                <span className="grid h-9 w-9 place-items-center rounded-2xl bg-slate-100 text-slate-700">
+                  <FiFileText className="h-4 w-4" />
+                </span>
+                AI CV
+              </button>
+            )}
+
+            {myCompanySlug && (
+              <>
+                <button
+                  className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate(`/companies/${myCompanySlug}`);
+                  }}
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-2xl bg-slate-100 text-slate-700">
+                    <FiBriefcase className="h-4 w-4" />
+                  </span>
+                  My Company
+                </button>
+                <button
+                  className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate(`/companies/${myCompanySlug}?tab=events`);
+                  }}
+                >
+                  <span className="grid h-9 w-9 place-items-center rounded-2xl bg-slate-100 text-slate-700">
+                    <FiCalendar className="h-4 w-4" />
+                  </span>
+                  My Company Events
+                </button>
+              </>
+            )}
 
             <Link
               to="/logout"

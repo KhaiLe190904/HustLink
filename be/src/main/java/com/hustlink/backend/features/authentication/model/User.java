@@ -1,6 +1,7 @@
 package com.hustlink.backend.features.authentication.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.hustlink.backend.features.feed.model.Post;
 import com.hustlink.backend.features.messaging.model.Conversation;
 import com.hustlink.backend.features.networking.model.Connection;
@@ -18,6 +19,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
 
   @Id
@@ -51,22 +53,28 @@ public class User {
   private LocalDateTime passwordResetTokenExpiryDate = null;
 
   @FullTextField(analyzer = "standard")
+  @Column(columnDefinition = "nvarchar(255)")
   private String firstName = null;
   @FullTextField(analyzer = "standard")
+  @Column(columnDefinition = "nvarchar(255)")
   private String lastName = null;
   @FullTextField(analyzer = "standard")
+  @Column(columnDefinition = "nvarchar(255)")
   private String company = null;
   @FullTextField(analyzer = "standard")
+  @Column(columnDefinition = "nvarchar(255)")
   private String position = null;
   @Builder.Default
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
   private UserRole role = UserRole.USER;
+  @Column(columnDefinition = "nvarchar(255)")
   private String locationDisplay = null;
   private String locationKey = null;
   private Boolean profileComplete = false;
   private String coverPicture = null;
   private String profilePicture = null;
+  @Column(columnDefinition = "nvarchar(max)")
   private String about = null;
   @Lob
   @Column(columnDefinition = "nvarchar(max)")
@@ -74,6 +82,13 @@ public class User {
   @Lob
   @Column(columnDefinition = "nvarchar(max)")
   private String education = null;
+
+  @Builder.Default
+  private boolean banned = false;
+  private LocalDateTime suspensionExpiresAt = null;
+
+  @Transient
+  private String associatedCompanyName = null;
 
   @JsonIgnore
   @OneToMany(mappedBy = "recipient", cascade = CascadeType.ALL, orphanRemoval = true)

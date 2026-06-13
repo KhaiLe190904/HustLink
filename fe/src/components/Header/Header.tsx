@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 import { useEffect, useState } from "react";
 import { Profile } from "@/components/Header/components/Profile";
+import { NotificationDropdown } from "@/components/Header/components/NotificationDropdown";
 import { Search } from "@/components/Header/components/Search/Search";
 import { useWebSocket } from "@/features/websocket/websocket";
 import { request } from "@/utils/api";
@@ -12,10 +13,12 @@ import { IConnection } from "@/features/networking/components/Connection/Connect
 import {
   FiBell,
   FiBriefcase,
+  FiCalendar,
   FiFileText,
   FiHome,
   FiMenu,
   FiMessageCircle,
+  FiSliders,
   FiUsers,
   FiX,
 } from "react-icons/fi";
@@ -24,6 +27,7 @@ export function Header() {
   const webSocketClient = useWebSocket();
   const location = useLocation();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [showNavigationMenu, setShowNavigationMenu] = useState(
     window.innerWidth > 1080 ? true : false
   );
@@ -50,6 +54,18 @@ export function Header() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  useEffect(() => {
+    if (showProfileMenu) {
+      setShowNotifications(false);
+    }
+  }, [showProfileMenu]);
+
+  useEffect(() => {
+    if (showNotifications) {
+      setShowProfileMenu(false);
+    }
+  }, [showNotifications]);
 
   useEffect(() => {
     request<INotification[]>({
@@ -214,7 +230,13 @@ export function Header() {
       icon: FiUsers,
       badge: location.pathname.includes("network") ? 0 : invitations.length,
     },
-    { to: "/jobs", label: "Jobs", icon: FiBriefcase, badge: 0 },
+    {
+      to: user?.role === "RECRUITER" ? "/jobs/recruiter" : "/jobs",
+      label: user?.role === "RECRUITER" ? "Recruitment" : "Jobs",
+      icon: FiBriefcase,
+      badge: 0,
+    },
+    { to: "/events", label: "Events", icon: FiCalendar, badge: 0 },
     {
       to: "/messaging",
       label: "Messaging",
@@ -229,17 +251,25 @@ export function Header() {
     },
   ];
 
-  if (user?.role === "ADMIN") {
-    navItems.splice(2, 0, {
-      to: "/admin/rag",
-      label: "RAG Admin",
-      icon: FiFileText,
-      badge: 0,
-    });
-  }
+  const filteredNavItems =
+    user?.role === "ADMIN"
+      ? [
+          { to: "/", label: "Home", icon: FiHome, badge: 0 },
+          { to: "/admin", label: "Admin Console", icon: FiSliders, badge: 0 },
+          {
+            to: "/notifications",
+            label: "Notifications",
+            icon: FiBell,
+            badge: nonReadNotificationCount,
+          },
+        ]
+      : user?.role !== "USER"
+        ? navItems.filter((item) => item.label !== "AI CV")
+        : navItems;
 
   const closeMenus = () => {
     setShowProfileMenu(false);
+    setShowNotifications(false);
     if (window.innerWidth <= 1080) {
       setShowNavigationMenu(false);
     }
@@ -263,8 +293,49 @@ export function Header() {
         <div className="flex items-center justify-end gap-2">
           {showNavigationMenu ? (
             <ul className="absolute right-4 top-[82px] grid w-[min(22rem,calc(100vw-2rem))] gap-1 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-900/10 lg:relative lg:right-auto lg:top-auto lg:flex lg:w-auto lg:items-center lg:gap-1 lg:border-none lg:bg-transparent lg:p-0 lg:shadow-none">
-              {navItems.map((item) => {
+              {filteredNavItems.map((item) => {
                 const Icon = item.icon;
+                const isNotifications = item.to === "/notifications";
+
+                if (isNotifications) {
+                  const isActive =
+                    showNotifications || location.pathname === "/notifications";
+                  return (
+                    <li key={item.to} className="relative">
+                      <button
+                        id="notification-toggle-btn"
+                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 font-semibold transition-all lg:flex-col lg:gap-1 lg:px-3 lg:py-2 ${
+                          isActive
+                            ? "bg-red-50 text-red-700 lg:bg-slate-100"
+                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
+                        }`}
+                        onClick={() => {
+                          setShowNotifications((prev) => !prev);
+                          setShowProfileMenu(false);
+                        }}
+                      >
+                        <span className="relative">
+                          <Icon className="h-5 w-5" />
+                          {item.badge > 0 ? (
+                            <span className="absolute -right-2.5 -top-2.5 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                              {item.badge > 9 ? "9+" : item.badge}
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="text-sm lg:text-[11px]">
+                          {item.label}
+                        </span>
+                      </button>
+                      {showNotifications && (
+                        <NotificationDropdown
+                          notifications={notifications}
+                          setNotifications={setNotifications}
+                          onClose={() => setShowNotifications(false)}
+                        />
+                      )}
+                    </li>
+                  );
+                }
 
                 return (
                   <li key={item.to} className="relative">
@@ -278,7 +349,10 @@ export function Header() {
                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"
                         }`
                       }
-                      onClick={closeMenus}
+                      onClick={() => {
+                        closeMenus();
+                        setShowNotifications(false);
+                      }}
                     >
                       <span className="relative">
                         <Icon className="h-5 w-5" />

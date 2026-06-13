@@ -8,16 +8,21 @@ import com.hustlink.backend.features.networking.dto.UserRecommendation.Recommend
 import com.hustlink.backend.features.networking.model.Connection;
 import com.hustlink.backend.features.networking.model.Status;
 import com.hustlink.backend.features.networking.repository.ConnectionRepository;
+import com.hustlink.backend.features.search.service.SearchService;
+import com.hustlink.backend.features.ai.embedding.EmbeddingService;
+import com.hustlink.backend.features.ai.embedding.VectorStoreClient;
+import com.hustlink.backend.features.ai.embedding.dto.SimilarPoint;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +32,16 @@ public class RecommendationService {
   private final ConnectionRepository connectionRepository;
   private final UserRepository userRepository;
   private final PostRepository postRepository;
+  private final SearchService searchService;
+  private final EmbeddingService embeddingService;
+  private final VectorStoreClient vectorStoreClient;
+
+  private RecommendationService self;
+
+  @Autowired
+  public void setSelf(@Lazy RecommendationService self) {
+    this.self = self;
+  }
 
   // Weights for ML scoring (tunable hyperparameters)
   private static final double SECOND_DEGREE_WEIGHT = 5.0;
@@ -35,6 +50,7 @@ public class RecommendationService {
   private static final double POSITION_MATCH_WEIGHT = 2.5;
   private static final double LOCATION_MATCH_WEIGHT = 1.8;
   private static final double ACTIVITY_SIMILARITY_WEIGHT = 2.0;
+  private static final double SEMANTIC_SIMILARITY_WEIGHT = 5.0;
   private static final double PROFILE_COMPLETE_BONUS = 1.5;
   private static final double RECENT_ACTIVITY_BONUS = 1.0;
   private static final int DEFAULT_LIMIT = 20;
@@ -44,7 +60,7 @@ public class RecommendationService {
   @Transactional(readOnly = true)
   public List<UserRecommendation> getRecommendations(User user, int limit) {
     int normalizedLimit = Math.max(1, Math.min(limit <= 0 ? DEFAULT_LIMIT : limit, MAX_LIMIT));
-    List<UserRecommendation> rankedRecommendations = getRankedRecommendations(user);
+    List<UserRecommendation> rankedRecommendations = self.getRankedRecommendations(user);
     if (rankedRecommendations.isEmpty()) {
       return List.of();
     }
@@ -63,9 +79,37 @@ public class RecommendationService {
     Set<User> secondDegreeConnections = getSecondDegreeConnections(user, connectedUserIds);
 
     Set<User> candidates = new HashSet<>(secondDegreeConnections);
+
+    Map<Long, Double> semanticScores = new HashMap<>();
+    try {
+      String indexText = searchService.buildUserIndexText(user);
+      if (indexText != null && !indexText.isBlank()) {
+        float[] userVector = embeddingService.embed(indexText);
+        List<SimilarPoint> similarPoints = vectorStoreClient.search("user_profile", userVector, CANDIDATE_POOL_SIZE, Map.of());
+
+        List<Long> similarUserIds = new ArrayList<>();
+        for (SimilarPoint point : similarPoints) {
+          try {
+            Long id = Long.parseLong(point.id());
+            similarUserIds.add(id);
+            semanticScores.put(id, point.score());
+          } catch (NumberFormatException e) {
+            // ignore
+          }
+        }
+
+        if (!similarUserIds.isEmpty()) {
+          List<User> similarUsers = userRepository.findAllById(similarUserIds);
+          candidates.addAll(similarUsers);
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Failed to fetch similar users from Qdrant: {}. Falling back to default candidates.", e.getMessage());
+    }
+
     if (candidates.size() < CANDIDATE_POOL_SIZE) {
       List<User> additionalUsers = userRepository.findRandomCompleteProfiles(
-              new ArrayList<>(connectedAndPendingUserIds), CANDIDATE_POOL_SIZE);
+              new ArrayList<>(connectedAndPendingUserIds), CANDIDATE_POOL_SIZE - candidates.size());
       candidates.addAll(additionalUsers);
     }
 
@@ -79,10 +123,10 @@ public class RecommendationService {
         continue;
       }
 
-      UserFeatures features = extractFeatures(user, candidate, secondDegreeConnections, connectedUserIds, userActivityScores);
+      UserFeatures features = extractFeatures(user, candidate, secondDegreeConnections, connectedUserIds, userActivityScores, semanticScores);
       double score = calculateMLScore(features);
 
-      RecommendationReason reasons = RecommendationReason.builder().mutualConnections(features.mutualConnections).sameCompany(features.sameCompany).samePosition(features.samePosition).sameLocation(features.sameLocation).isSecondDegreeConnection(features.isSecondDegree).activitySimilarity(features.activitySimilarity).build();
+      RecommendationReason reasons = RecommendationReason.builder().mutualConnections(features.mutualConnections).sameCompany(features.sameCompany).samePosition(features.samePosition).sameLocation(features.sameLocation).isSecondDegreeConnection(features.isSecondDegree).activitySimilarity(features.activitySimilarity).semanticSimilarity(features.semanticSimilarity).build();
 
       recommendations.add(UserRecommendation.builder().user(candidate).score(score).reasons(reasons).build());
     }
@@ -96,7 +140,7 @@ public class RecommendationService {
     }).collect(Collectors.toList());
   }
 
-  private UserFeatures extractFeatures(User user, User candidate, Set<User> secondDegreeConnections, Set<Long> connectedUserIds, Map<Long, Integer> userActivityScores) {
+  private UserFeatures extractFeatures(User user, User candidate, Set<User> secondDegreeConnections, Set<Long> connectedUserIds, Map<Long, Integer> userActivityScores, Map<Long, Double> semanticScores) {
     UserFeatures features = new UserFeatures();
 
     features.isSecondDegree = secondDegreeConnections.contains(candidate);
@@ -110,6 +154,7 @@ public class RecommendationService {
     features.activitySimilarity = calculateActivitySimilarity(userActivity, candidateActivity);
     features.profileComplete = candidate.getProfileComplete();
     features.hasRecentActivity = hasRecentActivity(candidate);
+    features.semanticSimilarity = semanticScores.getOrDefault(candidate.getId(), 0.0);
 
     return features;
   }
@@ -132,6 +177,7 @@ public class RecommendationService {
 
     score += features.mutualConnections * MUTUAL_CONNECTION_WEIGHT;
     score += features.activitySimilarity * ACTIVITY_SIMILARITY_WEIGHT;
+    score += features.semanticSimilarity * SEMANTIC_SIMILARITY_WEIGHT;
 
     if (features.profileComplete) {
       score += PROFILE_COMPLETE_BONUS;
@@ -246,5 +292,6 @@ public class RecommendationService {
     double activitySimilarity;
     boolean profileComplete;
     boolean hasRecentActivity;
+    double semanticSimilarity;
   }
 }
