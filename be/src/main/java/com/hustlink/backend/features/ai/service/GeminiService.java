@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 
 @Service
@@ -35,6 +37,25 @@ public class GeminiService {
   @Value("${gemini.base-url:https://generativelanguage.googleapis.com/v1beta/models}")
   private String baseUrl;
 
+  @Value("${ai.pricing.gemini-3-flash.input:0.075}")
+  private double priceInput;
+
+  @Value("${ai.pricing.gemini-3-flash.output:0.30}")
+  private double priceOutput;
+
+  public record TokenUsage(int promptTokens, int completionTokens, BigDecimal estimatedCostUsd) {
+  }
+
+  private static final ThreadLocal<TokenUsage> lastTokenUsage = new ThreadLocal<>();
+
+  public static TokenUsage getLastTokenUsage() {
+    return lastTokenUsage.get();
+  }
+
+  public static void clearLastTokenUsage() {
+    lastTokenUsage.remove();
+  }
+
   public boolean isConfigured() {
     return apiKey != null && !apiKey.isBlank();
   }
@@ -52,13 +73,15 @@ public class GeminiService {
                       "score": number,
                       "summary": "string",
                       "strengths": ["string"],
-                      "improvements": ["string"]
+                      "improvements": ["string"],
+                      "skills": ["string"]
                     }
 
             Rules:
             - score must be between 0 and 100.
             - strengths should contain 3 to 5 concise bullet-style strings.
             - improvements should contain 3 to 5 concise but specific bullet-style strings.
+            - skills should contain up to 20 key technical and soft skills extracted from the CV (prefer Vietnamese/English as appropriate).
             - Each improvement must follow the structure: [Action Verb] + [Specific Weak Point] + [Practical Fix].
             - Use professional tone and active verbs (e.g., "Optimize", "Quantify", "Refine", "Standardize").
             - Focus on professional impact rather than just pointing out mistakes.
@@ -70,6 +93,8 @@ public class GeminiService {
                     CV:
                     %s
                     """.formatted(analysisLanguage.instructionLabel(), cvText);
+
+    prompt = appendCurrentTimeContext(prompt);
 
     Map<String, Object> payload = Map.of(
             "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.3, "responseMimeType", "application/json"));
@@ -87,7 +112,7 @@ public class GeminiService {
     try {
       JsonNode analysis = objectMapper.readTree(textNode.asText());
       return new CVInsight(
-              clampScore(analysis.path("score").asInt(0)), analysis.path("summary").asText(""), toList(analysis.path("strengths")), toList(analysis.path("improvements")));
+              clampScore(analysis.path("score").asInt(0)), analysis.path("summary").asText(""), toList(analysis.path("strengths")), toList(analysis.path("improvements")), toList(analysis.path("skills")));
     } catch (JsonProcessingException exception) {
       throw new IllegalStateException("Gemini returned invalid JSON analysis.", exception);
     }
@@ -147,6 +172,8 @@ public class GeminiService {
             %s
             """.formatted(
             numberOfQuestions, numberOfQuestions, level, analysisLanguage.instructionLabel(), jobPosition, formatRagContext(ragContext), trimToMaxChars(cvText, 12000));
+
+    prompt = appendCurrentTimeContext(prompt);
 
     Map<String, Object> payload = Map.of(
             "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.4, "responseMimeType", "application/json"));
@@ -253,6 +280,8 @@ public class GeminiService {
                     """.formatted(
             level, analysisLanguage.instructionLabel(), jobPosition, level, trimToMaxChars(cvText, 4000), formatRagContext(ragEvaluationContext), questionAnswerBlock);
 
+    prompt = appendCurrentTimeContext(prompt);
+
     Map<String, Object> payload = Map.of(
             "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.2, "responseMimeType", "application/json"));
 
@@ -309,6 +338,12 @@ public class GeminiService {
     return "ăâđêôơưáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ".indexOf(Character.toLowerCase(codePoint)) >= 0;
   }
 
+  private String appendCurrentTimeContext(String prompt) {
+    java.time.LocalDateTime now = java.time.LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
+    String formattedTime = now.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    return "[System Context - Current Date and Time: " + formattedTime + "]\n" + prompt;
+  }
+
   private JsonNode requestJson(String operation, Map<String, Object> payload) {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
@@ -324,7 +359,22 @@ public class GeminiService {
       try {
         ResponseEntity<JsonNode> response = restTemplate.exchange(endpoint, HttpMethod.POST, request, JsonNode.class);
         log.info("Gemini {} succeeded with model={}", operation, candidateModel);
-        return response.getBody();
+        JsonNode responseBody = response.getBody();
+        if (responseBody != null) {
+          JsonNode usageNode = responseBody.path("usageMetadata");
+          if (!usageNode.isMissingNode()) {
+            int promptTokens = usageNode.path("promptTokenCount").asInt(0);
+            int completionTokens = usageNode.path("candidatesTokenCount").asInt(0);
+            double cost = (promptTokens * priceInput + completionTokens * priceOutput) / 1000000.0;
+            BigDecimal costBd = BigDecimal.valueOf(cost).setScale(6, RoundingMode.HALF_UP);
+            lastTokenUsage.set(new TokenUsage(promptTokens, completionTokens, costBd));
+          } else {
+            lastTokenUsage.set(new TokenUsage(0, 0, BigDecimal.ZERO));
+          }
+        } else {
+          lastTokenUsage.set(new TokenUsage(0, 0, BigDecimal.ZERO));
+        }
+        return responseBody;
       } catch (RestClientResponseException exception) {
         if (shouldTryNextModel(exception)) {
           log.warn(
@@ -460,7 +510,56 @@ public class GeminiService {
     }
   }
 
-  public record CVInsight(Integer score, String summary, List<String> strengths, List<String> improvements) {
+  public record CVInsight(Integer score, String summary, List<String> strengths, List<String> improvements,
+                          List<String> skills) {
+  }
+
+  public record JobMatchInsight(List<String> reasons, List<String> gaps) {
+  }
+
+  public JobMatchInsight generateMatchReasoning(String cvText, String jobTitle, String jobDescription, Set<String> jobSkills) {
+    if (!isConfigured()) {
+      return new JobMatchInsight(List.of("Gemini API not configured"), List.of("Gemini API not configured"));
+    }
+    AnalysisLanguage analysisLanguage = detectLanguage(cvText);
+    String prompt = """
+            You are an expert HR system analyzing candidate suitability for a job.
+            Given candidate's CV and job details, analyze strengths (reasons to hire) and gaps (areas of improvement/missing requirements).
+            Return valid JSON only with this exact schema:
+            {
+              "reasons": ["string"],
+              "gaps": ["string"]
+            }
+            Rules:
+            - Provide 3 concise and specific bullet points for reasons in %s.
+            - Provide 3 concise and specific bullet points for gaps in %s.
+            - Do not wrap JSON in markdown.
+
+            Job Title: %s
+            Job Description: %s
+            Job Skills Required: %s
+
+            Candidate CV:
+            %s
+            """.formatted(analysisLanguage.instructionLabel(), jobTitle, jobDescription, String.join(", ", jobSkills), trimToMaxChars(cvText, 8000));
+
+    prompt = appendCurrentTimeContext(prompt);
+
+    Map<String, Object> payload = Map.of(
+            "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))), "generationConfig", Map.of("temperature", 0.3, "responseMimeType", "application/json"));
+
+    try {
+      JsonNode root = requestJson("generateMatchReasoning", payload);
+      JsonNode textNode = root.path("candidates").path(0).path("content").path("parts").path(0).path("text");
+      if (textNode.isMissingNode() || textNode.asText().isBlank()) {
+        return new JobMatchInsight(List.of("Không tìm thấy kết quả phân tích"), List.of("Không tìm thấy kết quả phân tích"));
+      }
+      JsonNode matchNode = objectMapper.readTree(textNode.asText());
+      return new JobMatchInsight(toList(matchNode.path("reasons")), toList(matchNode.path("gaps")));
+    } catch (Exception e) {
+      log.warn("Failed to generate match reasoning: {}", e.getMessage());
+      return new JobMatchInsight(List.of("Có lỗi trong quá trình phân tích"), List.of("Có lỗi trong quá trình phân tích"));
+    }
   }
 
   public record InterviewQuestionDraft(

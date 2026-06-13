@@ -153,11 +153,11 @@ public class CVContextBuilder {
   }
 
   private boolean isSectionHeading(String line, String sectionKey, boolean isMarkdown) {
-    // Nếu là định dạng Markdown của Unstructured, Heading bắt buộc phải bắt đầu bằng '#' hoặc '##'
+    boolean exactMatchOnly = false;
     if (isMarkdown) {
       String trimmed = line.trim();
       if (!trimmed.startsWith("#") && !trimmed.startsWith("##")) {
-        return false;
+        exactMatchOnly = true;
       }
     }
 
@@ -167,23 +167,33 @@ public class CVContextBuilder {
     }
     return switch (sectionKey) {
       case "skills" ->
-        matchesAny(normalized, "skills", "technical skills", "core skills", "technologies", "tech stack", "ky nang", "ki nang", "cong nghe");
+        matchesAny(normalized, exactMatchOnly, "skills", "technical skills", "core skills", "technologies", "tech stack", "key skills", "skills and technologies", "skills technologies", "ky nang", "ki nang", "cong nghe");
       case "experience" ->
-        matchesAny(normalized, "experience", "work experience", "employment history", "professional experience", "kinh nghiem", "kinh nghiem lam viec");
+        matchesAny(normalized, exactMatchOnly, "experience", "work experience", "employment history", "professional experience", "work history", "relevant experience", "kinh nghiem", "kinh nghiem lam viec");
       case "projects" ->
-        matchesAny(normalized, "projects", "project experience", "selected projects", "du an", "san pham");
-      case "education" -> matchesAny(normalized, "education", "academic background", "hoc van", "qua trinh hoc tap");
-      case "certifications" -> matchesAny(normalized, "certifications", "certificates", "chung chi");
+        matchesAny(normalized, exactMatchOnly, "projects", "project experience", "selected projects", "personal projects", "academic projects", "du an", "san pham");
+      case "education" ->
+        matchesAny(normalized, exactMatchOnly, "education", "academic background", "academic history", "education background", "hoc van", "qua trinh hoc tap");
+      case "certifications" ->
+        matchesAny(normalized, exactMatchOnly, "certifications", "certificates", "chung chi", "awards and certifications", "awards certifications", "certificates and awards", "certificates awards", "awards and certificates", "awards certificates", "achievements and certifications", "achievements certifications", "certifications and achievements", "certifications achievements", "certifications and awards", "certifications awards", "honors and certificates", "honors certificates", "chung chi va giai thuong", "giai thuong va chung chi", "chung chi va thanh tich", "thanh tich va chung chi"
+        );
       case "achievements" ->
-        matchesAny(normalized, "achievements", "awards", "thanh tich", "danh hieu", "giai thuong", "danh hieu va giai thuong");
+        matchesAny(normalized, exactMatchOnly, "achievements", "awards", "honors", "honors and awards", "thanh tich", "danh hieu", "giai thuong", "danh hieu va giai thuong", "awards and certifications", "awards certifications", "certificates and awards", "certificates awards", "awards and certificates", "awards certificates", "achievements and certifications", "achievements certifications", "certifications and achievements", "certifications achievements", "certifications and awards", "certifications awards", "honors and certificates", "honors certificates", "chung chi va giai thuong", "giai thuong va chung chi", "chung chi va thanh tich", "thanh tich va chung chi"
+        );
       default -> false;
     };
   }
 
-  private boolean matchesAny(String normalized, String... candidates) {
+  private boolean matchesAny(String normalized, boolean exactMatchOnly, String... candidates) {
     for (String candidate : candidates) {
-      if (normalized.equals(candidate) || normalized.startsWith(candidate + " ")) {
-        return true;
+      if (exactMatchOnly) {
+        if (normalized.equals(candidate) || (normalized.startsWith(candidate) && normalized.length() <= candidate.length() + 6) || (normalized.endsWith(candidate) && normalized.length() <= candidate.length() + 6)) {
+          return true;
+        }
+      } else {
+        if (normalized.equals(candidate) || normalized.startsWith(candidate + " ")) {
+          return true;
+        }
       }
     }
     return false;

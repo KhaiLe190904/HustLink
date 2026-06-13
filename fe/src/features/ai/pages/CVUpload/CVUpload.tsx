@@ -59,6 +59,16 @@ const friendlyDeleteError = (error: string) => {
     return "This CV already contains interview history, so it cannot be deleted.";
   }
 
+  const lowerError = error.toLowerCase();
+  if (
+    lowerError.includes("reference constraint") ||
+    lowerError.includes("job_applications") ||
+    lowerError.includes("foreign key") ||
+    lowerError.includes("fk95pbl52f")
+  ) {
+    return "This CV cannot be deleted because you have already used it to apply for a job.";
+  }
+
   return error;
 };
 

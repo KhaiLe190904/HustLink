@@ -48,6 +48,15 @@ interface InterviewResultResponse {
 
 export function InterviewHistory() {
   const navigate = useNavigate();
+
+  const isResumable = (session: InterviewSessionSummaryResponse) => {
+    if (session.status !== "IN_PROGRESS") return false;
+    const startTime = new Date(session.startedAt).getTime();
+    const now = new Date().getTime();
+    const diffMinutes = (now - startTime) / (1000 * 60);
+    return diffMinutes < 15;
+  };
+
   const [pageNumber, setPageNumber] = useState(0);
   const [historyPage, setHistoryPage] =
     useState<Page<InterviewSessionSummaryResponse> | null>(null);
@@ -199,16 +208,28 @@ export function InterviewHistory() {
                         : "View Result"}
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    outline
-                    className="my-0 sm:w-fit"
-                    onClick={() =>
-                      navigate(`/ai/interview?cvId=${session.cvId}`)
-                    }
-                  >
-                    Practice Again
-                  </Button>
+                  {session.status === "IN_PROGRESS" && isResumable(session) ? (
+                    <Button
+                      type="button"
+                      className="my-0 sm:w-fit bg-amber-600 hover:bg-amber-700 text-white border-none animate-pulse"
+                      onClick={() =>
+                        navigate(`/ai/interview?cvId=${session.cvId}`)
+                      }
+                    >
+                      Resume
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      outline
+                      className="my-0 sm:w-fit"
+                      onClick={() =>
+                        navigate(`/ai/interview?cvId=${session.cvId}`)
+                      }
+                    >
+                      Practice Again
+                    </Button>
+                  )}
                 </div>
               </article>
             ))}
