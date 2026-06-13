@@ -291,7 +291,7 @@ export function AdminUsers() {
   const handleRoleChange = async () => {
     if (!actionModal.user) return;
 
-    const body: any = { role: newRole };
+    const body: Record<string, string | number> = { role: newRole };
     if (newRole === "RECRUITER") {
       if (companyMode === "join") {
         if (!selectedCompanyId) {
@@ -679,7 +679,9 @@ export function AdminUsers() {
                     </label>
                     <CustomSelect
                       value={newRole}
-                      onChange={(val) => setNewRole(val as any)}
+                      onChange={(val) =>
+                        setNewRole(val as "USER" | "RECRUITER" | "ADMIN")
+                      }
                       options={[
                         { value: "USER", label: "User (Standard account)" },
                         { value: "RECRUITER", label: "Recruiter" },

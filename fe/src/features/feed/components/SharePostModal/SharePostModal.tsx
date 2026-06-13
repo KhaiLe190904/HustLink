@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { request } from "@/utils/api";
 import { FiSearch, FiX, FiSend, FiCheck } from "react-icons/fi";
 import { toast } from "react-toastify";
@@ -38,42 +38,44 @@ export function SharePostModal({
   const [sharing, setSharing] = useState(false);
 
   const isInitialMount = useRef(true);
+  const loadingConnectionsRef = useRef(loadingConnections);
+  loadingConnectionsRef.current = loadingConnections;
 
-  const loadConnections = async (
-    pageToLoad: number,
-    reset: boolean = false
-  ) => {
-    if (loadingConnections) return;
-    setLoadingConnections(true);
+  const loadConnections = useCallback(
+    async (pageToLoad: number, reset: boolean = false) => {
+      if (loadingConnectionsRef.current) return;
+      setLoadingConnections(true);
 
-    const params = new URLSearchParams();
-    params.append("status", "ACCEPTED");
-    params.append("page", String(pageToLoad));
-    params.append("size", "6");
-    if (searchQuery.trim()) {
-      params.append("query", searchQuery.trim());
-    }
+      const params = new URLSearchParams();
+      params.append("status", "ACCEPTED");
+      params.append("page", String(pageToLoad));
+      params.append("size", "6");
+      if (searchQuery.trim()) {
+        params.append("query", searchQuery.trim());
+      }
 
-    await request<any>({
-      endpoint: `/api/v1/networking/connections/paginated?${params.toString()}`,
-      onSuccess: (data) => {
-        const newConnections = data.content || [];
-        if (reset) {
-          setConnections(newConnections);
-          setConnectionsPage(1);
-        } else {
-          setConnections((prev) => [...prev, ...newConnections]);
-          setConnectionsPage(pageToLoad + 1);
-        }
-        setHasMoreConnections(!data.last);
-        setLoadingConnections(false);
-      },
-      onFailure: (err) => {
-        console.error(err);
-        setLoadingConnections(false);
-      },
-    });
-  };
+      await request<{ content: IConnection[]; last: boolean }>({
+        endpoint: `/api/v1/networking/connections/paginated?${params.toString()}`,
+        onSuccess: (data) => {
+          const newConnections = data.content || [];
+          if (reset) {
+            setConnections(newConnections);
+            setConnectionsPage(1);
+          } else {
+            setConnections((prev) => [...prev, ...newConnections]);
+            setConnectionsPage(pageToLoad + 1);
+          }
+          setHasMoreConnections(!data.last);
+          setLoadingConnections(false);
+        },
+        onFailure: (err) => {
+          console.error(err);
+          setLoadingConnections(false);
+        },
+      });
+    },
+    [searchQuery]
+  );
 
   // Fetch conversations once on open
   useEffect(() => {
@@ -108,7 +110,7 @@ export function SharePostModal({
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [searchQuery, showModal]);
+  }, [searchQuery, showModal, loadConnections]);
 
   // Reset initial mount ref when modal closes
   useEffect(() => {

@@ -29,7 +29,7 @@ export function Profile({
 
   useEffect(() => {
     if (auth?.user) {
-      request<any>({
+      request<{ slug?: string }>({
         endpoint: "/api/v1/companies/my",
         onSuccess: (data) => {
           if (data && data.slug) {

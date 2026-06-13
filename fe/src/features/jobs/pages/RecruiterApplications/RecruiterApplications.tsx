@@ -103,7 +103,7 @@ export function RecruiterApplications() {
   const handleSendMessage = async () => {
     if (!selectedApp) return;
     setSendingMsg(true);
-    await request<any[]>({
+    await request<IConversation[]>({
       endpoint: "/api/v1/messaging/conversations",
       onSuccess: async (conversations) => {
         const existing = conversations.find(
@@ -114,7 +114,7 @@ export function RecruiterApplications() {
         if (existing) {
           navigate(`/messaging/conversations/${existing.id}`);
         } else {
-          await request<any>({
+          await request<IConversation>({
             endpoint: "/api/v1/messaging/conversations",
             method: "POST",
             body: JSON.stringify({
@@ -265,7 +265,7 @@ export function RecruiterApplications() {
         const parsed = JSON.parse(reasoning);
         reasons = parsed.reasons || [];
         gaps = parsed.gaps || [];
-      } catch (e) {
+      } catch {
         // Plain text fallback
       }
     }

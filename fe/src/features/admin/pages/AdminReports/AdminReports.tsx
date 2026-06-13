@@ -194,7 +194,10 @@ export function AdminReports() {
 
     try {
       if (report.targetType === "POST") {
-        await request<any>({
+        await request<{
+          content: string | null;
+          author: { id: number; firstName: string; lastName: string };
+        }>({
           endpoint: `/api/v1/feed/posts/${report.targetId}`,
           onSuccess: (post) => {
             previewText = post.content || "[Empty post content]";
@@ -207,7 +210,7 @@ export function AdminReports() {
           },
         });
       } else if (report.targetType === "USER") {
-        await request<any>({
+        await request<User>({
           endpoint: `/api/v1/authentication/users/${report.targetId}`,
           onSuccess: (user) => {
             previewText = `User profile of ${user.firstName} ${user.lastName}`;

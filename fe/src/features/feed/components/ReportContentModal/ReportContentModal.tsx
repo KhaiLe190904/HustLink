@@ -86,7 +86,16 @@ export function ReportContentModal({
             </label>
             <select
               value={reason}
-              onChange={(e) => setReason(e.target.value as any)}
+              onChange={(e) =>
+                setReason(
+                  e.target.value as
+                    | "SPAM"
+                    | "TOXICITY"
+                    | "INAPPROPRIATE"
+                    | "PLAGIARISM"
+                    | "OTHER"
+                )
+              }
               className="w-full rounded-2xl border border-slate-200 py-2.5 px-3 text-sm text-slate-800 outline-none transition focus:border-red-500 bg-white"
             >
               <option value="SPAM">Spam</option>

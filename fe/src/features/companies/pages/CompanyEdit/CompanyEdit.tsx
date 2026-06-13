@@ -5,6 +5,18 @@ import { Button } from "@/features/authentication/components/Button/Button";
 import { request } from "@/utils/api";
 import { FiUpload, FiImage, FiLoader, FiTrash2 } from "react-icons/fi";
 
+interface CompanyDetail {
+  id: number;
+  slug: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  size?: string;
+  headquarters?: string;
+  logoUrl?: string;
+  coverUrl?: string;
+}
+
 export function CompanyEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -24,7 +36,7 @@ export function CompanyEdit() {
 
   useEffect(() => {
     // Fetch my company details
-    request<any>({
+    request<CompanyDetail>({
       endpoint: "/api/v1/companies/my",
       onSuccess: (data) => {
         if (!data || data.id.toString() !== id) {
@@ -81,7 +93,7 @@ export function CompanyEdit() {
     if (type === "logo") setUploadingLogo(true);
     else setUploadingCover(true);
 
-    await request<any>({
+    await request<{ apiPath: string }>({
       endpoint: "/api/v1/storage/upload",
       method: "POST",
       body: formDataFile,
@@ -107,7 +119,7 @@ export function CompanyEdit() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await request<any>({
+    await request<CompanyDetail>({
       endpoint: `/api/v1/companies/${id}`,
       method: "PATCH",
       body: JSON.stringify(formData),

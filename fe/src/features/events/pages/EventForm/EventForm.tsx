@@ -4,7 +4,7 @@ import { toast } from "react-toastify";
 import { request } from "@/utils/api";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { EventResponse } from "../../types/events";
-import { FiChevronLeft, FiUpload, FiX } from "react-icons/fi";
+import { FiChevronLeft, FiUpload } from "react-icons/fi";
 import {
   uploadToStorage,
   resolveMediaUrl,
