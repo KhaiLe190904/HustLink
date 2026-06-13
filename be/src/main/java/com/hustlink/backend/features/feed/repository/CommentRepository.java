@@ -17,7 +17,15 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
 
   Page<Comment> findByPostOrderByCreationDateDesc(Post post, Pageable pageable);
 
+  Page<Comment> findByPostAndHiddenFalseOrderByCreationDateAsc(Post post, Pageable pageable);
+
+  Page<Comment> findByPostAndHiddenFalseOrderByCreationDateDesc(Post post, Pageable pageable);
+
   long countByPost(Post post);
+
+  long countByPostAndHiddenFalse(Post post);
+
+  boolean existsByPostIdAndAuthorId(Long postId, Long authorId);
 
   @Query(
     "SELECT c.post.author.id, COUNT(c) " + "FROM comments c " + "WHERE c.author.id = :userId AND c.post.author.id IN :authorIds " + "GROUP BY c.post.author.id")

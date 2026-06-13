@@ -91,15 +91,19 @@ public class FeedService {
 
     Set<Long> connectedUserIds = connections.stream().map(connection -> connection.getAuthor().getId().equals(authenticatedUserId) ? connection.getRecipient().getId() : connection.getAuthor().getId()).collect(Collectors.toSet());
 
-    return postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds);
+    return postRepository.findByAuthorIdInAndHiddenFalseOrderByCreationDateDesc(connectedUserIds);
   }
 
   public List<Post> getAllPost() {
-    return postRepository.findAllByOrderByCreationDateDesc();
+    return postRepository.findAllByHiddenFalseOrderByCreationDateDesc();
   }
 
   public Post getPost(Long postId) {
-    return postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
+    if (post.isHidden()) {
+      throw new IllegalArgumentException("Post not found");
+    }
+    return post;
   }
 
   @Transactional
@@ -115,7 +119,7 @@ public class FeedService {
   }
 
   public List<Post> getPostByUserId(Long userId) {
-    return postRepository.findByAuthorId(userId);
+    return postRepository.findByAuthorIdAndHiddenFalse(userId);
   }
 
   public Post likePost(Long postId, Long userId) {
@@ -123,6 +127,7 @@ public class FeedService {
     User user = userRepository.findById(userId).orElseThrow(() -> new IllegalArgumentException("User not found"));
     if (post.getLikes().contains(user)) {
       post.getLikes().remove(user);
+      notificationService.deleteLikeNotification(user, post.getAuthor(), post.getId());
     } else {
       post.getLikes().add(user);
       notificationService.sendLikeNotification(user, post.getAuthor(), post.getId());
@@ -147,8 +152,16 @@ public class FeedService {
     if (!comment.getAuthor().equals(user)) {
       throw new IllegalArgumentException("User is not the author of the comment");
     }
+    Post post = comment.getPost();
     commentRepository.delete(comment);
-    notificationService.sendDeleteCommentToPost(comment.getPost().getId(), comment);
+    commentRepository.flush();
+
+    boolean hasOtherComments = commentRepository.existsByPostIdAndAuthorId(post.getId(), userId);
+    if (!hasOtherComments) {
+      notificationService.deleteCommentNotification(user, post.getAuthor(), post.getId());
+    }
+
+    notificationService.sendDeleteCommentToPost(post.getId(), comment);
   }
 
   public Comment editComment(Long commentId, Long userId, String content) {
@@ -186,7 +199,7 @@ public class FeedService {
     // Luôn lấy một tập ứng viên lớn từ đầu (ví dụ: top 150 bài viết mới nhất) để xếp hạng toàn diện
     int poolSize = Math.min(feedRankingProperties.maxCandidatePoolSize(), Math.max(150, feedRankingProperties.candidatePoolSize()));
     Pageable candidateRequest = PageRequest.of(0, poolSize);
-    Page<Post> candidatePage = postRepository.findByAuthorIdInOrderByCreationDateDesc(connectedUserIds, candidateRequest);
+    Page<Post> candidatePage = postRepository.findByAuthorIdInAndHiddenFalseOrderByCreationDateDesc(connectedUserIds, candidateRequest);
 
     // Xếp hạng toàn bộ ứng viên
     List<ScoredPost> rankedPosts = rankFeedPosts(authenticatedUserId, candidatePage.getContent(), poolSize);
@@ -211,7 +224,7 @@ public class FeedService {
   }
 
   public Page<PostResponseDto> getPostByUserIdDto(Long userId, Long currentUserId, Pageable pageable) {
-    Page<Post> posts = postRepository.findByAuthorIdOrderByCreationDateDesc(userId, pageable);
+    Page<Post> posts = postRepository.findByAuthorIdAndHiddenFalseOrderByCreationDateDesc(userId, pageable);
 
     List<PostResponseDto> postDtos = posts.getContent().stream().map(post -> PostResponseDto.from(post, currentUserId)).collect(Collectors.toList());
 
@@ -220,12 +233,12 @@ public class FeedService {
 
   public Page<Comment> getPostComments(Long postId, Pageable pageable) {
     Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
-    return commentRepository.findByPostOrderByCreationDateDesc(post, pageable);
+    return commentRepository.findByPostAndHiddenFalseOrderByCreationDateDesc(post, pageable);
   }
 
   public long getPostCommentsCount(Long postId) {
     Post post = postRepository.findById(postId).orElseThrow(() -> new IllegalArgumentException("Post not found"));
-    return commentRepository.countByPost(post);
+    return commentRepository.countByPostAndHiddenFalse(post);
   }
 
   private List<String> normalizeMediaUrls(PostDto postDto) {

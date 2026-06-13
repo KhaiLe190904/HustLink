@@ -6,6 +6,7 @@ import {
   IUser,
 } from "@/features/authentication/context/AuthenticationContextProvider";
 import { formatTimestamp } from "@/features/feed/utils/date";
+import { ReportContentModal } from "../ReportContentModal/ReportContentModal";
 
 export interface IComment {
   id: number;
@@ -24,6 +25,7 @@ interface CommentProps {
 export function Comment({ comment, deleteComment, editComment }: CommentProps) {
   const navigate = useNavigate();
   const [showActions, setShowActions] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [commentContent, setCommentContent] = useState(comment.content);
   const { user } = useAuthentication();
@@ -70,7 +72,7 @@ export function Comment({ comment, deleteComment, editComment }: CommentProps) {
                   <div className="text-xs text-gray-500 whitespace-nowrap">
                     {formatTimestamp(new Date(comment.creationDate))}
                   </div>
-                  {comment.author.id == user?.id && (
+                  {user && (
                     <div className="relative">
                       <button
                         className={`w-6 h-6 rounded-full grid place-items-center transition-all duration-300 cursor-pointer ${
@@ -88,18 +90,38 @@ export function Comment({ comment, deleteComment, editComment }: CommentProps) {
                       </button>
                       {showActions && (
                         <div className="absolute right-0 top-8 z-10 flex flex-col items-start bg-white rounded-lg shadow-lg border border-gray-200 p-1 text-xs min-w-[80px]">
-                          <button
-                            onClick={() => setEditing(true)}
-                            className="w-full text-left cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deleteComment(comment.id)}
-                            className="w-full text-left cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors text-red-600"
-                          >
-                            Delete
-                          </button>
+                          {comment.author.id === user.id ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setEditing(true);
+                                  setShowActions(false);
+                                }}
+                                className="w-full text-left cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  deleteComment(comment.id);
+                                  setShowActions(false);
+                                }}
+                                className="w-full text-left cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors text-red-600"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setShowReportModal(true);
+                                setShowActions(false);
+                              }}
+                              className="w-full text-left cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors text-red-650"
+                            >
+                              Report
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -134,6 +156,13 @@ export function Comment({ comment, deleteComment, editComment }: CommentProps) {
           />
         </form>
       )}
+
+      <ReportContentModal
+        showModal={showReportModal}
+        setShowModal={setShowReportModal}
+        targetType="COMMENT"
+        targetId={comment.id}
+      />
     </div>
   );
 }

@@ -32,13 +32,17 @@ public class Comment {
   @JoinColumn(name = "author_id", nullable = false)
   private User author;
 
-  @Column(nullable = false)
+  @Column(nullable = false, columnDefinition = "nvarchar(max)")
   private String content;
 
   @CreationTimestamp
   private LocalDateTime creationDate;
 
   private LocalDateTime updateDate;
+
+  @Builder.Default
+  private boolean hidden = false;
+
 
   public Comment(Post post, User user, String content) {
     this.post = post;
