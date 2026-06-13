@@ -25,6 +25,18 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
   Page<Post> findByAuthorIdOrderByCreationDateDesc(Long userId, Pageable pageable);
 
+  List<Post> findByAuthorIdInAndHiddenFalseOrderByCreationDateDesc(Set<Long> connectedUserIds);
+
+  Page<Post> findByAuthorIdInAndHiddenFalseOrderByCreationDateDesc(Set<Long> connectedUserIds, Pageable pageable);
+
+  List<Post> findAllByHiddenFalseOrderByCreationDateDesc();
+
+  Page<Post> findAllByHiddenFalseOrderByCreationDateDesc(Pageable pageable);
+
+  List<Post> findByAuthorIdAndHiddenFalse(Long userId);
+
+  Page<Post> findByAuthorIdAndHiddenFalseOrderByCreationDateDesc(Long userId, Pageable pageable);
+
   @Query("SELECT p.author.id, COUNT(p) FROM posts p " + "WHERE p.creationDate >= :since " + "GROUP BY p.author.id")
   List<Object[]> countPostsByAuthorSince(@Param("since") LocalDateTime since);
 

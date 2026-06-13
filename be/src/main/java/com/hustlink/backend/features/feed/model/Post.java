@@ -56,6 +56,10 @@ public class Post {
   @JoinTable(name = "post_like", joinColumns = @JoinColumn(name = "post_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
   private Set<User> likes;
 
+  @Builder.Default
+  private boolean hidden = false;
+
+
   @PreUpdate
   public void preUpdate() {
     updateDate = LocalDateTime.now();

@@ -22,6 +22,9 @@ import { TimeAgo } from "@/features/feed/components/TimeAgo/TimeAgo";
 import { CommentModal } from "@/features/feed/components/CommentModal/CommentModal";
 import { AiOutlineLike, AiFillLike } from "react-icons/ai";
 import { FaRegComment } from "react-icons/fa";
+import { FiShare2 } from "react-icons/fi";
+import { SharePostModal } from "../SharePostModal/SharePostModal";
+import { ReportContentModal } from "../ReportContentModal/ReportContentModal";
 import { Page } from "@/utils/pagination";
 import { isVideoFile, resolveMediaUrl, uploadToStorage } from "@/utils/storage";
 
@@ -112,6 +115,8 @@ export function Post({ post, setPosts }: PostProps) {
     post.commentsCount
   );
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [likesCount, setLikesCount] = useState<number>(post.likesCount);
   const [content, setContent] = useState("");
   const navigate = useNavigate();
@@ -442,7 +447,7 @@ export function Post({ post, setPosts }: PostProps) {
             </div>
           </div>
           <div>
-            {post.author.id == user?.id && (
+            {user && (
               <button
                 className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-transparent text-slate-500 transition-all duration-300 ${
                   showMenu ? "bg-slate-100" : "hover:bg-slate-100"
@@ -464,18 +469,32 @@ export function Post({ post, setPosts }: PostProps) {
               <div className="absolute right-5 top-[3.25rem] z-20 grid w-36 gap-1 rounded-2xl border border-slate-200 bg-white p-2 text-sm font-semibold shadow-xl shadow-slate-900/10">
                 {" "}
                 {/* .menu styles */}
-                <button
-                  onClick={() => setEditing(true)}
-                  className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-slate-700 transition-colors hover:bg-slate-50"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => deletePost(post.id)}
-                  className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-red-700 transition-colors hover:bg-red-50"
-                >
-                  Delete
-                </button>
+                {post.author.id == user?.id ? (
+                  <>
+                    <button
+                      onClick={() => setEditing(true)}
+                      className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-slate-700 transition-colors hover:bg-slate-50"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => deletePost(post.id)}
+                      className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-red-700 transition-colors hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setShowReportModal(true);
+                      setShowMenu(false);
+                    }}
+                    className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    Report Post
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -613,7 +632,7 @@ export function Post({ post, setPosts }: PostProps) {
             <div></div>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-2 border-t border-slate-100 p-2">
+        <div className="grid grid-cols-3 gap-2 border-t border-slate-100 p-2">
           {" "}
           {/* .actions styles */}
           <button
@@ -645,6 +664,15 @@ export function Post({ post, setPosts }: PostProps) {
             <FaRegComment className="w-5 h-5" />
             <span>Comment</span>
           </button>
+          <button
+            onClick={() => {
+              setShowShareModal(true);
+            }}
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50"
+          >
+            <FiShare2 className="w-5 h-5" />
+            <span>Share</span>
+          </button>
         </div>
       </div>
 
@@ -667,6 +695,21 @@ export function Post({ post, setPosts }: PostProps) {
         likedByCurrentUser={postLiked ?? false}
         onLike={like}
         likeDisabled={postLiked == undefined}
+      />
+
+      {/* Share Post Modal */}
+      <SharePostModal
+        showModal={showShareModal}
+        setShowModal={setShowShareModal}
+        postId={post.id}
+      />
+
+      {/* Report Post Modal */}
+      <ReportContentModal
+        showModal={showReportModal}
+        setShowModal={setShowReportModal}
+        targetType="POST"
+        targetId={post.id}
       />
     </>
   );
