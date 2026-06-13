@@ -130,14 +130,22 @@ public class SearchService {
     vectorStoreClient.ensureCollection(USER_PROFILE_COLLECTION, embeddingService.dimension());
 
     int batchSize = 50;
+    int processedCount = 0;
     for (int start = 0; start < completeUsers.size(); start += batchSize) {
       int end = Math.min(start + batchSize, completeUsers.size());
       List<User> batch = completeUsers.subList(start, end);
       indexUserProfilesBatch(batch);
 
+      processedCount += batch.size();
+
       if (end < completeUsers.size()) {
         try {
-          Thread.sleep(1500);
+          if (processedCount % 100 == 0) {
+            log.info("op=reindex_all_user_profiles action=rate_limit_sleep_1m processed={}", processedCount);
+            Thread.sleep(60000); // Nghỉ 1 phút
+          } else {
+            Thread.sleep(1500);
+          }
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException("Reindex user profiles sleep interrupted", e);
@@ -195,7 +203,7 @@ public class SearchService {
     }
     try {
       SearchSession searchSession = Search.session(entityManager);
-      return searchSession.search(User.class).where(f -> f.match().fields("firstName", "lastName", "position", "company").matching(query).fuzzy(2)).fetchAllHits();
+      return searchSession.search(User.class).where(f -> f.match().fields("firstName", "lastName", "position", "company").matching(query).fuzzy(2)).fetchHits(200);
     } catch (Exception e) {
       log.warn("op=search_users_bm25 status=failed error={}", e.getMessage());
       try {

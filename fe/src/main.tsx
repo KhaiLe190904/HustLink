@@ -31,6 +31,32 @@ import { Interview } from "./features/ai/pages/Interview/Interview";
 import { InterviewHistory } from "./features/ai/pages/InterviewHistory/InterviewHistory";
 import { RoleGuard } from "./features/authentication/components/RoleGuard/RoleGuard";
 import { RagAdmin } from "./features/admin/pages/RagAdmin/RagAdmin";
+import { AdminLayout } from "./features/admin/layout/AdminLayout";
+import { AdminOverview } from "./features/admin/pages/AdminOverview/AdminOverview";
+import { AdminUsers } from "./features/admin/pages/AdminUsers/AdminUsers";
+import { AdminReports } from "./features/admin/pages/AdminReports/AdminReports";
+
+// Jobs feature imports
+import { JobList } from "./features/jobs/pages/JobList/JobList";
+import { JobDetail } from "./features/jobs/pages/JobDetail/JobDetail";
+import { JobForm } from "./features/jobs/pages/JobForm/JobForm";
+import { RecruiterDashboard } from "./features/jobs/pages/RecruiterDashboard/RecruiterDashboard";
+import { RecruiterApplications } from "./features/jobs/pages/RecruiterApplications/RecruiterApplications";
+import { MyApplications } from "./features/jobs/pages/MyApplications/MyApplications";
+
+// Companies feature imports
+import { CompanyRegister } from "./features/companies/pages/CompanyRegister/CompanyRegister";
+import { CompanyDetail } from "./features/companies/pages/CompanyDetail/CompanyDetail";
+import { CompanyEdit } from "./features/companies/pages/CompanyEdit/CompanyEdit";
+
+// Events feature imports
+import { EventList } from "./features/events/pages/EventList/EventList";
+import { EventDetail } from "./features/events/pages/EventDetail/EventDetail";
+import { EventForm } from "./features/events/pages/EventForm/EventForm";
+
+// Admin feature imports
+import { CompanyAdmin } from "./features/admin/pages/CompanyAdmin/CompanyAdmin";
+
 const router = createBrowserRouter([
   {
     element: <AuthenticationContextProvider />,
@@ -65,9 +91,130 @@ const router = createBrowserRouter([
               },
             ],
           },
+          // Jobs Routes
           {
             path: "jobs",
-            element: <div>Jobs</div>,
+            element: <JobList />,
+          },
+          {
+            path: "jobs/:id",
+            element: <JobDetail />,
+          },
+          {
+            path: "jobs/new",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <JobForm />
+              </RoleGuard>
+            ),
+          },
+          {
+            path: "jobs/:id/edit",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <JobForm />
+              </RoleGuard>
+            ),
+          },
+          {
+            path: "jobs/recruiter",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <RecruiterDashboard />
+              </RoleGuard>
+            ),
+          },
+          {
+            path: "jobs/:id/applications",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <RecruiterApplications />
+              </RoleGuard>
+            ),
+          },
+          {
+            path: "jobs/my-applications",
+            element: (
+              <RoleGuard allow={["USER"]}>
+                <MyApplications />
+              </RoleGuard>
+            ),
+          },
+
+          // Companies Routes
+          {
+            path: "companies/register",
+            element: <CompanyRegister />,
+          },
+          {
+            path: "companies/:slug",
+            element: <CompanyDetail />,
+          },
+          {
+            path: "companies/:id/edit",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <CompanyEdit />
+              </RoleGuard>
+            ),
+          },
+
+          // Events Routes
+          {
+            path: "events",
+            element: <EventList />,
+          },
+          {
+            path: "events/:id",
+            element: <EventDetail />,
+          },
+          {
+            path: "events/new",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <EventForm />
+              </RoleGuard>
+            ),
+          },
+          {
+            path: "events/:id/edit",
+            element: (
+              <RoleGuard allow={["RECRUITER"]}>
+                <EventForm />
+              </RoleGuard>
+            ),
+          },
+
+          // Unified Admin Routes
+          {
+            path: "admin",
+            element: (
+              <RoleGuard allow={["ADMIN"]}>
+                <AdminLayout />
+              </RoleGuard>
+            ),
+            children: [
+              {
+                path: "overview",
+                element: <AdminOverview />,
+              },
+              {
+                path: "users",
+                element: <AdminUsers />,
+              },
+              {
+                path: "reports",
+                element: <AdminReports />,
+              },
+              {
+                path: "companies",
+                element: <CompanyAdmin />,
+              },
+              {
+                path: "rag",
+                element: <RagAdmin />,
+              },
+            ],
           },
           {
             path: "ai/cv",
@@ -81,14 +228,7 @@ const router = createBrowserRouter([
             path: "ai/interview/history",
             element: <InterviewHistory />,
           },
-          {
-            path: "admin/rag",
-            element: (
-              <RoleGuard allow={["ADMIN"]}>
-                <RagAdmin />
-              </RoleGuard>
-            ),
-          },
+
           {
             path: "messaging",
             element: <Messaging />,

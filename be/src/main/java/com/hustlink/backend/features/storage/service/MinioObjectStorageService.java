@@ -36,7 +36,7 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 @RequiredArgsConstructor
 public class MinioObjectStorageService implements ObjectStorageService {
   private static final Set<StorageScope> PUBLIC_SCOPES = Set.of(
-          StorageScope.PROFILE_IMAGE, StorageScope.PROFILE_COVER, StorageScope.FEED_IMAGE, StorageScope.FEED_VIDEO);
+          StorageScope.PROFILE_IMAGE, StorageScope.PROFILE_COVER, StorageScope.FEED_IMAGE, StorageScope.FEED_VIDEO, StorageScope.COMPANY_LOGO, StorageScope.COMPANY_COVER, StorageScope.EVENT_COVER);
 
   private final S3Client s3Client;
   private final S3Presigner s3Presigner;
@@ -152,7 +152,8 @@ public class MinioObjectStorageService implements ObjectStorageService {
 
   private String resolveBucket(StorageScope scope) {
     return switch (scope) {
-      case PROFILE_IMAGE, PROFILE_COVER, FEED_IMAGE, FEED_VIDEO -> storageProperties.publicBucketOrDefault();
+      case PROFILE_IMAGE, PROFILE_COVER, FEED_IMAGE, FEED_VIDEO, COMPANY_LOGO, COMPANY_COVER, EVENT_COVER ->
+        storageProperties.publicBucketOrDefault();
       case FEED_FILE -> storageProperties.mediaBucketOrDefault();
       case CV, MESSAGE_IMAGE, MESSAGE_FILE, MESSAGE_VIDEO -> storageProperties.privateBucketOrDefault();
     };

@@ -14,7 +14,7 @@ public class CacheConfigImproved {
   @Bean
   @Profile("!caffeine")
   public CacheManager simpleCacheManager() {
-    return new ConcurrentMapCacheManager("userRecommendations");
+    return new ConcurrentMapCacheManager("userRecommendations", "jobMatchingCache");
   }
 
   public static class CacheEvictionHelper {
@@ -27,6 +27,8 @@ public class CacheConfigImproved {
     public void clearUserCache(Long userId) {
       var cache = cacheManager.getCache("userRecommendations");
       if (cache != null) {
+        cache.evict(userId);
+        cache.evict(userId.toString());
         cache.evict(userId + "_2");
         cache.evict(userId + "_10");
         cache.evict(userId + "_20");

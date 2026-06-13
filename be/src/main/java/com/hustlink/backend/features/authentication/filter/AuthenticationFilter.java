@@ -12,6 +12,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class AuthenticationFilter extends HttpFilter {
   @Override
   protected void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
     response.addHeader("Access-Control-Allow-Origin", "*");
-    response.addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    response.addHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
     response.addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
     if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
@@ -58,6 +59,23 @@ public class AuthenticationFilter extends HttpFilter {
 
       String email = jsonWebTokenService.getEmailFromToken(token);
       User user = authenticationService.getUser(email);
+
+      if (user.isBanned()) {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"message\": \"Your account has been permanently banned.\"}");
+        return;
+      }
+
+      if (user.getSuspensionExpiresAt() != null && user.getSuspensionExpiresAt().isAfter(LocalDateTime.now())) {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write("{\"message\": \"Your account is suspended until " + user.getSuspensionExpiresAt() + ".\"}");
+        return;
+      }
+
       request.setAttribute("authenticationUser", user);
     } catch (RuntimeException e) {
       response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

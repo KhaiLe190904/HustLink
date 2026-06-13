@@ -29,7 +29,10 @@ interface UploadStorageParams {
     | "FEED_VIDEO"
     | "MESSAGE_IMAGE"
     | "MESSAGE_FILE"
-    | "MESSAGE_VIDEO";
+    | "MESSAGE_VIDEO"
+    | "COMPANY_LOGO"
+    | "COMPANY_COVER"
+    | "EVENT_COVER";
   ownerType?: string;
   ownerId?: number | string;
 }

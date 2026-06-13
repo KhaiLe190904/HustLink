@@ -26,6 +26,8 @@ public class UserRecommendation {
     private boolean sameLocation;
     private boolean isSecondDegreeConnection;
     private double activitySimilarity;
+    @Builder.Default
+    private double semanticSimilarity = 0.0;
   }
 
   public static UserRecommendation of(User user, double score) {

@@ -93,7 +93,7 @@ export function Search() {
         value={searchTerm}
         className="h-11 w-full rounded-full border border-slate-200 bg-slate-100/80 pl-[3.25rem] pr-4 text-sm font-medium text-slate-700 outline-none transition placeholder:text-slate-500 hover:bg-slate-50 focus:border-red-200 focus:bg-white focus:ring-4 focus:ring-red-50"
       />
-      {searchTerm.length > 0 && (
+      {searchTerm.trim().length >= 2 && (
         <div className="absolute left-0 right-0 top-[calc(100%+0.75rem)] z-[999] rounded-3xl border border-slate-200 bg-white p-3 shadow-2xl shadow-slate-900/10">
           <div className="flex items-center gap-2 mb-2 px-1 pb-2 border-b border-slate-100">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider select-none">

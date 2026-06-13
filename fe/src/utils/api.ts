@@ -1,8 +1,10 @@
+import { toast } from "react-toastify";
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 interface RequestParams<T> {
   endpoint: string;
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: BodyInit;
   onSuccess: (data: T) => void;
   onFailure: (error: string) => void;
@@ -48,7 +50,35 @@ export const request = async <T>({
     });
 
     if (!response.ok) {
-      const { message } = await response.json();
+      let message = "An error occurred.";
+      try {
+        const bodyData = await response.json();
+        message = bodyData?.message || message;
+      } catch (e) {
+        // ignore
+      }
+
+      if (
+        response.status === 403 &&
+        (message.toLowerCase().includes("ban") ||
+          message.toLowerCase().includes("suspend"))
+      ) {
+        const activeToken = localStorage.getItem("token");
+        if (
+          activeToken &&
+          activeToken !== "null" &&
+          activeToken !== "undefined"
+        ) {
+          toast.error(message, {
+            toastId: "auth-ban-toast",
+          });
+          localStorage.removeItem("token");
+          setTimeout(() => {
+            window.location.href = "/authentication/login";
+          }, 3000);
+        }
+      }
+
       throw new Error(message);
     }
 
@@ -58,7 +88,8 @@ export const request = async <T>({
       return;
     }
 
-    const data: T = await response.json();
+    const text = await response.text();
+    const data: T = text ? JSON.parse(text) : ({} as T);
     onSuccess(data);
   } catch (error) {
     if (error instanceof Error) {

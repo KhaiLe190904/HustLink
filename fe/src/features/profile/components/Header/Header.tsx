@@ -13,6 +13,7 @@ import {
 
 import { Button } from "@/features/authentication/components/Button/Button";
 import { FiSave, FiX } from "react-icons/fi";
+import { ReportContentModal } from "@/features/feed/components/ReportContentModal/ReportContentModal";
 interface ILocationSuggestion {
   locationDisplay: string;
   locationKey: string;
@@ -24,6 +25,7 @@ interface ITopProps {
 }
 export function Header({ user, authUser, onUpdate }: ITopProps) {
   const [editingInfo, setEditingInfo] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [info, setInfo] = useState({
     firstName: user?.firstName,
     lastName: user?.lastName,
@@ -266,6 +268,23 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                   </svg>
                 </button>
               ) : (
+                <button
+                  className="absolute right-4 top-1 grid h-10 w-10 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-650 cursor-pointer"
+                  title="Report Profile"
+                  onClick={() => setShowReportModal(true)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 128 512"
+                    className="w-3.5 h-3.5"
+                    fill="currentColor"
+                  >
+                    <path d="M64 360a56 56 0 1 0 0 112 56 56 0 1 0 0-112zm0-160a56 56 0 1 0 0 112 56 56 0 1 0 0-112zM120 96A56 56 0 1 0 8 96a56 56 0 1 0 112 0z" />
+                  </svg>
+                </button>
+              )}
+
+              {user?.id !== authUser?.id && (
                 <>
                   {!connection ? (
                     <Button
@@ -501,6 +520,15 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
           )}
         </div>
       </div>
+
+      {user?.id && (
+        <ReportContentModal
+          showModal={showReportModal}
+          setShowModal={setShowReportModal}
+          targetType="USER"
+          targetId={user.id}
+        />
+      )}
     </div>
   );
 }
