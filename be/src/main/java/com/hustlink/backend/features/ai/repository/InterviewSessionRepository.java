@@ -13,5 +13,7 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
 
   Page<InterviewSession> findByUserIdOrderByStartedAtDesc(Long userId, Pageable pageable);
 
+  Optional<InterviewSession> findFirstByUserIdOrderByStartedAtDesc(Long userId);
+
   boolean existsByCvId(Long cvId);
 }

@@ -117,6 +117,7 @@ public class CVService {
     cv.setAnalysisSummary(insight.summary());
     cv.setAnalysisStrengths(writeList(insight.strengths()));
     cv.setAnalysisImprovements(writeList(insight.improvements()));
+    cv.setExtractedSkills(writeList(insight.skills()));
     cv.setRecommendedQuestions(null);
 
     CV savedCv = cvRepository.save(cv);
@@ -245,6 +246,13 @@ public class CVService {
     AIUsageLog usageLog = new AIUsageLog();
     usageLog.setUser(user);
     usageLog.setUsageType(usageType);
+    GeminiService.TokenUsage usage = GeminiService.getLastTokenUsage();
+    if (usage != null) {
+      usageLog.setPromptTokens(usage.promptTokens());
+      usageLog.setCompletionTokens(usage.completionTokens());
+      usageLog.setEstimatedCostUsd(usage.estimatedCostUsd());
+      GeminiService.clearLastTokenUsage();
+    }
     aiUsageLogRepository.save(usageLog);
   }
 }

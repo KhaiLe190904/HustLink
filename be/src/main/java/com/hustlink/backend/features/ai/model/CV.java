@@ -64,6 +64,10 @@ public class CV {
   @Column(columnDefinition = "nvarchar(max)")
   private String recommendedQuestions;
 
+  @Lob
+  @Column(columnDefinition = "nvarchar(max)")
+  private String extractedSkills;
+
   @Column(nullable = false)
   private LocalDateTime uploadedAt;
 

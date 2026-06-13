@@ -164,17 +164,24 @@ public class RagInterviewServiceImpl implements RagInterviewService {
     log.info("op=rag_reindex_all total_questions={}", questions.size());
 
     int batchSize = 50;
+    int processedCount = 0;
     for (int start = 0; start < questions.size(); start += batchSize) {
       int end = Math.min(start + batchSize, questions.size());
       List<InterviewQuestionBank> batch = questions.subList(start, end);
 
       indexQuestionBatch(batch);
       questionBankRepository.saveAll(batch);
+      processedCount += batch.size();
       log.info("op=rag_reindex_batch progress={}/{}", end, questions.size());
 
       if (end < questions.size()) {
         try {
-          Thread.sleep(1500);
+          if (processedCount % 100 == 0) {
+            log.info("op=rag_reindex action=rate_limit_sleep_1m processed={}", processedCount);
+            Thread.sleep(60000); // Nghỉ 1 phút
+          } else {
+            Thread.sleep(1500);
+          }
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException("Reindex sleep interrupted", e);
@@ -256,6 +263,13 @@ public class RagInterviewServiceImpl implements RagInterviewService {
     AIUsageLog usageLog = new AIUsageLog();
     usageLog.setUser(user);
     usageLog.setUsageType(usageType);
+    com.hustlink.backend.features.ai.service.GeminiService.TokenUsage usage = com.hustlink.backend.features.ai.service.GeminiService.getLastTokenUsage();
+    if (usage != null) {
+      usageLog.setPromptTokens(usage.promptTokens());
+      usageLog.setCompletionTokens(usage.completionTokens());
+      usageLog.setEstimatedCostUsd(usage.estimatedCostUsd());
+      com.hustlink.backend.features.ai.service.GeminiService.clearLastTokenUsage();
+    }
     aiUsageLogRepository.save(usageLog);
   }
 

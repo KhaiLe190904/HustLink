@@ -91,6 +91,77 @@ declare global {
   }
 }
 
+interface CustomSelectProps<T> {
+  value: T;
+  onChange: (val: T) => void;
+  options: { value: T; label: string }[];
+  placeholder?: string;
+  icon?: React.ReactNode;
+}
+
+function CustomSelect<T extends string | number>({
+  value,
+  onChange,
+  options,
+  placeholder = "Select...",
+  icon,
+}: CustomSelectProps<T>) {
+  const [open, setOpen] = useState(false);
+  const selectedOption = options.find((o) => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClose = () => setOpen(false);
+    window.addEventListener("click", handleClose);
+    return () => window.removeEventListener("click", handleClose);
+  }, [open]);
+
+  return (
+    <div
+      className="relative w-full text-left"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between rounded-2xl border border-gray-200 py-3 px-4 text-sm text-gray-800 bg-white outline-none hover:border-gray-300 transition text-left focus:border-red-300 focus:ring-2 focus:ring-red-100 shadow-sm"
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <span>{selectedOption ? selectedOption.label : placeholder}</span>
+        </div>
+        <span className="pointer-events-none text-gray-400">
+          <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+          </svg>
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute left-0 right-0 mt-1.5 z-50 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-100 max-h-60 overflow-y-auto">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+              }}
+              className={`w-full rounded-xl px-4 py-2 text-left text-sm transition font-semibold ${
+                o.value === value
+                  ? "bg-red-50 text-red-700 font-bold"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Interview() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -105,6 +176,29 @@ export function Interview() {
     useState<InterviewQuestionResponse | null>(null);
   const [result, setResult] = useState<InterviewResultResponse | null>(null);
   const [answerText, setAnswerText] = useState("");
+  const [checkingActive, setCheckingActive] = useState(true);
+
+  useEffect(() => {
+    const checkActiveSession = async () => {
+      setCheckingActive(true);
+      await request<InterviewStartResponse>({
+        endpoint: "/api/v1/ai/interviews/active",
+        onSuccess: (data) => {
+          if (data) {
+            setSession(data);
+            setCurrentQuestion(data.currentQuestion);
+            setSecondsRemaining(data.currentQuestion.answerTimeLimitSeconds);
+            setAnswerText("");
+          }
+          setCheckingActive(false);
+        },
+        onFailure: () => {
+          setCheckingActive(false);
+        },
+      });
+    };
+    void checkActiveSession();
+  }, []);
   const [secondsRemaining, setSecondsRemaining] = useState(120);
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
@@ -418,6 +512,14 @@ export function Interview() {
     currentQuestion &&
     currentQuestion.questionOrder >= currentQuestion.totalQuestions;
 
+  if (checkingActive) {
+    return (
+      <div className="flex h-64 items-center justify-center bg-transparent">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-red-700 border-t-transparent"></div>
+      </div>
+    );
+  }
+
   if (starting) {
     return (
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] animate-pulse">
@@ -715,24 +817,23 @@ export function Interview() {
                 className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
               />
             </div>
-            <div>
+            <div className="flex flex-col">
               <label
                 htmlFor="interview-level"
-                className="text-sm font-semibold text-gray-900"
+                className="text-sm font-semibold text-gray-900 mb-2"
               >
                 Candidate level
               </label>
-              <select
-                id="interview-level"
+              <CustomSelect
                 value={interviewLevel}
-                onChange={(event) => setInterviewLevel(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
-              >
-                <option value="INTERN">Intern</option>
-                <option value="FRESHER">Fresher</option>
-                <option value="JUNIOR">Junior</option>
-                <option value="SENIOR">Senior</option>
-              </select>
+                onChange={setInterviewLevel}
+                options={[
+                  { value: "INTERN", label: "Intern" },
+                  { value: "FRESHER", label: "Fresher" },
+                  { value: "JUNIOR", label: "Junior" },
+                  { value: "SENIOR", label: "Senior" },
+                ]}
+              />
             </div>
 
             <div className="flex flex-wrap gap-3">

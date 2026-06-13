@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +56,7 @@ public class AIInterviewService {
   @Value("${ai.interview.answer-time-limit-seconds:120}")
   private int answerTimeLimitSeconds;
 
-  @Value("${ai.daily-mock-interview-limit:1}")
+  @Value("${ai.daily-mock-interview-limit:2}")
   private int dailyMockInterviewLimit;
 
   @Value("${app.features.rag.enabled:true}")
@@ -70,6 +71,15 @@ public class AIInterviewService {
 
     if (request.cvId() == null) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please select a CV.");
+    }
+
+    // Check for active in-progress session within 15 minutes
+    Optional<InterviewSession> latestSessionOpt = interviewSessionRepository.findFirstByUserIdOrderByStartedAtDesc(user.getId());
+    if (latestSessionOpt.isPresent()) {
+      InterviewSession latestSession = latestSessionOpt.get();
+      if (latestSession.getStatus() == InterviewSessionStatus.IN_PROGRESS && latestSession.getStartedAt().plusMinutes(15).isAfter(LocalDateTime.now())) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You have an active interview session in progress. Please resume it.");
+      }
     }
 
     enforceDailyMockInterviewLimit(user);
@@ -202,6 +212,29 @@ public class AIInterviewService {
                     session.getId(), session.getCv().getId(), session.getCv().getOriginalFileName(), session.getJobPosition(), session.getLanguageCode(), session.getStatus().name(), session.getTotalQuestions(), session.getCurrentQuestionIndex(), session.getOverallScore(), session.getStartedAt(), session.getCompletedAt()));
   }
 
+  @Transactional(readOnly = true)
+  public InterviewStartResponse getActiveSession(User user) {
+    Optional<InterviewSession> latestSessionOpt = interviewSessionRepository.findFirstByUserIdOrderByStartedAtDesc(user.getId());
+    if (latestSessionOpt.isEmpty()) {
+      return null;
+    }
+    InterviewSession session = latestSessionOpt.get();
+    if (session.getStatus() != InterviewSessionStatus.IN_PROGRESS || session.getStartedAt().plusMinutes(15).isBefore(LocalDateTime.now())) {
+      return null;
+    }
+
+    int currentOrder = session.getCurrentQuestionIndex() + 1;
+    InterviewQuestion currentQuestion = interviewQuestionRepository.findBySessionIdAndQuestionOrder(session.getId(), currentOrder).orElse(null);
+
+    if (currentQuestion == null) {
+      return null;
+    }
+
+    return new InterviewStartResponse(
+            session.getId(), session.getCv().getId(), session.getCv().getOriginalFileName(), session.getJobPosition(), session.getInterviewLevel().name(), session.getLanguageCode(), session.getTotalQuestions(), session.getAnswerTimeLimitSeconds(), toQuestionResponse(currentQuestion, session), null
+    );
+  }
+
   private InterviewResultResponse completeInterview(InterviewSession session) {
     List<InterviewQuestion> questions = interviewQuestionRepository.findBySessionIdOrderByQuestionOrderAsc(session.getId());
     List<InterviewAnswer> answers = interviewAnswerRepository.findBySessionIdOrderByQuestionQuestionOrderAsc(session.getId());
@@ -328,6 +361,13 @@ public class AIInterviewService {
     AIUsageLog usageLog = new AIUsageLog();
     usageLog.setUser(user);
     usageLog.setUsageType(usageType);
+    com.hustlink.backend.features.ai.service.GeminiService.TokenUsage usage = com.hustlink.backend.features.ai.service.GeminiService.getLastTokenUsage();
+    if (usage != null) {
+      usageLog.setPromptTokens(usage.promptTokens());
+      usageLog.setCompletionTokens(usage.completionTokens());
+      usageLog.setEstimatedCostUsd(usage.estimatedCostUsd());
+      com.hustlink.backend.features.ai.service.GeminiService.clearLastTokenUsage();
+    }
     aiUsageLogRepository.save(usageLog);
   }
 

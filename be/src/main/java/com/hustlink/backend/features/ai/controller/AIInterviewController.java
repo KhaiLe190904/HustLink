@@ -21,6 +21,11 @@ public class AIInterviewController {
     return aiInterviewService.startInterview(user, request);
   }
 
+  @GetMapping("/active")
+  public InterviewStartResponse getActiveSession(@RequestAttribute("authenticationUser") User user) {
+    return aiInterviewService.getActiveSession(user);
+  }
+
   @PostMapping("/{sessionId}/answers")
   public InterviewSubmitAnswerResponse submitAnswer(
                                                     @RequestAttribute("authenticationUser") User user, @PathVariable Long sessionId, @RequestBody InterviewAnswerRequest request) {
