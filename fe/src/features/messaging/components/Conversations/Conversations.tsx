@@ -54,14 +54,22 @@ export function Conversations(props: IConversationsProps) {
     return () => subscription?.unsubscribe();
   }, [user?.id, websocketClient]);
 
+  const sortedConversations = [...conversations].sort((c1, c2) => {
+    const getLatestTime = (c: IConversation) => {
+      if (!c.messages || c.messages.length === 0) return 0;
+      return new Date(c.messages[c.messages.length - 1].creationAt).getTime();
+    };
+    return getLatestTime(c2) - getLatestTime(c1);
+  });
+
   return (
     <div {...props}>
-      {conversations.map((conversation) => {
+      {sortedConversations.map((conversation) => {
         return (
           <Conversation key={conversation.id} conversation={conversation} />
         );
       })}
-      {conversations.length === 0 && (
+      {sortedConversations.length === 0 && (
         <div className="p-4 text-center text-gray-500">
           No conversation to display.
         </div>

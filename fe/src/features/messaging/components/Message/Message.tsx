@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FaFilePdf,
   FaFileAlt,
@@ -27,6 +28,7 @@ export function Message({
   user,
   showDeliveryStatus = false,
 }: IMessageProps) {
+  const navigate = useNavigate();
   const messageRef = useRef<HTMLDivElement>(null);
   const [showTimestamp, setShowTimestamp] = useState(false);
   const [openingAttachment, setOpeningAttachment] = useState(false);
@@ -168,6 +170,56 @@ export function Message({
           >
             {message.content}
           </div>
+          {message.sharedPost && (
+            <div
+              onClick={() =>
+                message.sharedPost?.id &&
+                navigate(`/posts/${message.sharedPost.id}`)
+              }
+              className={`mt-2 block w-full text-left rounded-xl border p-3 transition-all cursor-pointer select-none max-w-sm ${
+                isMyMessage
+                  ? "bg-white text-slate-800 border-white/20 hover:bg-slate-50"
+                  : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <img
+                  src={
+                    resolveMediaUrl(
+                      message.sharedPost.author?.profilePicture
+                    ) || "/doc1.png"
+                  }
+                  alt=""
+                  className="w-7 h-7 rounded-full object-cover border border-slate-100"
+                />
+                <div>
+                  <div className="text-[11px] font-bold text-slate-850">
+                    {message.sharedPost.author?.firstName}{" "}
+                    {message.sharedPost.author?.lastName}
+                  </div>
+                  <div className="text-[9px] text-slate-400 font-semibold leading-none">
+                    {message.sharedPost.author?.position}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                {(() => {
+                  const content = message.sharedPost.content || "";
+                  if (content.startsWith("ARTICLE_JSON_CONTENT:")) {
+                    try {
+                      const parsed = JSON.parse(
+                        content.slice("ARTICLE_JSON_CONTENT:".length)
+                      );
+                      return `📰 Article: ${parsed.title || "Untitled"}`;
+                    } catch {
+                      return "📰 Article Shared";
+                    }
+                  }
+                  return content;
+                })()}
+              </p>
+            </div>
+          )}
           {message.attachmentObjectId && message.attachmentKind === "IMAGE" ? (
             <button
               type="button"

@@ -2,6 +2,8 @@ package com.hustlink.backend.features.messaging.service;
 
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.service.AuthenticationService;
+import com.hustlink.backend.features.feed.model.Post;
+import com.hustlink.backend.features.feed.repository.PostRepository;
 import com.hustlink.backend.features.messaging.model.Conversation;
 import com.hustlink.backend.features.messaging.model.Message;
 import com.hustlink.backend.features.messaging.repository.ConversationRepository;
@@ -26,9 +28,17 @@ public class MessageService {
   private final NotificationService notificationService;
   private final SimpMessagingTemplate messagingTemplate;
   private final ObjectStorageService objectStorageService;
+  private final PostRepository postRepository;
+
 
   public List<Conversation> getConversationOfUser(User user) {
-    return conversationRepository.findByAuthorOrRecipient(user, user);
+    List<Conversation> list = conversationRepository.findByAuthorOrRecipient(user, user);
+    list.sort((c1, c2) -> {
+      java.time.LocalDateTime t1 = (c1.getMessages() == null || c1.getMessages().isEmpty()) ? java.time.LocalDateTime.MIN : c1.getMessages().get(c1.getMessages().size() - 1).getCreationAt();
+      java.time.LocalDateTime t2 = (c2.getMessages() == null || c2.getMessages().isEmpty()) ? java.time.LocalDateTime.MIN : c2.getMessages().get(c2.getMessages().size() - 1).getCreationAt();
+      return t2.compareTo(t1);
+    });
+    return list;
   }
 
   public Conversation getConversation(User user, Long conversationId) {
@@ -41,7 +51,7 @@ public class MessageService {
 
   @Transactional
   public Conversation createConversationAndAddMessage(
-                                                      User sender, Long receiverId, String content, Long attachmentObjectId, String attachmentKind) {
+                                                      User sender, Long receiverId, String content, Long attachmentObjectId, String attachmentKind, Long sharedPostId) {
     User receiver = authenticationService.getUserById(receiverId);
     conversationRepository.findByAuthorAndRecipient(sender, receiver).ifPresentOrElse(conversation -> {
       throw new IllegalArgumentException(
@@ -57,7 +67,7 @@ public class MessageService {
 
     Conversation conversation = conversationRepository.save(new Conversation(sender, receiver));
     reassignConversationAttachmentIfNeeded(sender, attachmentObjectId, conversation.getId());
-    Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind);
+    Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind, sharedPostId);
     messageRepository.save(message);
     conversation.getMessages().add(message);
     notificationService.sendConversationToUsers(sender.getId(), receiver.getId(), conversation);
@@ -65,7 +75,7 @@ public class MessageService {
   }
 
   public Message addMessageToConversation(
-                                          Long conversationId, User sender, Long receiverId, String content, Long attachmentObjectId, String attachmentKind) {
+                                          Long conversationId, User sender, Long receiverId, String content, Long attachmentObjectId, String attachmentKind, Long sharedPostId) {
     User receiver = authenticationService.getUserById(receiverId);
     Conversation conversation = conversationRepository.findById(conversationId).orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
 
@@ -77,7 +87,7 @@ public class MessageService {
       throw new IllegalArgumentException("Receiver doesn't belong to this conversation");
     }
 
-    Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind);
+    Message message = createMessage(sender, receiver, conversation, content, attachmentObjectId, attachmentKind, sharedPostId);
     messageRepository.save(message);
     conversation.getMessages().add(message);
     notificationService.sendMessageToConversation(conversation.getId(), message);
@@ -104,15 +114,21 @@ public class MessageService {
   }
 
   private Message createMessage(
-                                User sender, User receiver, Conversation conversation, String content, Long attachmentObjectId, String attachmentKind) {
+                                User sender, User receiver, Conversation conversation, String content, Long attachmentObjectId, String attachmentKind, Long sharedPostId) {
+    Message message;
     if (attachmentObjectId == null) {
-      return new Message(sender, receiver, conversation, content);
+      message = new Message(sender, receiver, conversation, content);
+    } else {
+      StoredObject storedObject = objectStorageService.getStoredObject(attachmentObjectId);
+      objectStorageService.assertCanAccess(sender, storedObject);
+      message = new Message(
+              sender, receiver, conversation, content, storedObject.getId(), attachmentKind, storedObject.getOriginalFileName(), storedObject.getContentType());
     }
-
-    StoredObject storedObject = objectStorageService.getStoredObject(attachmentObjectId);
-    objectStorageService.assertCanAccess(sender, storedObject);
-    return new Message(
-            sender, receiver, conversation, content, storedObject.getId(), attachmentKind, storedObject.getOriginalFileName(), storedObject.getContentType());
+    if (sharedPostId != null) {
+      Post post = postRepository.findById(sharedPostId).orElse(null);
+      message.setSharedPost(post);
+    }
+    return message;
   }
 
   private void reassignConversationAttachmentIfNeeded(User sender, Long attachmentObjectId, Long conversationId) {
