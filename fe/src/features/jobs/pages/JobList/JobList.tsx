@@ -75,7 +75,7 @@ export function JobList() {
     }
 
     if (viewMode === "all") {
-      await request<any>({
+      await request<{ content: JobResponse[]; totalPages: number }>({
         endpoint,
         onSuccess: (data) => {
           setJobs(data.content || []);
@@ -124,7 +124,7 @@ export function JobList() {
 
   useEffect(() => {
     if (user) {
-      request<any>({
+      request<{ slug?: string }>({
         endpoint: "/api/v1/companies/my",
         onSuccess: (data) => {
           if (data && data.slug) {

@@ -54,7 +54,7 @@ export const request = async <T>({
       try {
         const bodyData = await response.json();
         message = bodyData?.message || message;
-      } catch (e) {
+      } catch {
         // ignore
       }
 

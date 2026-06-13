@@ -121,7 +121,7 @@ function INotificationComponent({
 
   useEffect(() => {
     if (notification.type === NotificationType.EVENT_REMINDER) {
-      request<any>({
+      request<{ title: string; startAt: string }>({
         endpoint: `/api/v1/events/${notification.resourceId}`,
         onSuccess: (data) => {
           setEventDetails({ title: data.title, startAt: data.startAt });

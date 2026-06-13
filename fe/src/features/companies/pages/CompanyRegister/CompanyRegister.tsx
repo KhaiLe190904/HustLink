@@ -16,6 +16,21 @@ interface CompanyRegisterProps {
   onSuccess?: () => void;
 }
 
+interface CompanyDetail {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  website?: string;
+  industry?: string;
+  size?: string;
+  headquarters?: string;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export function CompanyRegister({ onClose, onSuccess }: CompanyRegisterProps) {
   const navigate = useNavigate();
   const auth = useAuthentication();
@@ -23,7 +38,9 @@ export function CompanyRegister({ onClose, onSuccess }: CompanyRegisterProps) {
 
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [existingCompany, setExistingCompany] = useState<any | null>(null);
+  const [existingCompany, setExistingCompany] = useState<CompanyDetail | null>(
+    null
+  );
 
   const [formData, setFormData] = useState({
     name: "",
@@ -36,7 +53,7 @@ export function CompanyRegister({ onClose, onSuccess }: CompanyRegisterProps) {
 
   useEffect(() => {
     if (user) {
-      request<any>({
+      request<CompanyDetail>({
         endpoint: "/api/v1/companies/my",
         onSuccess: (data) => {
           if (data && data.slug) {

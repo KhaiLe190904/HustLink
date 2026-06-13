@@ -1,13 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
-import {
-  useParams,
-  Link,
-  useSearchParams,
-  useNavigate,
-} from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { request } from "@/utils/api";
-import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
+import {
+  useAuthentication,
+  IUser,
+} from "@/features/authentication/context/AuthenticationContextProvider";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { JobResponse } from "@/features/jobs/types/jobs";
 import { FiEdit, FiCalendar, FiMapPin } from "react-icons/fi";
@@ -39,7 +37,6 @@ interface CompanyMemberInfo {
 
 export function CompanyDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get("tab");
   const { user, setUser } = useAuthentication();
@@ -144,7 +141,7 @@ export function CompanyDetail() {
   };
 
   const fetchUpdatedUser = async () => {
-    await request<any>({
+    await request<IUser>({
       endpoint: "/api/v1/authentication/users/me",
       onSuccess: (data) => setUser(data),
       onFailure: (err) => console.error(err),

@@ -241,13 +241,13 @@ export function JobDetail() {
   // Parse Gemini reasoning structure if JSON
   let reasons: string[] = [];
   let gaps: string[] = [];
-  let rawReasoning = application?.matchReasoning || "";
+  const rawReasoning = application?.matchReasoning || "";
   if (rawReasoning.trim().startsWith("{")) {
     try {
       const parsed = JSON.parse(rawReasoning);
       reasons = parsed.reasons || [];
       gaps = parsed.gaps || [];
-    } catch (e) {
+    } catch {
       // Treat as plain text if it fails to parse
     }
   }
