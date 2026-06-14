@@ -12,6 +12,7 @@ import com.hustlink.backend.features.feed.model.PostImpression;
 import com.hustlink.backend.features.feed.repository.CommentRepository;
 import com.hustlink.backend.features.feed.repository.PostImpressionRepository;
 import com.hustlink.backend.features.feed.repository.PostRepository;
+import com.hustlink.backend.features.messaging.repository.MessageRepository;
 import com.hustlink.backend.features.networking.model.Connection;
 import com.hustlink.backend.features.networking.model.Status;
 import com.hustlink.backend.features.networking.repository.ConnectionRepository;
@@ -48,6 +49,7 @@ public class FeedService {
           StorageScope.FEED_IMAGE, StorageScope.FEED_VIDEO, StorageScope.FEED_FILE);
 
   private final PostRepository postRepository;
+  private final MessageRepository messageRepository;
   private final PostImpressionRepository postImpressionRepository;
   private final UserRepository userRepository;
   private final ConnectionRepository connectionRepository;
@@ -115,6 +117,7 @@ public class FeedService {
     }
     deleteAllPostObjects(postId);
     postImpressionRepository.deleteByPostId(postId);
+    messageRepository.nullifySharedPostId(postId);
     postRepository.delete(post);
   }
 

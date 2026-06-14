@@ -3,6 +3,7 @@ package com.hustlink.backend.features.notifications.service;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.feed.model.Comment;
 import com.hustlink.backend.features.feed.model.Post;
+import com.hustlink.backend.features.feed.repository.PostRepository;
 import com.hustlink.backend.features.messaging.model.Conversation;
 import com.hustlink.backend.features.messaging.model.Message;
 import com.hustlink.backend.features.networking.model.Connection;
@@ -27,6 +28,7 @@ public class NotificationService {
   private final NotificationRepository notificationRepository;
   private final SimpMessagingTemplate messagingTemplate;
   private final com.hustlink.backend.features.authentication.repository.UserRepository userRepository;
+  private final PostRepository postRepository;
 
   private final Map<String, java.util.concurrent.ScheduledFuture<?>> pendingNotifications = new java.util.concurrent.ConcurrentHashMap<>();
   private final java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(2);
@@ -118,12 +120,18 @@ public class NotificationService {
     java.util.concurrent.ScheduledFuture<?> future = scheduler.schedule(() -> {
       pendingNotifications.remove(key);
       try {
+        if (!postRepository.existsByPostIdAndLikeUserId(resourceId, authorId)) {
+          return;
+        }
         User freshAuthor = userRepository.findById(authorId).orElse(null);
         User freshRecipient = userRepository.findById(recipientId).orElse(null);
         if (freshAuthor != null && freshRecipient != null) {
-          Notification notification = new Notification(freshAuthor, freshRecipient, NotificationType.LIKE, resourceId);
-          notificationRepository.save(notification);
-          messagingTemplate.convertAndSend("/topic/users/" + recipientId + "/notifications", notification);
+          boolean notificationExists = notificationRepository.existsByActorAndRecipientAndTypeAndResourceId(freshAuthor, freshRecipient, NotificationType.LIKE, resourceId);
+          if (!notificationExists) {
+            Notification notification = new Notification(freshAuthor, freshRecipient, NotificationType.LIKE, resourceId);
+            notificationRepository.save(notification);
+            messagingTemplate.convertAndSend("/topic/users/" + recipientId + "/notifications", notification);
+          }
         }
       } catch (Exception e) {
         e.printStackTrace();

@@ -123,6 +123,7 @@ export function Post({ post, setPosts }: PostProps) {
   const { user } = useAuthentication();
   const [showMenu, setShowMenu] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [articleExpanded, setArticleExpanded] = useState(false);
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const webSocketClient = useWebSocket();
@@ -478,7 +479,10 @@ export function Post({ post, setPosts }: PostProps) {
                       Edit
                     </button>
                     <button
-                      onClick={() => deletePost(post.id)}
+                      onClick={() => {
+                        setShowDeleteConfirm(true);
+                        setShowMenu(false);
+                      }}
                       className="w-full cursor-pointer rounded-xl px-3 py-2 text-left text-red-700 transition-colors hover:bg-red-50"
                     >
                       Delete
@@ -711,6 +715,37 @@ export function Post({ post, setPosts }: PostProps) {
         targetType="POST"
         targetId={post.id}
       />
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900">Delete Post</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Are you sure you want to permanently delete this post? This action
+              cannot be undone.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="rounded-xl bg-red-500 hover:bg-red-600 px-4 py-2 text-sm font-bold text-white transition cursor-pointer"
+                onClick={() => {
+                  deletePost(post.id);
+                  setShowDeleteConfirm(false);
+                }}
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

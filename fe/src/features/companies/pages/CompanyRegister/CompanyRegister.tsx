@@ -47,7 +47,7 @@ export function CompanyRegister({ onClose, onSuccess }: CompanyRegisterProps) {
     description: "",
     website: "",
     industry: "",
-    size: "50-200",
+    size: "51-200",
     headquarters: "",
   });
 

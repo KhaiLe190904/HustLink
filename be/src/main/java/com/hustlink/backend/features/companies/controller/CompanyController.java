@@ -5,6 +5,7 @@ import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.authentication.security.RequireRole;
 import com.hustlink.backend.features.companies.dto.*;
 import com.hustlink.backend.features.companies.model.Company;
+import com.hustlink.backend.features.companies.model.CompanyStatus;
 import com.hustlink.backend.features.companies.service.CompanyService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -41,7 +42,7 @@ public class CompanyController {
 
   @PatchMapping("/companies/{id}")
   public ResponseEntity<CompanyResponse> updateCompany(
-                                                       @PathVariable Long id, @RequestBody CompanyUpdateRequest request, @RequestAttribute("authenticationUser") User user) {
+                                                       @PathVariable Long id, @Valid @RequestBody CompanyUpdateRequest request, @RequestAttribute("authenticationUser") User user) {
     Company company = companyService.updateCompany(id, request, user);
     return ResponseEntity.ok(CompanyResponse.fromEntity(company));
   }
@@ -57,7 +58,13 @@ public class CompanyController {
   @RequireRole(UserRole.ADMIN)
   public ResponseEntity<List<CompanyResponse>> getPendingCompanies(
                                                                    @RequestParam(required = false, defaultValue = "PENDING") String status) {
-    List<Company> companies = companyService.getPendingCompanies();
+    CompanyStatus companyStatus;
+    try {
+      companyStatus = CompanyStatus.valueOf(status.toUpperCase());
+    } catch (IllegalArgumentException e) {
+      companyStatus = CompanyStatus.PENDING;
+    }
+    List<Company> companies = companyService.getCompaniesByStatus(companyStatus);
     return ResponseEntity.ok(companies.stream().map(CompanyResponse::fromEntity).toList());
   }
 

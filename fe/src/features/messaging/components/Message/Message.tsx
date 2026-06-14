@@ -64,7 +64,6 @@ export function Message({
   }, [attachmentUrl, message.attachmentObjectId]);
 
   const isMyMessage = message.sender.id === user?.id;
-  const otherUser = isMyMessage ? message.receiver : message.sender;
 
   const getAttachmentMeta = () => {
     if (isPdfFile(message.attachmentFileName, message.attachmentContentType)) {
@@ -128,8 +127,8 @@ export function Message({
       {/* Avatar */}
       <img
         className="w-8 h-8 my-1 rounded-full object-cover flex-shrink-0"
-        src={resolveMediaUrl(otherUser.profilePicture) || "/doc1.png"}
-        alt={`${otherUser.firstName} ${otherUser.lastName}`}
+        src={resolveMediaUrl(message.sender.profilePicture) || "/doc1.png"}
+        alt={`${message.sender.firstName} ${message.sender.lastName}`}
       />
 
       {/* Message bubble and status */}
@@ -218,6 +217,17 @@ export function Message({
                   return content;
                 })()}
               </p>
+            </div>
+          )}
+          {message.content === "Shared a post." && !message.sharedPost && (
+            <div
+              className={`mt-2 block w-full text-left rounded-xl border p-3 select-none max-w-sm italic text-xs ${
+                isMyMessage
+                  ? "bg-white/10 text-white/60 border-white/10"
+                  : "bg-gray-50 text-gray-400 border-gray-200"
+              }`}
+            >
+              This post has been deleted or no longer exists.
             </div>
           )}
           {message.attachmentObjectId && message.attachmentKind === "IMAGE" ? (

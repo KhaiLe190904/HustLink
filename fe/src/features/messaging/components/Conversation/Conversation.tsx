@@ -70,10 +70,10 @@ export function Conversation(props: ConversationItemProps) {
             ),
           };
         });
-        return () => subscription?.unsubscribe();
       }
     );
-  }, [conversation?.id, ws]);
+    return () => subscription?.unsubscribe();
+  }, [conversation.id, ws]);
 
   return (
     <button

@@ -20,6 +20,8 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
   boolean existsByRecipientIdAndTypeAndResourceId(Long recipientId, com.hustlink.backend.features.notifications.model.NotificationType type, Long resourceId);
 
+  boolean existsByActorAndRecipientAndTypeAndResourceId(User actor, User recipient, NotificationType type, Long resourceId);
+
   List<Notification> findByRecipientIdAndTypeAndResourceId(Long recipientId, NotificationType type, Long resourceId);
 
   @Transactional

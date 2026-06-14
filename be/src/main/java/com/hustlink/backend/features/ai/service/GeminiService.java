@@ -541,7 +541,7 @@ public class GeminiService {
 
             Candidate CV:
             %s
-            """.formatted(analysisLanguage.instructionLabel(), jobTitle, jobDescription, String.join(", ", jobSkills), trimToMaxChars(cvText, 8000));
+            """.formatted(analysisLanguage.instructionLabel(), analysisLanguage.instructionLabel(), jobTitle, jobDescription, String.join(", ", jobSkills), trimToMaxChars(cvText, 8000));
 
     prompt = appendCurrentTimeContext(prompt);
 

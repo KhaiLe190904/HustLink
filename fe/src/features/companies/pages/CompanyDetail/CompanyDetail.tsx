@@ -354,7 +354,7 @@ export function CompanyDetail() {
                 : "border-transparent text-slate-500 hover:text-slate-900"
             }`}
           >
-            HUST Members ({people.length})
+            Members ({people.length})
           </button>
           <button
             onClick={() => setActiveTab("events")}
@@ -586,11 +586,11 @@ export function CompanyDetail() {
         {activeTab === "people" && (
           <div className="rounded-3xl border border-slate-200/80 bg-white p-6 md:p-8 shadow-sm">
             <h2 className="text-xl font-bold text-slate-900 mb-6">
-              Alumni & Students Working Here
+              Employees Working Here
             </h2>
             {people.length === 0 ? (
               <div className="py-12 text-center text-slate-400 border border-dashed border-slate-200 rounded-2xl">
-                No HUST members are currently listed as working here.
+                No people are currently listed as working here.
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

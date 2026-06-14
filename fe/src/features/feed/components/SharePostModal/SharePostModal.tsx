@@ -141,7 +141,6 @@ export function SharePostModal({
         sharedPostId: postId,
       }),
       onSuccess: () => {
-        toast.success("Post shared successfully!");
         setSharedTargets((prev) => ({ ...prev, [conversation.id]: true }));
       },
       onFailure: (err) => toast.error(err || "Failed to share post"),
@@ -167,7 +166,6 @@ export function SharePostModal({
         sharedPostId: postId,
       }),
       onSuccess: (newConv) => {
-        toast.success("Post shared successfully!");
         setSharedTargets((prev) => ({
           ...prev,
           [`conn-${connection.id}`]: true,
@@ -232,7 +230,7 @@ export function SharePostModal({
 
         {/* Scrollable List */}
         <div className="flex-1 overflow-y-auto space-y-3 min-h-0 pr-1">
-          {loadingConversations && connections.length === 0 ? (
+          {loadingConversations && conversations.length === 0 ? (
             <div className="flex h-32 items-center justify-center">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600"></div>
             </div>

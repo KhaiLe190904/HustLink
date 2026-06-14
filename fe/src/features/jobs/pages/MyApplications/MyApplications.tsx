@@ -63,7 +63,11 @@ export function MyApplications() {
           </span>
         );
       default:
-        return null;
+        return (
+          <span className="bg-slate-50 border border-slate-200 text-slate-800 rounded-full px-3 py-0.5 text-xs font-semibold capitalize">
+            {status.toLowerCase()}
+          </span>
+        );
     }
   };
 

@@ -99,6 +99,23 @@ export function JobForm() {
       }
     }
 
+    if (formData.salaryMin && Number(formData.salaryMin) < 0) {
+      toast.error("Minimum salary cannot be negative");
+      return;
+    }
+    if (formData.salaryMax && Number(formData.salaryMax) < 0) {
+      toast.error("Maximum salary cannot be negative");
+      return;
+    }
+    if (
+      formData.salaryMin &&
+      formData.salaryMax &&
+      Number(formData.salaryMin) > Number(formData.salaryMax)
+    ) {
+      toast.error("Minimum salary cannot exceed maximum salary");
+      return;
+    }
+
     const skills = formData.skillsText
       .split(",")
       .map((s) => s.trim())
