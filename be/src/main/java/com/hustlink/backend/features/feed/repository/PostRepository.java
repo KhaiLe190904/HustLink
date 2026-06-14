@@ -57,4 +57,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
   @Query(
     "SELECT p.id " + "FROM posts p JOIN p.likes l " + "WHERE p.id IN :postIds AND l.id = :userId")
   List<Long> findLikedPostIdsByUser(@Param("postIds") List<Long> postIds, @Param("userId") Long userId);
+
+  @Query("SELECT COUNT(p) > 0 FROM posts p JOIN p.likes l WHERE p.id = :postId AND l.id = :userId")
+  boolean existsByPostIdAndLikeUserId(@Param("postId") Long postId, @Param("userId") Long userId);
 }

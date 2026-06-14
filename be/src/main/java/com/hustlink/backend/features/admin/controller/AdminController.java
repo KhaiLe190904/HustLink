@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -26,7 +27,7 @@ public class AdminController {
   // Any authenticated user can report content
   @PostMapping("/reports")
   public ResponseEntity<ContentReport> createReport(
-                                                    @RequestAttribute("authenticationUser") User reporter, @RequestBody ReportRequest dto
+                                                    @RequestAttribute("authenticationUser") User reporter, @Valid @RequestBody ReportRequest dto
   ) {
     ContentReport saved = adminService.createReport(reporter, dto);
     return ResponseEntity.status(HttpStatus.CREATED).body(saved);

@@ -650,7 +650,7 @@ export function RecruiterApplications() {
                   type="button"
                   className={`my-0 px-4 my-3 text-white text-xs w-full font-bold transition-all ${
                     selectedApp.status === "SHORTLISTED"
-                      ? "bg-slate-100 !text-slate-400 border border-slate-200 cursor-not-allowed"
+                      ? "bg-slate-100 text-slate-400! border border-slate-200 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/10"
                   }`}
                   onClick={() =>
@@ -672,7 +672,7 @@ export function RecruiterApplications() {
                   outline
                   className={`my-0 px-4 text-xs w-full font-bold transition-all ${
                     selectedApp.status === "REJECTED"
-                      ? "bg-slate-100 !text-slate-400 border border-slate-200 cursor-not-allowed"
+                      ? "bg-slate-100 text-slate-400! border border-slate-200 cursor-not-allowed"
                       : "text-red-600 border-red-200 hover:bg-red-50"
                   }`}
                   onClick={() => setShowRejectConfirm(true)}

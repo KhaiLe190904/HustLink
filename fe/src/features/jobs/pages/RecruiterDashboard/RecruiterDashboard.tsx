@@ -408,8 +408,17 @@ export function RecruiterDashboard() {
                   <th className="px-6 py-4">Job Title</th>
                   <th className="px-6 py-4">Status</th>
                   <th
-                    className="px-6 py-4 cursor-pointer hover:text-red-700 transition select-none"
+                    className="px-6 py-4 cursor-pointer hover:text-red-700 transition select-none outline-none focus:ring-2 focus:ring-red-500 rounded-lg"
                     onClick={() => handleSort("created")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSort("created");
+                      }
+                    }}
+                    tabIndex={0}
+                    role="columnheader"
+                    aria-label="Sort by Created Date"
                     style={{
                       userSelect: "none",
                       WebkitUserSelect: "none",
@@ -430,8 +439,17 @@ export function RecruiterDashboard() {
                     </div>
                   </th>
                   <th
-                    className="px-6 py-4 cursor-pointer hover:text-red-700 transition select-none"
+                    className="px-6 py-4 cursor-pointer hover:text-red-700 transition select-none outline-none focus:ring-2 focus:ring-red-500 rounded-lg"
                     onClick={() => handleSort("deadline")}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleSort("deadline");
+                      }
+                    }}
+                    tabIndex={0}
+                    role="columnheader"
+                    aria-label="Sort by Deadline"
                     style={{
                       userSelect: "none",
                       WebkitUserSelect: "none",
@@ -517,22 +535,18 @@ export function RecruiterDashboard() {
                             Close
                           </Button>
                         )}
-                        <Link to={`/jobs/${job.id}/applications`}>
-                          <Button
-                            type="button"
-                            size="small"
-                            className="my-0 px-3.5 bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 !w-auto whitespace-nowrap shrink-0"
-                          >
-                            <FiEye /> Profiles
-                          </Button>
+                        <Link
+                          to={`/jobs/${job.id}/applications`}
+                          className="my-0 px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white flex items-center gap-1.5 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition"
+                        >
+                          <FiEye /> Profiles
                         </Link>
-                        <Link to={`/jobs/${job.id}/edit`}>
-                          <button
-                            title="Edit"
-                            className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-red-700 hover:border-red-200 transition shrink-0"
-                          >
-                            <FiEdit className="h-4.5 w-4.5" />
-                          </button>
+                        <Link
+                          to={`/jobs/${job.id}/edit`}
+                          title="Edit"
+                          className="rounded-xl border border-slate-200 p-2 text-slate-500 hover:text-red-700 hover:border-red-200 transition shrink-0"
+                        >
+                          <FiEdit className="h-4.5 w-4.5" />
                         </Link>
                         <button
                           onClick={() => triggerConfirm(job.id, "delete")}

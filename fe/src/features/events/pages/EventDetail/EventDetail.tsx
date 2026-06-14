@@ -51,8 +51,12 @@ export function EventDetail() {
             onSuccess: (res) => {
               setRsvpStatus(res.status || "NONE");
             },
-            onFailure: () => {},
+            onFailure: () => {
+              setRsvpStatus("NONE");
+            },
           });
+        } else {
+          setRsvpStatus("NONE");
         }
       },
       onFailure: (err) => {

@@ -27,6 +27,8 @@ export function Comment({ comment, deleteComment, editComment }: CommentProps) {
   const [showActions, setShowActions] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [commentContent, setCommentContent] = useState(comment.content);
   const { user } = useAuthentication();
 
@@ -103,7 +105,7 @@ export function Comment({ comment, deleteComment, editComment }: CommentProps) {
                               </button>
                               <button
                                 onClick={() => {
-                                  deleteComment(comment.id);
+                                  setShowDeleteConfirm(true);
                                   setShowActions(false);
                                 }}
                                 className="w-full text-left cursor-pointer hover:bg-gray-100 px-3 py-1.5 rounded transition-colors text-red-600"
@@ -163,6 +165,46 @@ export function Comment({ comment, deleteComment, editComment }: CommentProps) {
         targetType="COMMENT"
         targetId={comment.id}
       />
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900">Delete Comment</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Are you sure you want to permanently delete this comment? This
+              action cannot be undone.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                className="rounded-xl bg-red-500 hover:bg-red-600 px-4 py-2 text-sm font-bold text-white transition cursor-pointer disabled:bg-red-400 disabled:cursor-not-allowed"
+                onClick={async () => {
+                  setDeleting(true);
+                  try {
+                    await deleteComment(comment.id);
+                    setShowDeleteConfirm(false);
+                  } catch (error) {
+                    console.error(error);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+              >
+                {deleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

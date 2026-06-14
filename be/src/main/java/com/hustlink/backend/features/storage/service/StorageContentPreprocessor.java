@@ -7,7 +7,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -23,7 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class StorageContentPreprocessor {
   private static final Set<StorageScope> VIDEO_SCOPES = Set.of(StorageScope.FEED_VIDEO, StorageScope.MESSAGE_VIDEO);
   private static final int IMAGE_MAX_DIMENSION = 1280;
-  private static final float IMAGE_QUALITY = 0.28f;
+  private static final float IMAGE_QUALITY = 0.5f;
 
   private final StorageProperties storageProperties;
 
@@ -43,7 +42,7 @@ public class StorageContentPreprocessor {
     }
 
     if (VIDEO_SCOPES.contains(scope) && originalContentType.startsWith("video/")) {
-      return optimizeVideo(originalBytes, file.getOriginalFilename());
+      return optimizeVideo(originalBytes, originalContentType, file.getOriginalFilename());
     }
 
     return new PreparedUpload(originalBytes, originalContentType, false, originalSize, file.getOriginalFilename());
@@ -72,35 +71,47 @@ public class StorageContentPreprocessor {
     return new PreparedUpload(optimizedBytes, "image/jpeg", true, (long) originalBytes.length, optimizedName);
   }
 
-  private PreparedUpload optimizeVideo(byte[] originalBytes, String originalName) throws IOException {
+  private PreparedUpload optimizeVideo(byte[] originalBytes, String originalContentType, String originalName) throws IOException {
     Path inputFile = Files.createTempFile("hustlink-video-in-", originalExtension(originalName, ".mp4"));
     Path outputFile = Files.createTempFile("hustlink-video-out-", ".mp4");
     try {
       Files.write(inputFile, originalBytes);
 
       List<String> command = List.of(
-              storageProperties.ffmpegBinOrDefault(), "-y", "-i", inputFile.toString(), "-vf", "scale=min(%d,iw):-2".formatted(storageProperties.videoMaxWidthOrDefault()), "-c:v", "libx264", "-preset", "veryslow", "-crf", String.valueOf(storageProperties.videoCrfOrDefault()), "-movflags", "+faststart", "-c:a", "aac", "-b:a", storageProperties.videoAudioBitrateOrDefault(), outputFile.toString());
+              storageProperties.ffmpegBinOrDefault(), "-y", "-i", inputFile.toString(), "-vf", "scale='trunc(min(%d,iw)/2)*2':-2".formatted(storageProperties.videoMaxWidthOrDefault()), "-c:v", "libx264", "-preset", "veryslow", "-crf", String.valueOf(storageProperties.videoCrfOrDefault()), "-movflags", "+faststart", "-c:a", "aac", "-b:a", storageProperties.videoAudioBitrateOrDefault(), outputFile.toString());
 
       Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-      process.getInputStream().transferTo(OutputStream.nullOutputStream());
+      java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+      java.util.List<String> logs = new java.util.ArrayList<>();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        logs.add(line);
+      }
       int exitCode;
       try {
         exitCode = process.waitFor();
       } catch (InterruptedException exception) {
         Thread.currentThread().interrupt();
-        throw new IllegalStateException("Video compression interrupted.", exception);
+        return new PreparedUpload(originalBytes, originalContentType, false, (long) originalBytes.length, originalName);
       }
 
       if (exitCode != 0 || !Files.exists(outputFile)) {
-        throw new IllegalStateException("FFmpeg failed to compress the uploaded video.");
+        System.err.println("FFmpeg failed with exit code " + exitCode + ". Logs:");
+        for (String logLine : logs) {
+          System.err.println("FFmpeg: " + logLine);
+        }
+        return new PreparedUpload(originalBytes, originalContentType, false, (long) originalBytes.length, originalName);
       }
 
       byte[] optimizedBytes = Files.readAllBytes(outputFile);
       if (optimizedBytes.length >= originalBytes.length) {
-        return new PreparedUpload(originalBytes, "video/mp4", false, (long) originalBytes.length, replaceExtension(originalName, ".mp4"));
+        return new PreparedUpload(originalBytes, originalContentType, false, (long) originalBytes.length, originalName);
       }
 
       return new PreparedUpload(optimizedBytes, "video/mp4", true, (long) originalBytes.length, replaceExtension(originalName, ".mp4"));
+    } catch (Exception e) {
+      // Fallback if FFmpeg is not installed / not on PATH or throws any exception
+      return new PreparedUpload(originalBytes, originalContentType, false, (long) originalBytes.length, originalName);
     } finally {
       Files.deleteIfExists(inputFile);
       Files.deleteIfExists(outputFile);

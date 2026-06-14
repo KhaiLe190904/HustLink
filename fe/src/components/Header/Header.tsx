@@ -44,7 +44,7 @@ export function Header() {
   }, 0);
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const nonReadNotificationCount = notifications.filter(
-    (notification) => !notification.read
+    (notification) => !(notification.read || notification.isRead)
   ).length;
 
   useEffect(() => {
@@ -117,6 +117,8 @@ export function Header() {
     return () => subscription?.unsubscribe();
   }, [user?.id, webSocketClient]);
 
+  const conversationIdsStr = conversations.map((c) => c.id).join(",");
+
   useEffect(() => {
     const subscriptions = conversations.map((conversation) => {
       return webSocketClient?.subscribe(
@@ -150,7 +152,8 @@ export function Header() {
     return () => {
       subscriptions.forEach((subscription) => subscription?.unsubscribe());
     };
-  }, [conversations, webSocketClient]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationIdsStr, webSocketClient]);
 
   useEffect(() => {
     request<IConnection[]>({

@@ -47,7 +47,8 @@ interface CvConfigResponse {
 }
 
 const friendlyUploadError = (error: string) => {
-  if (error.includes("not a valid readable PDF")) {
+  const lowerError = error.toLowerCase();
+  if (lowerError.includes("not a valid readable pdf")) {
     return "This file is not a valid readable PDF. Please upload another CV file.";
   }
 
@@ -55,11 +56,11 @@ const friendlyUploadError = (error: string) => {
 };
 
 const friendlyDeleteError = (error: string) => {
-  if (error.includes("already has interview history")) {
+  const lowerError = error.toLowerCase();
+  if (lowerError.includes("already has interview history")) {
     return "This CV already contains interview history, so it cannot be deleted.";
   }
 
-  const lowerError = error.toLowerCase();
   if (
     lowerError.includes("reference constraint") ||
     lowerError.includes("job_applications") ||

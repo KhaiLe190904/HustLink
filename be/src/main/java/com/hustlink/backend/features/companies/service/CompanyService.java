@@ -33,8 +33,8 @@ public class CompanyService {
     return companyRepository.findBySlug(slug).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company not found"));
   }
 
-  public List<Company> getPendingCompanies() {
-    return companyRepository.findByStatus(CompanyStatus.PENDING);
+  public List<Company> getCompaniesByStatus(CompanyStatus status) {
+    return companyRepository.findByStatus(status);
   }
 
   public List<Company> getActiveCompanies() {
