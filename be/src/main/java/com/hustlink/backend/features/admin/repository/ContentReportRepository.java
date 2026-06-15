@@ -19,4 +19,6 @@ public interface ContentReportRepository extends JpaRepository<ContentReport, Lo
   Page<ContentReport> findByStatusAndTargetType(ReportStatus status, ReportTargetType targetType, Pageable pageable);
 
   List<ContentReport> findByTargetTypeAndTargetId(ReportTargetType targetType, Long targetId);
+
+  boolean existsByReporterIdAndTargetTypeAndTargetId(Long reporterId, ReportTargetType targetType, Long targetId);
 }

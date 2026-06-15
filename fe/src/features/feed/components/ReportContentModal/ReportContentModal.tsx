@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { request } from "@/utils/api";
 import { FiX, FiAlertTriangle } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { Button } from "@/features/authentication/components/Button/Button";
+import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 
 interface ReportContentModalProps {
   showModal: boolean;
@@ -17,11 +18,24 @@ export function ReportContentModal({
   targetType,
   targetId,
 }: ReportContentModalProps) {
+  const { user } = useAuthentication();
   const [reason, setReason] = useState<
-    "SPAM" | "TOXICITY" | "INAPPROPRIATE" | "PLAGIARISM" | "OTHER"
+    "SPAM" | "TOXICITY" | "HARASSMENT" | "SCAM" | "INAPPROPRIATE" | "OTHER"
   >("SPAM");
   const [details, setDetails] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (showModal && user?.id) {
+      const key = `reported_${user.id}_${targetType}_${targetId}`;
+      if (localStorage.getItem(key)) {
+        toast.info(
+          `You have already reported this ${targetType.toLowerCase()}.`
+        );
+        setShowModal(false);
+      }
+    }
+  }, [showModal, targetType, targetId, setShowModal, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +54,12 @@ export function ReportContentModal({
         toast.success(
           "Thank you. The report has been submitted to the administrators."
         );
+        if (user?.id) {
+          localStorage.setItem(
+            `reported_${user.id}_${targetType}_${targetId}`,
+            "true"
+          );
+        }
         setShowModal(false);
         setDetails("");
         setReason("SPAM");
@@ -91,17 +111,19 @@ export function ReportContentModal({
                   e.target.value as
                     | "SPAM"
                     | "TOXICITY"
+                    | "HARASSMENT"
+                    | "SCAM"
                     | "INAPPROPRIATE"
-                    | "PLAGIARISM"
                     | "OTHER"
                 )
               }
               className="w-full rounded-2xl border border-slate-200 py-2.5 px-3 text-sm text-slate-800 outline-none transition focus:border-red-500 bg-white"
             >
               <option value="SPAM">Spam</option>
-              <option value="TOXICITY">Toxicity / Harassment</option>
+              <option value="TOXICITY">Toxicity</option>
+              <option value="HARASSMENT">Harassment</option>
+              <option value="SCAM">Scam / Fraud</option>
               <option value="INAPPROPRIATE">Inappropriate Content</option>
-              <option value="PLAGIARISM">Plagiarism</option>
               <option value="OTHER">Other Reason</option>
             </select>
           </div>
