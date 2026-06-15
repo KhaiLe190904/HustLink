@@ -58,6 +58,13 @@ public class AdminServiceImpl implements AdminService {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required fields are missing.");
     }
 
+    boolean exists = contentReportRepository.existsByReporterIdAndTargetTypeAndTargetId(
+            reporter.getId(), request.targetType(), request.targetId()
+    );
+    if (exists) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You have already reported this content.");
+    }
+
     ContentReport report = ContentReport.builder().reporter(reporter).targetType(request.targetType()).targetId(request.targetId()).reason(request.reason()).details(request.details()).status(ReportStatus.PENDING).build();
 
     return contentReportRepository.save(report);
