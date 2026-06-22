@@ -47,7 +47,7 @@ public class JobMatchingService {
 
     // Compute aggregate score
     int totalScore = (int) Math.round(
-            0.50 * semanticScore + 0.30 * skillScore + 0.15 * experienceScore + 0.05 * keywordScore
+            0.60 * semanticScore + 0.20 * skillScore + 0.10 * experienceScore + 0.10 * keywordScore
     );
 
     // Breakdown JSON

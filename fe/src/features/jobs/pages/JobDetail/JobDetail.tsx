@@ -252,6 +252,9 @@ export function JobDetail() {
     }
   }
 
+  const selectedCv = myCvs.find((cv) => cv.id === Number(selectedCvId));
+  const isSelectedCvAnalyzed = selectedCv ? selectedCv.analyzed : false;
+
   return (
     <div className="mx-auto max-w-[1200px] px-4 py-8">
       {/* Back navigation */}
@@ -673,24 +676,45 @@ export function JobDetail() {
                     </Link>
                   </div>
                 ) : (
-                  <select
-                    id="cvSelect"
-                    value={selectedCvId}
-                    onChange={(e) =>
-                      setSelectedCvId(
-                        e.target.value === "" ? "" : Number(e.target.value)
-                      )
-                    }
-                    className="mt-1.5 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                    required
-                  >
-                    {myCvs.map((cv) => (
-                      <option key={cv.id} value={cv.id}>
-                        {cv.originalFileName} (Uploaded:{" "}
-                        {new Date(cv.uploadedAt).toLocaleDateString("en-US")})
-                      </option>
-                    ))}
-                  </select>
+                  <>
+                    <select
+                      id="cvSelect"
+                      value={selectedCvId}
+                      onChange={(e) =>
+                        setSelectedCvId(
+                          e.target.value === "" ? "" : Number(e.target.value)
+                        )
+                      }
+                      className="mt-1.5 block w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                      required
+                    >
+                      {myCvs.map((cv) => (
+                        <option key={cv.id} value={cv.id}>
+                          {cv.originalFileName} (Uploaded:{" "}
+                          {new Date(cv.uploadedAt).toLocaleDateString("en-US")})
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCvId && !isSelectedCvAnalyzed && (
+                      <div className="mt-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-4 text-amber-950">
+                        <p className="text-xs font-semibold leading-relaxed">
+                          ⚠️ <strong>This CV has not been analyzed yet.</strong>
+                        </p>
+                        <p className="text-[11px] mt-1">
+                          To ensure accurate skill and experience matching,
+                          please go to the{" "}
+                          <Link
+                            to="/ai/cv"
+                            className="font-bold text-red-700 hover:underline"
+                          >
+                            AI CV
+                          </Link>{" "}
+                          page and click <strong>Analyze</strong> for this CV
+                          before applying.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -722,8 +746,10 @@ export function JobDetail() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={submitting || !selectedCvId}
-                  className="my-0 px-6 bg-red-700 hover:bg-red-800 text-white font-bold"
+                  disabled={
+                    submitting || !selectedCvId || !isSelectedCvAnalyzed
+                  }
+                  className="my-0 px-6 bg-red-700 hover:bg-red-800 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "AI is analyzing..." : "Submit Application"}
                 </Button>

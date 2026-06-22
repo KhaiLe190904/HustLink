@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 public record FeedRankingProperties(
                                     @DefaultValue("5") int batchSize,
                                     @DefaultValue("50") int candidatePoolSize,
-                                    @DefaultValue("100") int maxCandidatePoolSize,
+                                    @DefaultValue("150") int maxCandidatePoolSize,
                                     @DefaultValue("6") int freshWindowHours,
                                     @DefaultValue("50") double veryFreshPostScore,
                                     @DefaultValue("30") double authorAffinityScore,

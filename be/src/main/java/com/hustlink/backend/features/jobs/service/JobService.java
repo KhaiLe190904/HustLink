@@ -9,6 +9,7 @@ import com.hustlink.backend.features.ai.repository.CVRepository;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.companies.model.Company;
+import com.hustlink.backend.features.companies.model.CompanyMember;
 import com.hustlink.backend.features.companies.repository.CompanyMemberRepository;
 import com.hustlink.backend.features.companies.service.CompanyService;
 import com.hustlink.backend.features.jobs.dto.*;
@@ -239,6 +240,10 @@ public class JobService {
 
     CV cv = cvRepository.findByIdAndUserId(request.cvId(), user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No valid CV found"));
 
+    if (cv.getAnalysisScore() == null) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV has not been analyzed yet. Please analyze the CV first.");
+    }
+
     JobMatchingService.MatchResult matchResult = jobMatchingService.computeMatch(cv, job);
 
     JobApplication app = JobApplication.builder().job(job).applicant(user).cv(cv).coverLetter(request.coverLetter()).matchScore(matchResult.score()).matchBreakdown(matchResult.breakdown()).matchReasoning(matchResult.reasoning()).status(ApplicationStatus.APPLIED).build();
@@ -246,7 +251,16 @@ public class JobService {
     JobApplication savedApp = jobApplicationRepository.save(app);
 
     try {
-      notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
+      List<CompanyMember> currentMembers = companyMemberRepository.findByCompanyId(job.getCompany().getId());
+      boolean postedByStillMember = currentMembers.stream().anyMatch(member -> member.getUser().getId().equals(job.getPostedBy().getId()));
+
+      if (postedByStillMember || currentMembers.isEmpty()) {
+        notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
+      } else {
+        for (CompanyMember member : currentMembers) {
+          notificationService.sendJobApplicationNotification(user, member.getUser(), job.getId());
+        }
+      }
     } catch (Exception e) {
       log.error("Failed to send job application notification", e);
     }
@@ -316,6 +330,9 @@ public class JobService {
       return List.of();
     }
     CV latestCv = userCvs.getFirst();
+    if (latestCv.getAnalysisScore() == null) {
+      return List.of();
+    }
 
     try {
       float[] cvVector = embeddingService.embed(latestCv.getExtractedText());
