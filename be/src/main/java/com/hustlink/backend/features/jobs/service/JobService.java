@@ -6,6 +6,7 @@ import com.hustlink.backend.features.ai.embedding.VectorStoreClient;
 import com.hustlink.backend.features.ai.embedding.dto.SimilarPoint;
 import com.hustlink.backend.features.ai.model.CV;
 import com.hustlink.backend.features.ai.repository.CVRepository;
+import com.hustlink.backend.features.ai.service.CVContextBuilder;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.companies.model.Company;
@@ -48,6 +49,7 @@ public class JobService {
   private final ObjectStorageService objectStorageService;
   private final EmailService emailService;
   private final NotificationService notificationService;
+  private final CVContextBuilder cvContextBuilder;
 
   private static final String JOB_DESCRIPTION_COLLECTION = "job_description";
 
@@ -252,12 +254,13 @@ public class JobService {
 
     try {
       List<CompanyMember> currentMembers = companyMemberRepository.findByCompanyId(job.getCompany().getId());
-      boolean postedByStillMember = currentMembers.stream().anyMatch(member -> member.getUser().getId().equals(job.getPostedBy().getId()));
-
-      if (postedByStillMember || currentMembers.isEmpty()) {
-        notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
-      } else {
-        for (CompanyMember member : currentMembers) {
+      
+      // Always notify the recruiter who posted the job
+      notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
+      
+      // Also notify all other company members (excluding the job poster to avoid duplicate)
+      for (CompanyMember member : currentMembers) {
+        if (!member.getUser().getId().equals(job.getPostedBy().getId())) {
           notificationService.sendJobApplicationNotification(user, member.getUser(), job.getId());
         }
       }
@@ -335,7 +338,8 @@ public class JobService {
     }
 
     try {
-      float[] cvVector = embeddingService.embed(latestCv.getExtractedText());
+      String cleanCvContext = cvContextBuilder.buildStructuredCvContext(latestCv, 3200, 1000);
+      float[] cvVector = embeddingService.embed(cleanCvContext);
       List<SimilarPoint> similarPoints = vectorStoreClient.search(JOB_DESCRIPTION_COLLECTION, cvVector, 10, Map.of());
 
       List<Long> ids = similarPoints.stream().map(point -> {

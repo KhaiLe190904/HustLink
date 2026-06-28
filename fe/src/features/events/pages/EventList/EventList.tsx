@@ -9,7 +9,6 @@ import {
   FiCalendar,
   FiMapPin,
   FiPlus,
-  FiChevronRight,
   FiSearch,
   FiSliders,
   FiUsers,

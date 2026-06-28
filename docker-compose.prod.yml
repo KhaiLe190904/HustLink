@@ -39,6 +39,8 @@ services:
 
   unstructured:
     image: downloads.unstructured.io/unstructured-io/unstructured-api:latest
+    environment:
+      - UNSTRUCTURED_MIN_FREE_MEMORY_MB=0 
     container_name: hustlink_unstructured
     expose:
       - "8000"

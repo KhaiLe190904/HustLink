@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { request } from "@/utils/api";
-import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 
 interface InterviewQuestionResponse {
   id: number;
@@ -165,7 +164,6 @@ function CustomSelect<T extends string | number>({
 export function Interview() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuthentication();
   const selectedCvId = Number(searchParams.get("cvId") ?? "");
   const [jobPosition, setJobPosition] = useState("");
   const [interviewLevel, setInterviewLevel] = useState("");

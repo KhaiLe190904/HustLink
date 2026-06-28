@@ -12,7 +12,6 @@ import {
   FiDollarSign,
   FiCpu,
   FiPlus,
-  FiChevronRight,
 } from "react-icons/fi";
 import { CompanyRegister } from "@/features/companies/pages/CompanyRegister/CompanyRegister";
 

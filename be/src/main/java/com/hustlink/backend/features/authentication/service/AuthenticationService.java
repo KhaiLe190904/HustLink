@@ -335,6 +335,10 @@ public class AuthenticationService {
     if (!encoder.matches(loginRequestBody.getPassword(), user.getPassword())) {
       throw new IllegalArgumentException("Wrong password");
     }
+    if (encoder.needsUpgrade(user.getPassword())) {
+      user.setPassword(encoder.encode(loginRequestBody.getPassword()));
+      userRepository.save(user);
+    }
     String token = jsonWebToken.generateToken(loginRequestBody.getEmail());
     return new AuthenticationResponseBody(token, "User successfully logged in");
   }

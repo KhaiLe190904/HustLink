@@ -499,6 +499,7 @@ export function Conversation() {
             className="border-t border-slate-200 bg-white px-4 py-3"
             onSubmit={async (e) => {
               e.preventDefault();
+              if (postingMessage) return;
               if (!content.trim() && !attachment) return;
               let succeeded = false;
               if (conversation) {
@@ -527,9 +528,10 @@ export function Conversation() {
                 placeholder="Write a message..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.nativeEvent.isComposing) return;
                     e.preventDefault();
                     const form = e.currentTarget.form;
-                    if (form && content.trim()) {
+                    if (form && content.trim() && !postingMessage) {
                       form.requestSubmit();
                     }
                   }

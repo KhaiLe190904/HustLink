@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hustlink.backend.features.ai.embedding.EmbeddingService;
 import com.hustlink.backend.features.ai.model.CV;
 import com.hustlink.backend.features.ai.service.GeminiService;
+import com.hustlink.backend.features.ai.service.CVContextBuilder;
 import com.hustlink.backend.features.jobs.model.Job;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class JobMatchingService {
   private final EmbeddingService embeddingService;
   private final GeminiService geminiService;
   private final ObjectMapper objectMapper;
+  private final CVContextBuilder cvContextBuilder;
   private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {
   };
 
@@ -31,7 +33,8 @@ public class JobMatchingService {
     log.info("op=computeMatch cvId={} jobId={}", cv.getId(), job.getId());
 
     // 1. Semantic Score (50%)
-    float[] cvVector = embeddingService.embed(cv.getExtractedText());
+    String cleanCvContext = cvContextBuilder.buildStructuredCvContext(cv, 3200, 1000);
+    float[] cvVector = embeddingService.embed(cleanCvContext);
     float[] jobVector = embeddingService.embed(job.getTitle() + "\n" + job.getDescription());
     double similarity = cosineSimilarity(cvVector, jobVector);
     int semanticScore = (int) Math.max(0, Math.min(100, similarity * 100));
