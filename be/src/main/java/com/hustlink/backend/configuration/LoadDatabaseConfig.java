@@ -234,7 +234,7 @@ public class LoadDatabaseConfig {
     );
 
     List<String> companyLogos = Arrays.asList(
-            "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150", "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150", "https://images.unsplash.com/photo-1542744094-3a31f103e35f?w=150", "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150", "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=150", "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150", "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=150", "https://images.unsplash.com/photo-1497366216548-37526070297c?w=150", "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=150"
+            "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=150", "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=150", "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/VNG_Corp._logo.svg/1280px-VNG_Corp._logo.svg.png", "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150", "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=150", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=150", "https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150", "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=150", "https://images.unsplash.com/photo-1497366216548-37526070297c?w=150", "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=150"
     );
 
     List<Company> activeCompanies = new ArrayList<>();

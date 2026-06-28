@@ -246,6 +246,8 @@ export function CVUpload() {
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-gray-600">
                   Upload your PDF CV, then run AI analysis when you are ready.
+                  For the best analysis quality, please make sure the CV content
+                  inside the PDF is text-based, not images of the CV.
                 </p>
               </div>
             </div>
@@ -296,14 +298,6 @@ export function CVUpload() {
                   {uploading ? "Uploading..." : "Upload CV"}
                 </Button>
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  <div>
-                    Gemini status:{" "}
-                    <strong>
-                      {geminiConfigured
-                        ? "API key configured"
-                        : "API key missing"}
-                    </strong>
-                  </div>
                   <div className="mt-1">
                     Daily AI analysis limit:{" "}
                     <strong>

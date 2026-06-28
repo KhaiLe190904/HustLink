@@ -48,6 +48,9 @@ public class CV {
 
   private Integer analysisScore;
 
+  @Column(length = 20)
+  private String analysisStatus;
+
   @Lob
   @Column(columnDefinition = "nvarchar(max)")
   private String analysisSummary;

@@ -10,5 +10,6 @@ public record CVSummaryResponse(
                                 String downloadUrl,
                                 Integer analysisScore,
                                 boolean analyzed,
+                                String analysisStatus,
                                 LocalDateTime uploadedAt) {
 }

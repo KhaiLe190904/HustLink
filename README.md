@@ -1,3 +1,8 @@
+# Run production build và restart 
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
 # Run be
 ```bash
 docker-compose up

@@ -167,8 +167,8 @@ export function Interview() {
   const [searchParams] = useSearchParams();
   const { user } = useAuthentication();
   const selectedCvId = Number(searchParams.get("cvId") ?? "");
-  const [jobPosition, setJobPosition] = useState(user?.position ?? "");
-  const [interviewLevel, setInterviewLevel] = useState("JUNIOR");
+  const [jobPosition, setJobPosition] = useState("");
+  const [interviewLevel, setInterviewLevel] = useState("");
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [session, setSession] = useState<InterviewStartResponse | null>(null);
@@ -203,6 +203,21 @@ export function Interview() {
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [voicesReady, setVoicesReady] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    const saved = localStorage.getItem("interview_speech_muted");
+    return saved ? saved === "true" : true; // Default to true (muted)
+  });
+
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      localStorage.setItem("interview_speech_muted", String(next));
+      if (next && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      return next;
+    });
+  };
   const recognitionRef = useRef<RecognitionInstance | null>(null);
   const timeoutSubmittedRef = useRef<number | null>(null);
   const answerTextRef = useRef("");
@@ -357,18 +372,35 @@ export function Interview() {
     listeningBaseTextRef.current = "";
     timeoutSubmittedRef.current = null;
     stopListening();
-    speakQuestion(currentQuestion.text, session?.languageCode ?? "en-US");
+    if (!isMuted) {
+      speakQuestion(currentQuestion.text, session?.languageCode ?? "en-US");
+    }
   }, [
     currentQuestion,
     result,
     session?.languageCode,
     speakQuestion,
     stopListening,
+    isMuted,
   ]);
+
+  useEffect(() => {
+    if (isMuted && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, [isMuted]);
 
   const handleStartInterview = async () => {
     if (!selectedCvId) {
       toast.error("Please start the mock interview from a CV first.");
+      return;
+    }
+    if (!jobPosition.trim()) {
+      toast.error("Please enter a target job position.");
+      return;
+    }
+    if (!interviewLevel) {
+      toast.error("Please select a candidate level.");
       return;
     }
 
@@ -796,7 +828,7 @@ export function Interview() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
             We will generate 5 personalized questions from your CV, read each
-            question aloud, give you up to 2 minutes to answer, convert your mic
+            question aloud, give you up to 5 minutes to answer, convert your mic
             response to text, then evaluate the whole interview with Gemini at
             the end.
           </p>
@@ -827,6 +859,7 @@ export function Interview() {
               <CustomSelect
                 value={interviewLevel}
                 onChange={setInterviewLevel}
+                placeholder="Select level..."
                 options={[
                   { value: "INTERN", label: "Intern" },
                   { value: "FRESHER", label: "Fresher" },
@@ -841,7 +874,12 @@ export function Interview() {
                 type="button"
                 className="my-0 sm:w-fit"
                 onClick={handleStartInterview}
-                disabled={starting || !selectedCvId}
+                disabled={
+                  starting ||
+                  !selectedCvId ||
+                  !jobPosition.trim() ||
+                  !interviewLevel
+                }
               >
                 {starting ? "Preparing..." : "Start Mock Interview"}
               </Button>
@@ -942,17 +980,44 @@ export function Interview() {
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
               {currentQuestion.category}
             </span>
-            <Button
-              type="button"
-              outline
-              className="my-0 sm:w-fit"
-              onClick={() =>
-                speakQuestion(currentQuestion.text, session.languageCode)
-              }
-              disabled={!voicesReady}
-            >
-              Replay Question
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                outline
+                className="my-0 sm:w-fit flex items-center gap-1.5"
+                onClick={toggleMute}
+              >
+                {isMuted ? (
+                  <>
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M3.63 3.63L2.22 5.04l4.69 4.69H3v6h4l5 5V13.8L18.42 20c-.72.48-1.53.84-2.42 1.05v-2.05c1.44-.31 2.76-.94 3.86-1.81l2.09 2.09 1.41-1.41L3.63 3.63zM12 4L9.91 6.09 12 8.18V4z" />
+                    </svg>
+                    <span>Muted</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 fill-current text-red-700 animate-pulse"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                    </svg>
+                    <span>Auto-read</span>
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                outline
+                className="my-0 sm:w-fit"
+                onClick={() =>
+                  speakQuestion(currentQuestion.text, session.languageCode)
+                }
+                disabled={!voicesReady}
+              >
+                Replay Question
+              </Button>
+            </div>
           </div>
           <h2 className="mt-4 text-2xl font-bold leading-9 text-gray-900">
             {currentQuestion.text}

@@ -155,4 +155,11 @@ public class JobController {
     List<JobResponse> jobs = jobService.getRecruiterJobs(user);
     return ResponseEntity.ok(jobs);
   }
+
+  @PostMapping("/admin/jobs/reindex")
+  @RequireRole(UserRole.ADMIN)
+  public ResponseEntity<Map<String, Integer>> reindexAllJobs() {
+    int indexedCount = jobService.reindexAllJobsInVectorStore();
+    return ResponseEntity.ok(Map.of("indexedCount", indexedCount));
+  }
 }

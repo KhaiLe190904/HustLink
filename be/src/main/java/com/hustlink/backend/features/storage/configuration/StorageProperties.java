@@ -21,8 +21,8 @@ public record StorageProperties(
                                 int videoCrf,
                                 String videoAudioBitrate) {
 
-  private static final String DEFAULT_STORAGE_ENDPOINT = "http://192.168.2.36:9000";
-  private static final String FALLBACK_STORAGE_ENDPOINT = "http://s3.hustlink.lekhai.id.vn";
+  private static final String DEFAULT_STORAGE_ENDPOINT = "http://192.168.100.36:9000";
+  private static final String FALLBACK_STORAGE_ENDPOINT = "https://s3-hustlink.lekhai.id.vn";
 
   public String endpointOrDefault() {
     return firstNonBlank(endpoint, DEFAULT_STORAGE_ENDPOINT, FALLBACK_STORAGE_ENDPOINT);

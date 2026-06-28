@@ -28,6 +28,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -45,6 +46,7 @@ public class CVService {
   private final CVContextBuilder cvContextBuilder;
   private final ObjectStorageService objectStorageService;
   private final ObjectMapper objectMapper;
+  private final TransactionTemplate transactionTemplate;
 
   @Value("${ai.daily-analysis-limit:2}")
   private int dailyAnalysisLimit;
@@ -85,7 +87,7 @@ public class CVService {
 
   public List<CVSummaryResponse> getMyCvs(User user) {
     return cvRepository.findByUserIdOrderByUploadedAtDesc(user.getId()).stream().map(cv -> new CVSummaryResponse(
-            cv.getId(), cv.getFileName(), cv.getOriginalFileName(), cv.getMimeType(), objectStorageService.getAccessUrl(cv.getStoredObject()), cv.getAnalysisScore(), cv.getAnalysisScore() != null, cv.getUploadedAt())).toList();
+            cv.getId(), cv.getFileName(), cv.getOriginalFileName(), cv.getMimeType(), objectStorageService.getAccessUrl(cv.getStoredObject()), cv.getAnalysisScore(), cv.getAnalysisScore() != null && !"ANALYZING".equals(cv.getAnalysisStatus()), cv.getAnalysisStatus(), cv.getUploadedAt())).toList();
   }
 
   @Transactional
@@ -106,22 +108,48 @@ public class CVService {
   public CVAnalysisResponse analyzeCv(User user, Long cvId) {
     CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
 
-    if (cv.getAnalysisScore() != null) {
+    if (cv.getAnalysisScore() != null && !"ANALYZING".equals(cv.getAnalysisStatus())) {
       return toAnalysisResponse(cv);
+    }
+
+    if ("ANALYZING".equals(cv.getAnalysisStatus())) {
+      throw new ResponseStatusException(
+              HttpStatus.CONFLICT, "This CV is currently being analyzed. Please wait a moment and try again.");
     }
 
     enforceDailyAnalysisLimit(user);
 
-    GeminiService.CVInsight insight = geminiService.analyzeCv(cv.getExtractedText());
-    cv.setAnalysisScore(insight.score());
-    cv.setAnalysisSummary(insight.summary());
-    cv.setAnalysisStrengths(writeList(insight.strengths()));
-    cv.setAnalysisImprovements(writeList(insight.improvements()));
-    cv.setExtractedSkills(writeList(insight.skills()));
-    cv.setRecommendedQuestions(null);
+    transactionTemplate.execute(status -> {
+      cv.setAnalysisStatus("ANALYZING");
+      cvRepository.save(cv);
+      return null;
+    });
 
-    CV savedCv = cvRepository.save(cv);
-    recordAiUsage(user, AIUsageType.CV_ANALYSIS);
+    GeminiService.CVInsight insight;
+    try {
+      insight = geminiService.analyzeCv(cv.getExtractedText());
+    } catch (Exception e) {
+      transactionTemplate.execute(status -> {
+        cv.setAnalysisStatus(null);
+        cvRepository.save(cv);
+        return null;
+      });
+      throw e;
+    }
+
+    CV savedCv = transactionTemplate.execute(status -> {
+      cv.setAnalysisScore(insight.score());
+      cv.setAnalysisSummary(insight.summary());
+      cv.setAnalysisStrengths(writeList(insight.strengths()));
+      cv.setAnalysisImprovements(writeList(insight.improvements()));
+      cv.setExtractedSkills(writeList(insight.skills()));
+      cv.setRecommendedQuestions(null);
+      cv.setAnalysisStatus("DONE");
+      CV persisted = cvRepository.save(cv);
+      recordAiUsage(user, AIUsageType.CV_ANALYSIS);
+      return persisted;
+    });
+
     return toAnalysisResponse(savedCv);
   }
 

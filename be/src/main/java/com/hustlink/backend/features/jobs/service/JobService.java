@@ -382,6 +382,20 @@ public class JobService {
     return jobApplicationRepository.findByApplicantId(user.getId()).stream().map(JobApplicationResponse::fromEntity).toList();
   }
 
+  @Transactional
+  public int reindexAllJobsInVectorStore() {
+    vectorStoreClient.ensureCollection(JOB_DESCRIPTION_COLLECTION, embeddingService.dimension());
+    int indexedCount = 0;
+
+    for (Job job : jobRepository.findAll()) {
+      if (indexJobInVectorStore(job)) {
+        indexedCount++;
+      }
+    }
+
+    return indexedCount;
+  }
+
   private void validateJobOwner(Job job, User user) {
     if (user.getRole() == UserRole.RECRUITER) {
       Company recruiterCompany = companyService.getMyCompany(user).orElse(null);
@@ -392,7 +406,7 @@ public class JobService {
     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to manage this job posting");
   }
 
-  private void indexJobInVectorStore(Job job) {
+  private boolean indexJobInVectorStore(Job job) {
     try {
       float[] vector = embeddingService.embed(job.getTitle() + "\n" + job.getDescription());
       Map<String, Object> payload = new LinkedHashMap<>();
@@ -404,8 +418,10 @@ public class JobService {
       vectorStoreClient.upsert(JOB_DESCRIPTION_COLLECTION, job.getId().toString(), vector, payload);
       job.setVectorId(job.getId().toString());
       jobRepository.save(job);
+      return true;
     } catch (Exception e) {
       log.warn("Failed to index job in Qdrant: {}", e.getMessage());
+      return false;
     }
   }
 }

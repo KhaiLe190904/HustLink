@@ -574,9 +574,6 @@ export function JobList() {
                           </span>
                         </div>
                       </div>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-red-700 group-hover:underline shrink-0">
-                        View details <FiChevronRight />
-                      </span>
                     </div>
                   </Link>
                 );

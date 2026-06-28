@@ -305,8 +305,12 @@ export function Madal({
                 ? buildArticleContent(articlePayload)
                 : draftContent;
 
-            if (!finalContent.trim() && totalMediaCount === 0) {
-              setError("");
+            if (!finalContent.trim()) {
+              setError(
+                mode === "article"
+                  ? "Article content is required."
+                  : "Post content cannot be empty."
+              );
               setIsLoading(false);
               return;
             }
@@ -323,7 +327,15 @@ export function Madal({
               setShowModal(false);
             } catch (submissionError) {
               if (submissionError instanceof Error) {
-                setError(submissionError.message);
+                let msg = submissionError.message;
+                if (
+                  msg.includes("Validation failed") ||
+                  msg.includes("ConstraintViolationImpl") ||
+                  msg.includes("must not be empty")
+                ) {
+                  msg = "Post content cannot be empty.";
+                }
+                setError(msg);
               } else {
                 setError("An error occurred. Please try again later.");
               }

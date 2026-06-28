@@ -1,0 +1,28 @@
+name: Sync Main to Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Force push to deploy branch
+        run: |
+          git checkout -b deploy || git checkout deploy
+          git reset --hard origin/main
+          git push origin deploy --force

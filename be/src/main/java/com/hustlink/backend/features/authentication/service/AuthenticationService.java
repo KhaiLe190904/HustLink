@@ -162,9 +162,13 @@ public class AuthenticationService {
     return userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
   }
 
-  public AuthenticationResponseBody googleLoginOrSignup(String code, String page) {
+  public AuthenticationResponseBody googleLoginOrSignup(String code, String page, String origin) {
     String tokenEndpoint = "https://oauth2.googleapis.com/token";
-    String redirectUri = frontendUrl + "/authentication/" + page;
+    String resolvedFrontendUrl = (origin != null && !origin.isBlank()) ? origin : frontendUrl;
+    if (resolvedFrontendUrl.endsWith("/")) {
+      resolvedFrontendUrl = resolvedFrontendUrl.substring(0, resolvedFrontendUrl.length() - 1);
+    }
+    String redirectUri = resolvedFrontendUrl + "/authentication/" + page;
     MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
 
     body.add("code", code);
