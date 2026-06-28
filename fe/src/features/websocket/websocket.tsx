@@ -28,6 +28,7 @@ export const WebSocketContextProvider = ({
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    let active = true;
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = import.meta.env.VITE_API_URL
       ? import.meta.env.VITE_API_URL.replace(/^https?:/, "")
@@ -40,6 +41,7 @@ export const WebSocketContextProvider = ({
     const client = Stomp.client(wsUrl);
     client.reconnectDelay = 5000;
     client.onWebSocketClose = () => {
+      if (!active) return;
       setIsConnected(false);
       setStompClient(null);
     };
@@ -47,11 +49,13 @@ export const WebSocketContextProvider = ({
     client.connect(
       {},
       () => {
+        if (!active) return;
         console.log("Connected to WebSocket");
         setIsConnected(true);
         setStompClient(client);
       },
       (error: unknown) => {
+        if (!active) return;
         console.error("Error connecting to WebSocket:", error);
         setIsConnected(false);
         setStompClient(null);
@@ -59,10 +63,10 @@ export const WebSocketContextProvider = ({
     );
 
     return () => {
+      active = false;
       setIsConnected(false);
-      if (client.connected) {
-        client.disconnect(() => console.log("Disconnected from WebSocket"));
-      }
+      setStompClient(null);
+      void client.deactivate();
     };
   }, []);
 

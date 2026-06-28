@@ -34,10 +34,7 @@ public class Encoder {
   }
 
   private boolean isBcryptHash(String encodedString) {
-    return encodedString != null
-            && (encodedString.startsWith("$2a$")
-            || encodedString.startsWith("$2b$")
-            || encodedString.startsWith("$2y$"));
+    return encodedString != null && (encodedString.startsWith("$2a$") || encodedString.startsWith("$2b$") || encodedString.startsWith("$2y$"));
   }
 
   private String legacySha256(String rawString) {

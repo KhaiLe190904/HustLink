@@ -227,6 +227,10 @@ export function Conversation() {
   async function createConversationWithMessage(e?: FormEvent<HTMLFormElement>) {
     e?.preventDefault();
     if (!content.trim() && !attachment) return;
+    if (!selectedUser) {
+      toast.error("Please select a recipient.");
+      return false;
+    }
     setPostingMessage(true);
     setUploadStage(
       attachment ? "Uploading attachment..." : "Creating conversation..."
@@ -254,7 +258,7 @@ export function Conversation() {
       }
 
       const message = {
-        receiverId: selectedUser?.id,
+        receiverId: selectedUser.id,
         content,
         attachmentObjectId,
         attachmentKind,
@@ -501,6 +505,7 @@ export function Conversation() {
               e.preventDefault();
               if (postingMessage) return;
               if (!content.trim() && !attachment) return;
+              if (creatingNewConversation && !selectedUser) return;
               let succeeded = false;
               if (conversation) {
                 succeeded = (await addMessageToConversation(e)) ?? false;
@@ -531,7 +536,12 @@ export function Conversation() {
                     if (e.nativeEvent.isComposing) return;
                     e.preventDefault();
                     const form = e.currentTarget.form;
-                    if (form && content.trim() && !postingMessage) {
+                    if (
+                      form &&
+                      (content.trim() || attachment) &&
+                      !postingMessage &&
+                      (!creatingNewConversation || selectedUser)
+                    ) {
                       form.requestSubmit();
                     }
                   }

@@ -38,6 +38,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
   });
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [profilePreviewUrl, setProfilePreviewUrl] = useState<string | null>(
     null
   );
@@ -135,6 +136,8 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
   }, [editingInfo, locationQuery]);
 
   async function updateInfo() {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
       if (!(info.locationDisplay || "").trim()) {
         throw new Error("Please choose your location.");
@@ -206,6 +209,8 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
       toast.error(message);
       setProfileImageFile(null);
       setCoverImageFile(null);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -222,7 +227,15 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
           />
           <label
             htmlFor="cover-picture-upload"
-            className="cursor-pointer block h-full w-full relative"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                document.getElementById("cover-picture-upload")?.click();
+              }
+            }}
+            className="cursor-pointer block h-full w-full relative focus:outline-none focus:ring-2 focus:ring-emerald-500"
           >
             <img
               className="h-full w-full object-cover"
@@ -259,7 +272,15 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
             />
             <label
               htmlFor="profile-picture-upload"
-              className="cursor-pointer block h-full w-full relative"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  document.getElementById("profile-picture-upload")?.click();
+                }
+              }}
+              className="cursor-pointer block h-full w-full relative rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <img
                 className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-lg"
@@ -509,6 +530,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
               <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
                 <button
                   type="button"
+                  disabled={isSaving}
                   className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition cursor-pointer"
                   onClick={() => {
                     setEditingInfo(false);
@@ -533,10 +555,11 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                 </button>
                 <button
                   type="button"
+                  disabled={isSaving}
                   className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/10 transition cursor-pointer"
                   onClick={updateInfo}
                 >
-                  Save Changes
+                  {isSaving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </div>
@@ -549,7 +572,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
           showModal={showReportModal}
           setShowModal={setShowReportModal}
           targetType="USER"
-          targetId={user.id}
+          targetId={Number(user.id)}
         />
       )}
     </div>

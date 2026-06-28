@@ -16,7 +16,7 @@ interface Company {
   headquarters: string;
   logoUrl: string | null;
   coverUrl: string | null;
-  status: "PENDING" | "ACTIVE";
+  status: "PENDING" | "ACTIVE" | "SUSPENDED";
   createdAt: string;
 }
 

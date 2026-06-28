@@ -305,7 +305,10 @@ export function Madal({
                 ? buildArticleContent(articlePayload)
                 : draftContent;
 
-            if (!finalContent.trim()) {
+            if (
+              (mode === "article" && !articleBody.trim()) ||
+              (mode !== "article" && !finalContent.trim())
+            ) {
               setError(
                 mode === "article"
                   ? "Article content is required."
@@ -333,7 +336,10 @@ export function Madal({
                   msg.includes("ConstraintViolationImpl") ||
                   msg.includes("must not be empty")
                 ) {
-                  msg = "Post content cannot be empty.";
+                  msg =
+                    mode === "article"
+                      ? "Article content is required."
+                      : "Post content cannot be empty.";
                 }
                 setError(msg);
               } else {

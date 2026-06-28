@@ -15,6 +15,7 @@ import com.hustlink.backend.features.ai.repository.InterviewQuestionBankReposito
 import com.hustlink.backend.features.ai.rag.RagInterviewService;
 import com.hustlink.backend.features.ai.util.LanguageUtils;
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.authentication.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -50,6 +51,7 @@ public class AIInterviewService {
   private final InterviewAnswerRepository interviewAnswerRepository;
   private final InterviewQuestionBankRepository interviewQuestionBankRepository;
   private final CVRepository cvRepository;
+  private final UserRepository userRepository;
   private final GeminiService geminiService;
   private final RagInterviewService ragInterviewService;
   private final CVContextBuilder cvContextBuilder;
@@ -59,7 +61,7 @@ public class AIInterviewService {
   @Value("${ai.interview.question-count:5}")
   private int questionCount;
 
-  @Value("${ai.interview.answer-time-limit-seconds:120}")
+  @Value("${ai.interview.answer-time-limit-seconds:300}")
   private int answerTimeLimitSeconds;
 
   @Value("${ai.daily-mock-interview-limit:2}")
@@ -99,6 +101,8 @@ public class AIInterviewService {
     InterviewLevel interviewLevel = request.level() == null || request.level().isBlank() ? InterviewLevel.inferFromText(jobPosition) : InterviewLevel.fromValue(request.level());
 
     InterviewSession sessionPlaceholder = transactionTemplate.execute(status -> {
+      userRepository.findByIdForUpdate(user.getId()).orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
       Optional<InterviewSession> raceCheckSession = interviewSessionRepository.findFirstByUserIdOrderByStartedAtDesc(user.getId());
       if (raceCheckSession.isPresent()) {
         InterviewSession raceSession = raceCheckSession.get();
@@ -201,6 +205,12 @@ public class AIInterviewService {
 
     InterviewQuestion question = interviewQuestionRepository.findByIdAndSessionId(request.questionId(), sessionId).orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
+
+    if (session.getCurrentQuestionIndex() >= session.getTotalQuestions() && question.getQuestionOrder() == session.getTotalQuestions()) {
+      InterviewResultResponse results = completeInterview(session);
+      return new InterviewSubmitAnswerResponse(
+              session.getId(), true, session.getCurrentQuestionIndex(), session.getTotalQuestions(), null, results);
+    }
 
     int expectedQuestionOrder = session.getCurrentQuestionIndex() + 1;
     if (question.getQuestionOrder() != expectedQuestionOrder) {
@@ -349,20 +359,22 @@ public class AIInterviewService {
 
   private void saveAndIndexNewQuestionsToBank(List<InterviewQuestion> questions, InterviewSession session) {
     for (InterviewQuestion question : questions) {
+      String normalizedQuestionText = question.getQuestionText().trim();
+      String normalizedPosition = session.getJobPosition().trim();
       boolean exists = interviewQuestionBankRepository.existsByQuestionTextAndTargetPositionAndLevel(
-              question.getQuestionText(), session.getJobPosition(), session.getInterviewLevel());
+              normalizedQuestionText, normalizedPosition, session.getInterviewLevel());
       if (!exists) {
         // Lưu DB trong transaction ngắn riêng biệt
         InterviewQuestionBank bankQuestion = transactionTemplate.execute(status -> {
           // Double check in transaction
           boolean existsInTx = interviewQuestionBankRepository.existsByQuestionTextAndTargetPositionAndLevel(
-                  question.getQuestionText(), session.getJobPosition(), session.getInterviewLevel());
+                  normalizedQuestionText, normalizedPosition, session.getInterviewLevel());
           if (existsInTx) {
             return null;
           }
           InterviewQuestionBank entity = new InterviewQuestionBank();
-          entity.setQuestionText(question.getQuestionText().trim());
-          entity.setTargetPosition(session.getJobPosition().trim());
+          entity.setQuestionText(normalizedQuestionText);
+          entity.setTargetPosition(normalizedPosition);
           entity.setLevel(session.getInterviewLevel());
           entity.setCategory(question.getCategory() == null ? InterviewQuestionCategory.GENERAL : question.getCategory());
           entity.setDifficulty(session.getInterviewLevel().name());
@@ -376,6 +388,10 @@ public class AIInterviewService {
         if (bankQuestion != null) {
           try {
             ragInterviewService.indexQuestion(bankQuestion);
+            transactionTemplate.execute(status -> {
+              interviewQuestionBankRepository.save(bankQuestion);
+              return null;
+            });
             log.info("op=auto_save_bank status=success questionId={} vectorId={}", bankQuestion.getId(), bankQuestion.getVectorId());
           } catch (Exception e) {
             log.error("op=auto_save_bank status=fail_indexing questionId={} error={}", bankQuestion.getId(), e.getMessage(), e);
@@ -404,7 +420,7 @@ public class AIInterviewService {
     if (durationSeconds == null) {
       return 0;
     }
-    return Math.max(0, Math.min(durationSeconds, maxDurationSeconds == null ? 120 : maxDurationSeconds));
+    return Math.max(0, Math.min(durationSeconds, maxDurationSeconds == null ? 300 : maxDurationSeconds));
   }
 
   private String normalizeAnswerText(String answerText) {

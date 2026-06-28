@@ -29,7 +29,7 @@ public record StorageProperties(
   }
 
   public String publicBaseUrlOrDefault() {
-    return firstNonBlank(publicBaseUrl, DEFAULT_STORAGE_ENDPOINT, FALLBACK_STORAGE_ENDPOINT);
+    return firstNonBlank(publicBaseUrl, FALLBACK_STORAGE_ENDPOINT);
   }
 
   public String regionOrDefault() {

@@ -59,7 +59,7 @@ unstructured.api.url=${UNSTRUCTURED_API_URL:http://localhost:8000/general/v0/gen
 ai.daily-analysis-limit=${AI_DAILY_ANALYSIS_LIMIT:2}
 ai.daily-mock-interview-limit=${AI_DAILY_MOCK_INTERVIEW_LIMIT:2}
 ai.interview.question-count=${AI_INTERVIEW_QUESTION_COUNT:5}
-ai.interview.answer-time-limit-seconds=${AI_INTERVIEW_ANSWER_TIME_LIMIT_SECONDS:120}
+ai.interview.answer-time-limit-seconds=${AI_INTERVIEW_ANSWER_TIME_LIMIT_SECONDS:300}
 
 # Role / feature flags
 app.features.rag.enabled=${RAG_ENABLED:true}

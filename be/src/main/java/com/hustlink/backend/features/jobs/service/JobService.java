@@ -77,9 +77,6 @@ public class JobService {
 
     Job savedJob = jobRepository.save(job);
 
-    // Embed and upsert to Qdrant asynchronously/synchronously
-    indexJobInVectorStore(savedJob);
-
     return JobResponse.fromEntity(savedJob);
   }
 
@@ -108,7 +105,7 @@ public class JobService {
     }
 
     Job savedJob = jobRepository.save(job);
-    indexJobInVectorStore(savedJob);
+    syncJobVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -121,6 +118,7 @@ public class JobService {
     job.setStatus(JobStatus.PUBLISHED);
     job.setPublishedAt(LocalDateTime.now());
     Job savedJob = jobRepository.save(job);
+    indexJobInVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -133,6 +131,7 @@ public class JobService {
     job.setStatus(JobStatus.CLOSED);
     job.setClosedAt(LocalDateTime.now());
     Job savedJob = jobRepository.save(job);
+    removeJobFromVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -254,10 +253,10 @@ public class JobService {
 
     try {
       List<CompanyMember> currentMembers = companyMemberRepository.findByCompanyId(job.getCompany().getId());
-      
+
       // Always notify the recruiter who posted the job
       notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
-      
+
       // Also notify all other company members (excluding the job poster to avoid duplicate)
       for (CompanyMember member : currentMembers) {
         if (!member.getUser().getId().equals(job.getPostedBy().getId())) {
@@ -386,14 +385,15 @@ public class JobService {
     return jobApplicationRepository.findByApplicantId(user.getId()).stream().map(JobApplicationResponse::fromEntity).toList();
   }
 
-  @Transactional
   public int reindexAllJobsInVectorStore() {
     vectorStoreClient.ensureCollection(JOB_DESCRIPTION_COLLECTION, embeddingService.dimension());
     int indexedCount = 0;
 
     for (Job job : jobRepository.findAll()) {
-      if (indexJobInVectorStore(job)) {
+      if (job.getStatus() == JobStatus.PUBLISHED && indexJobInVectorStore(job)) {
         indexedCount++;
+      } else if (job.getStatus() != JobStatus.PUBLISHED) {
+        removeJobFromVectorStore(job);
       }
     }
 
@@ -426,6 +426,26 @@ public class JobService {
     } catch (Exception e) {
       log.warn("Failed to index job in Qdrant: {}", e.getMessage());
       return false;
+    }
+  }
+
+  private void syncJobVectorStore(Job job) {
+    if (job.getStatus() == JobStatus.PUBLISHED) {
+      indexJobInVectorStore(job);
+    } else {
+      removeJobFromVectorStore(job);
+    }
+  }
+
+  private void removeJobFromVectorStore(Job job) {
+    try {
+      vectorStoreClient.delete(JOB_DESCRIPTION_COLLECTION, job.getId().toString());
+      if (job.getVectorId() != null) {
+        job.setVectorId(null);
+        jobRepository.save(job);
+      }
+    } catch (Exception e) {
+      log.warn("Failed to remove unpublished job from Qdrant: {}", e.getMessage());
     }
   }
 }

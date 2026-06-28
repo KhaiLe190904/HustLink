@@ -28,7 +28,7 @@ public class JobMatchingService {
   public record MatchResult(int score, String breakdown, String reasoning) {
   }
 
-  @Cacheable(value = "jobMatchingCache", key = "{#cv.id, #job.id}")
+  @Cacheable(value = "jobMatchingCache", key = "{#cv.id, #cv.updatedAt, #job.id, #job.title, #job.description, #job.experienceLevel, #job.skills == null ? 0 : #job.skills.hashCode()}")
   public MatchResult computeMatch(CV cv, Job job) {
     log.info("op=computeMatch cvId={} jobId={}", cv.getId(), job.getId());
 

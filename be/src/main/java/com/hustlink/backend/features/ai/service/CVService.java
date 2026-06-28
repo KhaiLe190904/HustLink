@@ -119,33 +119,51 @@ public class CVService {
 
     enforceDailyAnalysisLimit(user);
 
-    transactionTemplate.execute(status -> {
-      cv.setAnalysisStatus("ANALYZING");
-      cvRepository.save(cv);
-      return null;
+    CV claimedCv = transactionTemplate.execute(status -> {
+      CV lockedCv = cvRepository.findByIdAndUserIdForUpdate(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+      if (lockedCv.getAnalysisScore() != null && !"ANALYZING".equals(lockedCv.getAnalysisStatus())) {
+        return lockedCv;
+      }
+      if ("ANALYZING".equals(lockedCv.getAnalysisStatus())) {
+        throw new ResponseStatusException(
+                HttpStatus.CONFLICT, "This CV is currently being analyzed. Please wait a moment and try again.");
+      }
+      lockedCv.setAnalysisStatus("ANALYZING");
+      return cvRepository.save(lockedCv);
     });
+
+    if (claimedCv.getAnalysisScore() != null && !"ANALYZING".equals(claimedCv.getAnalysisStatus())) {
+      return toAnalysisResponse(claimedCv);
+    }
 
     GeminiService.CVInsight insight;
     try {
-      insight = geminiService.analyzeCv(cv.getExtractedText());
+      insight = geminiService.analyzeCv(claimedCv.getExtractedText());
     } catch (Exception e) {
       transactionTemplate.execute(status -> {
-        cv.setAnalysisStatus(null);
-        cvRepository.save(cv);
+        CV lockedCv = cvRepository.findByIdAndUserIdForUpdate(cvId, user.getId()).orElse(null);
+        if (lockedCv != null && "ANALYZING".equals(lockedCv.getAnalysisStatus())) {
+          lockedCv.setAnalysisStatus(null);
+          cvRepository.save(lockedCv);
+        }
         return null;
       });
       throw e;
     }
 
     CV savedCv = transactionTemplate.execute(status -> {
-      cv.setAnalysisScore(insight.score());
-      cv.setAnalysisSummary(insight.summary());
-      cv.setAnalysisStrengths(writeList(insight.strengths()));
-      cv.setAnalysisImprovements(writeList(insight.improvements()));
-      cv.setExtractedSkills(writeList(insight.skills()));
-      cv.setRecommendedQuestions(null);
-      cv.setAnalysisStatus("DONE");
-      CV persisted = cvRepository.save(cv);
+      CV lockedCv = cvRepository.findByIdAndUserIdForUpdate(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+      if (!"ANALYZING".equals(lockedCv.getAnalysisStatus())) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "CV analysis state changed before results could be saved.");
+      }
+      lockedCv.setAnalysisScore(insight.score());
+      lockedCv.setAnalysisSummary(insight.summary());
+      lockedCv.setAnalysisStrengths(writeList(insight.strengths()));
+      lockedCv.setAnalysisImprovements(writeList(insight.improvements()));
+      lockedCv.setExtractedSkills(writeList(insight.skills()));
+      lockedCv.setRecommendedQuestions(null);
+      lockedCv.setAnalysisStatus("DONE");
+      CV persisted = cvRepository.save(lockedCv);
       recordAiUsage(user, AIUsageType.CV_ANALYSIS);
       return persisted;
     });
