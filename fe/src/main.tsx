@@ -27,6 +27,8 @@ import { Invitations } from "./features/networking/pages/Invitations/Invitations
 import { Posts } from "./features/profile/pages/Posts/Posts";
 import { Profile } from "./features/profile/pages/Profile/Profile";
 import { CVUpload } from "./features/ai/pages/CVUpload/CVUpload";
+import { CVHistory } from "./features/ai/pages/CVHistory/CVHistory";
+import { JDWorkspace } from "./features/ai/pages/JDWorkspace/JDWorkspace";
 import { Interview } from "./features/ai/pages/Interview/Interview";
 import { InterviewHistory } from "./features/ai/pages/InterviewHistory/InterviewHistory";
 import { RoleGuard } from "./features/authentication/components/RoleGuard/RoleGuard";
@@ -219,6 +221,14 @@ const router = createBrowserRouter([
           {
             path: "ai/cv",
             element: <CVUpload />,
+          },
+          {
+            path: "ai/cv/history",
+            element: <CVHistory />,
+          },
+          {
+            path: "ai/jd-workspace",
+            element: <JDWorkspace />,
           },
           {
             path: "ai/interview",

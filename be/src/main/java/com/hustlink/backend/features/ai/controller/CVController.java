@@ -1,8 +1,8 @@
 package com.hustlink.backend.features.ai.controller;
 
 import com.hustlink.backend.features.ai.dto.AIConfigResponse;
-import com.hustlink.backend.features.ai.dto.CVAnalysisResponse;
 import com.hustlink.backend.features.ai.dto.CVContextDebugResponse;
+import com.hustlink.backend.features.ai.dto.CVJobAnalysisResponse;
 import com.hustlink.backend.features.ai.dto.CVSummaryResponse;
 import com.hustlink.backend.features.ai.dto.CVUploadResponse;
 import com.hustlink.backend.features.ai.service.CVService;
@@ -38,16 +38,32 @@ public class CVController {
     return ResponseEntity.noContent().build();
   }
 
-  @GetMapping("/{id}/analysis")
-  public ResponseEntity<CVAnalysisResponse> getAnalysis(
-                                                        @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {
-    return ResponseEntity.ok(cvService.getAnalysis(user, id));
+  @PostMapping("/{id}/jd-analysis")
+  public ResponseEntity<CVJobAnalysisResponse> analyzeCvForJob(
+                                                               @RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam Long jobId) {
+    return ResponseEntity.ok(cvService.analyzeCvForJob(user, id, jobId));
   }
 
-  @PostMapping("/{id}/analysis")
-  public ResponseEntity<CVAnalysisResponse> analyzeCv(
-                                                      @RequestAttribute("authenticationUser") User user, @PathVariable Long id) {
-    return ResponseEntity.ok(cvService.analyzeCv(user, id));
+  @GetMapping("/{id}/jd-analysis")
+  public ResponseEntity<CVJobAnalysisResponse> getJobAnalysisByCvAndJob(
+                                                                        @RequestAttribute("authenticationUser") User user, @PathVariable Long id, @RequestParam Long jobId) {
+    CVJobAnalysisResponse response = cvService.getJobAnalysisByCvAndJob(user, id, jobId);
+    if (response == null) {
+      return ResponseEntity.noContent().build();
+    }
+    return ResponseEntity.ok(response);
+  }
+
+  @GetMapping("/jd-analyses/{analysisId}")
+  public ResponseEntity<CVJobAnalysisResponse> getJobAnalysis(
+                                                              @RequestAttribute("authenticationUser") User user, @PathVariable Long analysisId) {
+    return ResponseEntity.ok(cvService.getJobAnalysis(user, analysisId));
+  }
+
+  @GetMapping("/jd-analyses")
+  public ResponseEntity<List<CVJobAnalysisResponse>> getJobAnalyses(
+                                                                    @RequestAttribute("authenticationUser") User user, @RequestParam(required = false) Long cvId) {
+    return ResponseEntity.ok(cvService.getJobAnalyses(user, cvId));
   }
 
   @GetMapping("/{id}/context-debug")

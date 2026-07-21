@@ -78,6 +78,12 @@ export function NotificationDropdown({
       case NotificationType.JOB_APPLICATION:
         navigate(`/jobs/${notification.resourceId}/applications`);
         break;
+      case NotificationType.INTERVIEW_APPLY_PROMPT:
+        navigate(`/jobs/${notification.resourceId}?apply=1`);
+        break;
+      case NotificationType.CV_JD_ANALYSIS_SUCCESS:
+        navigate(`/ai/cv/history?cvId=${notification.resourceId}`);
+        break;
       default:
         break;
     }
@@ -210,6 +216,10 @@ function NotificationItemRow({
       }
       case NotificationType.JOB_APPLICATION:
         return "applied for your job.";
+      case NotificationType.INTERVIEW_APPLY_PROMPT:
+        return "your mock interview is complete. Apply to this JD now?";
+      case NotificationType.CV_JD_ANALYSIS_SUCCESS:
+        return "your CV-JD analysis is completed successfully.";
       default:
         return "sent a notification.";
     }
@@ -237,9 +247,12 @@ function NotificationItemRow({
           {getNotificationText()}
         </p>
         <div className="mt-1.5 flex items-center gap-2">
-          <span className="text-[10px] font-semibold text-slate-400">
-            <TimeAgo date={notification.creationDate} />
-          </span>
+          {notification.type !== NotificationType.CV_JD_ANALYSIS_SUCCESS &&
+            notification.type !== NotificationType.INTERVIEW_APPLY_PROMPT && (
+              <span className="text-[10px] font-semibold text-slate-400">
+                <TimeAgo date={notification.creationDate} />
+              </span>
+            )}
           {!isRead && <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />}
         </div>
       </div>

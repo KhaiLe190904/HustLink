@@ -5,7 +5,9 @@ import com.hustlink.backend.features.ai.embedding.EmbeddingService;
 import com.hustlink.backend.features.ai.embedding.VectorStoreClient;
 import com.hustlink.backend.features.ai.embedding.dto.SimilarPoint;
 import com.hustlink.backend.features.ai.model.CV;
+import com.hustlink.backend.features.ai.model.CVJobAnalysis;
 import com.hustlink.backend.features.ai.repository.CVRepository;
+import com.hustlink.backend.features.ai.repository.CVJobAnalysisRepository;
 import com.hustlink.backend.features.ai.service.CVContextBuilder;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.model.UserRole;
@@ -42,6 +44,7 @@ public class JobService {
   private final CompanyMemberRepository companyMemberRepository;
   private final CompanyService companyService;
   private final CVRepository cvRepository;
+  private final CVJobAnalysisRepository cvJobAnalysisRepository;
   private final JobMatchingService jobMatchingService;
   private final EmbeddingService embeddingService;
   private final VectorStoreClient vectorStoreClient;
@@ -241,11 +244,13 @@ public class JobService {
 
     CV cv = cvRepository.findByIdAndUserId(request.cvId(), user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No valid CV found"));
 
-    if (cv.getAnalysisScore() == null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV has not been analyzed yet. Please analyze the CV first.");
+    Optional<CVJobAnalysis> savedAnalysis = cvJobAnalysisRepository.findByCvIdAndJobId(cv.getId(), job.getId());
+    if (savedAnalysis.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV has not been analyzed for this JD yet. Please analyze the CV with this JD first.");
     }
 
-    JobMatchingService.MatchResult matchResult = jobMatchingService.computeMatch(cv, job);
+    JobMatchingService.MatchResult matchResult = savedAnalysis.filter(analysis -> analysis.getMatchScore() != null).map(analysis -> new JobMatchingService.MatchResult(
+            analysis.getMatchScore(), analysis.getMatchBreakdown(), analysis.getMatchReasoning())).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV-JD analysis is missing match results. Please analyze the CV with this JD again."));
 
     JobApplication app = JobApplication.builder().job(job).applicant(user).cv(cv).coverLetter(request.coverLetter()).matchScore(matchResult.score()).matchBreakdown(matchResult.breakdown()).matchReasoning(matchResult.reasoning()).status(ApplicationStatus.APPLIED).build();
 
@@ -327,14 +332,15 @@ public class JobService {
   }
 
   public List<JobResponse> getRecommendedJobs(User user) {
+    return getRecommendedJobs(user, null);
+  }
+
+  public List<JobResponse> getRecommendedJobs(User user, Long cvId) {
     List<CV> userCvs = cvRepository.findByUserIdOrderByUploadedAtDesc(user.getId());
     if (userCvs.isEmpty()) {
       return List.of();
     }
-    CV latestCv = userCvs.getFirst();
-    if (latestCv.getAnalysisScore() == null) {
-      return List.of();
-    }
+    CV latestCv = cvId == null ? userCvs.getFirst() : cvRepository.findByIdAndUserId(cvId, user.getId()).orElse(userCvs.getFirst());
 
     try {
       String cleanCvContext = cvContextBuilder.buildStructuredCvContext(latestCv, 3200, 1000);
@@ -353,13 +359,20 @@ public class JobService {
         return List.of();
       }
 
-      List<Job> jobs = jobRepository.findAllById(ids);
-      Map<Long, Job> jobMap = jobs.stream().collect(Collectors.toMap(Job::getId, j -> j));
-      return ids.stream().map(jobMap::get).filter(Objects::nonNull).filter(j -> j.getStatus() == JobStatus.PUBLISHED).map(JobResponse::fromEntity).toList();
+      return mapRecommendationIdsToResponses(ids);
     } catch (Exception e) {
       log.warn("Failed to retrieve recommendations from Qdrant: {}. Falling back to default list.", e.getMessage());
       return jobRepository.findByStatus(JobStatus.PUBLISHED).stream().limit(10).map(JobResponse::fromEntity).toList();
     }
+  }
+
+  private List<JobResponse> mapRecommendationIdsToResponses(List<Long> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return List.of();
+    }
+    List<Job> jobs = jobRepository.findAllById(ids);
+    Map<Long, Job> jobMap = jobs.stream().collect(Collectors.toMap(Job::getId, j -> j));
+    return ids.stream().map(jobMap::get).filter(Objects::nonNull).filter(j -> j.getStatus() == JobStatus.PUBLISHED).map(JobResponse::fromEntity).toList();
   }
 
   @Transactional
@@ -412,7 +425,7 @@ public class JobService {
 
   private boolean indexJobInVectorStore(Job job) {
     try {
-      float[] vector = embeddingService.embed(job.getTitle() + "\n" + job.getDescription());
+      float[] vector = embeddingService.embed(buildJobAnalysisContext(job));
       Map<String, Object> payload = new LinkedHashMap<>();
       payload.put("jobId", job.getId());
       payload.put("companyId", job.getCompany().getId());
@@ -435,6 +448,29 @@ public class JobService {
     } else {
       removeJobFromVectorStore(job);
     }
+  }
+
+  public String buildJobAnalysisContext(Job job) {
+    StringBuilder builder = new StringBuilder();
+    appendContext(builder, "Title", job.getTitle());
+    appendContext(builder, "Company", job.getCompany() == null ? "" : job.getCompany().getName());
+    appendContext(builder, "Description", job.getDescription());
+    appendContext(builder, "Requirements", job.getRequirements());
+    appendContext(builder, "Responsibilities and benefits", job.getResponsibilities());
+    appendContext(builder, "Location", job.getLocation());
+    appendContext(builder, "Experience level", job.getExperienceLevel());
+    if (job.getSkills() != null && !job.getSkills().isEmpty()) {
+      appendContext(builder, "Skills", String.join(", ", job.getSkills()));
+    }
+    appendContext(builder, "Imported JD raw content", job.getRawImportedContent());
+    return builder.toString().trim();
+  }
+
+  private void appendContext(StringBuilder builder, String label, String value) {
+    if (value == null || value.isBlank()) {
+      return;
+    }
+    builder.append(label).append(":\n").append(value.trim()).append("\n\n");
   }
 
   private void removeJobFromVectorStore(Job job) {

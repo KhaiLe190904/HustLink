@@ -15,6 +15,8 @@ export enum NotificationType {
   COMMENT = "COMMENT",
   EVENT_REMINDER = "EVENT_REMINDER",
   JOB_APPLICATION = "JOB_APPLICATION",
+  INTERVIEW_APPLY_PROMPT = "INTERVIEW_APPLY_PROMPT",
+  CV_JD_ANALYSIS_SUCCESS = "CV_JD_ANALYSIS_SUCCESS",
 }
 export interface INotification {
   id: number;
@@ -168,6 +170,12 @@ function INotificationComponent({
       case NotificationType.JOB_APPLICATION:
         navigate(`/jobs/${notification.resourceId}/applications`);
         break;
+      case NotificationType.INTERVIEW_APPLY_PROMPT:
+        navigate(`/jobs/${notification.resourceId}?apply=1`);
+        break;
+      case NotificationType.CV_JD_ANALYSIS_SUCCESS:
+        navigate(`/ai/cv/history?cvId=${notification.resourceId}`);
+        break;
       default:
         break;
     }
@@ -214,6 +222,10 @@ function INotificationComponent({
       }
       case NotificationType.JOB_APPLICATION:
         return "applied for your job.";
+      case NotificationType.INTERVIEW_APPLY_PROMPT:
+        return "your mock interview is complete. Apply to this JD now?";
+      case NotificationType.CV_JD_ANALYSIS_SUCCESS:
+        return "your CV-JD analysis is completed successfully.";
       default:
         return "sent you a notification.";
     }
@@ -238,7 +250,9 @@ function INotificationComponent({
         </strong>{" "}
         <span className="text-slate-600">{getNotificationText()}</span>
       </p>
-      <TimeAgo date={notification.creationDate} />
+      {notification.type !== NotificationType.CV_JD_ANALYSIS_SUCCESS && (
+        <TimeAgo date={notification.creationDate} />
+      )}
     </button>
   );
 }

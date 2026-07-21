@@ -337,12 +337,6 @@ public class LoadDatabaseConfig {
         cv.setMimeType(so.getContentType());
         cv.setStoredObject(so);
         cv.setExtractedText("Họ và tên: " + user.getFirstName() + " " + user.getLastName() + "\n" + "Mục tiêu nghề nghiệp: Trở thành một kỹ sư phát triển phần mềm chuyên nghiệp.\n" + "Kỹ năng: Java, Python, Spring Boot, React, SQL, Git, Docker.\n" + "Kinh nghiệm làm việc: 2 năm làm việc thực tế với ngôn ngữ Java phát triển Web App.\n" + "Học vấn: Đại học Bách Khoa Hà Nội (HUST), chuyên ngành Khoa học Máy tính.");
-        cv.setAnalysisScore(75 + random.nextInt(20));
-        cv.setAnalysisSummary("Ứng viên tốt nghiệp HUST, có kỹ năng cơ bản tốt về Java và các kỹ năng phát triển phần mềm.");
-        cv.setAnalysisStrengths("[\"Kỹ năng lập trình Java và Spring Boot vững\", \"Học vấn tốt từ trường đại học danh tiếng\", \"Có kiến thức cơ bản về Docker\"]");
-        cv.setAnalysisImprovements("[\"Bổ sung kinh nghiệm làm việc với hệ thống Cloud\", \"Cần rèn luyện thêm kỹ năng giao tiếp tiếng Anh\"]");
-        cv.setExtractedSkills("[\"Java\", \"Python\", \"Spring Boot\", \"React\", \"SQL\", \"Git\", \"Docker\"]");
-
         cvs.add(cvRepository.save(cv));
         count++;
         if (count >= 5) {

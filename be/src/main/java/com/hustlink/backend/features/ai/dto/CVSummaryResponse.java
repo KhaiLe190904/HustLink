@@ -8,8 +8,5 @@ public record CVSummaryResponse(
                                 String originalFileName,
                                 String mimeType,
                                 String downloadUrl,
-                                Integer analysisScore,
-                                boolean analyzed,
-                                String analysisStatus,
                                 LocalDateTime uploadedAt) {
 }

@@ -28,11 +28,15 @@ public record JobResponse(
                           JobStatus status,
                           LocalDateTime createdAt,
                           LocalDateTime publishedAt,
-                          LocalDateTime applicationDeadline
+                          LocalDateTime applicationDeadline,
+                          String sourceType,
+                          String sourceUrl,
+                          String sourcePlatform,
+                          Long assignedRecruiterId
 ) {
   public static JobResponse fromEntity(Job job) {
     return new JobResponse(
-            job.getId(), job.getCompany().getId(), job.getCompany().getName(), job.getCompany().getLogoUrl(), job.getCompany().getSlug(), job.getTitle(), job.getDescription(), job.getRequirements(), job.getResponsibilities(), job.getLocation(), job.getJobType(), job.getWorkMode(), job.getSalaryMin(), job.getSalaryMax(), job.getSalaryCurrency(), job.getExperienceLevel(), job.getSkills(), job.getStatus(), job.getCreatedAt(), job.getPublishedAt(), job.getApplicationDeadline()
+            job.getId(), job.getCompany().getId(), job.getCompany().getName(), job.getCompany().getLogoUrl(), job.getCompany().getSlug(), job.getTitle(), job.getDescription(), job.getRequirements(), job.getResponsibilities(), job.getLocation(), job.getJobType(), job.getWorkMode(), job.getSalaryMin(), job.getSalaryMax(), job.getSalaryCurrency(), job.getExperienceLevel(), job.getSkills(), job.getStatus(), job.getCreatedAt(), job.getPublishedAt(), job.getApplicationDeadline(), job.getSourceType(), job.getSourceUrl(), job.getSourcePlatform(), job.getAssignedRecruiter() == null ? null : job.getAssignedRecruiter().getId()
     );
   }
 }

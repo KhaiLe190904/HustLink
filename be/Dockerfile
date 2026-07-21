@@ -10,7 +10,7 @@ COPY src/ src/
 RUN ./gradlew bootJar -x test --no-daemon
 
 # Stage 2: Run application
-FROM eclipse-temurin:21-jre-alpine
+FROM mcr.microsoft.com/playwright/java:v1.49.0-noble
 WORKDIR /app
 COPY --from=builder /app/build/libs/hustlink-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080

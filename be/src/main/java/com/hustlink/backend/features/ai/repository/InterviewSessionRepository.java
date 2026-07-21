@@ -19,5 +19,7 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
 
   Optional<InterviewSession> findFirstByUserIdOrderByStartedAtDesc(Long userId);
 
+  boolean existsByJobId(Long jobId);
+
   boolean existsByCvId(Long cvId);
 }

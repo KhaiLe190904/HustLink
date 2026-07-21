@@ -85,6 +85,30 @@ public class Job {
 
   private String vectorId;
 
+  @Column(length = 30)
+  private String sourceType;
+
+  @Column(length = 1000)
+  private String sourceUrl;
+
+  @Column(length = 80)
+  private String sourcePlatform;
+
+  @Column(length = 120)
+  private String externalJobId;
+
+  @Lob
+  @Column(columnDefinition = "nvarchar(max)")
+  private String rawImportedContent;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "imported_by_user_id")
+  private User importedBy;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "assigned_recruiter_id")
+  private User assignedRecruiter;
+
   @PrePersist
   void onCreate() {
     LocalDateTime now = LocalDateTime.now();

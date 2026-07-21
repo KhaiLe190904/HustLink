@@ -8,6 +8,7 @@ import com.hustlink.backend.features.ai.model.*;
 import com.hustlink.backend.features.ai.rag.dto.RagQuestionContext;
 import com.hustlink.backend.features.ai.repository.AIUsageLogRepository;
 import com.hustlink.backend.features.ai.repository.CVRepository;
+import com.hustlink.backend.features.ai.repository.CVJobAnalysisRepository;
 import com.hustlink.backend.features.ai.repository.InterviewAnswerRepository;
 import com.hustlink.backend.features.ai.repository.InterviewQuestionRepository;
 import com.hustlink.backend.features.ai.repository.InterviewSessionRepository;
@@ -16,6 +17,7 @@ import com.hustlink.backend.features.ai.rag.RagInterviewService;
 import com.hustlink.backend.features.ai.util.LanguageUtils;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.repository.UserRepository;
+import com.hustlink.backend.features.notifications.service.NotificationService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -51,7 +53,9 @@ public class AIInterviewService {
   private final InterviewAnswerRepository interviewAnswerRepository;
   private final InterviewQuestionBankRepository interviewQuestionBankRepository;
   private final CVRepository cvRepository;
+  private final CVJobAnalysisRepository cvJobAnalysisRepository;
   private final UserRepository userRepository;
+  private final NotificationService notificationService;
   private final GeminiService geminiService;
   private final RagInterviewService ragInterviewService;
   private final CVContextBuilder cvContextBuilder;
@@ -76,8 +80,8 @@ public class AIInterviewService {
               HttpStatus.SERVICE_UNAVAILABLE, "Gemini API key is not configured.");
     }
 
-    if (request.cvId() == null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please select a CV.");
+    if (request.cvJobAnalysisId() == null && (request.cvId() == null || request.jobId() == null)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please analyze this CV with a JD before starting a mock interview.");
     }
 
     Optional<InterviewSession> latestSessionOpt = interviewSessionRepository.findFirstByUserIdOrderByStartedAtDesc(user.getId());
@@ -93,10 +97,10 @@ public class AIInterviewService {
 
     enforceDailyMockInterviewLimit(user);
 
-    CV cv = cvRepository.findByIdAndUserId(request.cvId(), user.getId()).orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CV not found."));
-
-    String jobPosition = normalizeJobPosition(request.jobPosition(), user.getPosition(), "Software Engineer");
+    CVJobAnalysis cvJobAnalysis = resolveCvJobAnalysis(user, request);
+    CV cv = cvJobAnalysis.getCv();
+    String jobContext = firstNonBlank(cvJobAnalysis.getJobSnapshot(), cvJobAnalysis.getJob().getTitle());
+    String jobPosition = normalizeJobPosition(request.jobPosition(), cvJobAnalysis.getJob().getTitle(), user.getPosition());
     List<String> requestedStacks = request.stacks() == null ? List.of() : request.stacks();
     InterviewLevel interviewLevel = request.level() == null || request.level().isBlank() ? InterviewLevel.inferFromText(jobPosition) : InterviewLevel.fromValue(request.level());
 
@@ -117,7 +121,10 @@ public class AIInterviewService {
       InterviewSession session = new InterviewSession();
       session.setUser(user);
       session.setCv(cv);
+      session.setJob(cvJobAnalysis.getJob());
+      session.setCvJobAnalysis(cvJobAnalysis);
       session.setJobPosition(jobPosition);
+      session.setJobSnapshot(jobContext);
       session.setInterviewLevel(interviewLevel);
       session.setLanguageCode("UNKNOWN");
       session.setStatus(InterviewSessionStatus.CREATING);
@@ -133,12 +140,12 @@ public class AIInterviewService {
     try {
       languageCode = geminiService.resolveInterviewLanguageCode(cv.getExtractedText());
       questionContexts = ragEnabled ? ragInterviewService.retrieveRelevantQuestionContexts(
-              cvContextBuilder.buildRetrievalQuery(cv, jobPosition, interviewLevel), jobPosition, requestedStacks, interviewLevel, languageCode, Math.max(12, questionCount)) : List.of();
+              cvContextBuilder.buildRetrievalQuery(cv, jobPosition + "\n" + jobContext, interviewLevel), jobPosition, requestedStacks, interviewLevel, languageCode, Math.max(12, questionCount)) : List.of();
 
       List<String> ragContext = questionContexts.stream().map(this::formatRagContext).toList();
 
       drafts = geminiService.generateInterviewQuestions(
-              cvContextBuilder.buildGenerationContext(cv, interviewLevel), jobPosition, interviewLevel.name(), questionCount, ragContext);
+              buildInterviewGenerationContext(cv, cvJobAnalysis, interviewLevel), jobPosition, interviewLevel.name(), questionCount, ragContext);
 
       if (drafts.isEmpty()) {
         throw new ResponseStatusException(
@@ -316,7 +323,7 @@ public class AIInterviewService {
     RagDebugResponse evaluationRagDebug = buildRagDebug("evaluation", evaluationContexts, session.getLanguageCode());
 
     GeminiService.InterviewEvaluation evaluation = geminiService.evaluateInterview(
-            session.getCv().getExtractedText(), session.getJobPosition(), session.getInterviewLevel().name(), questionAnswers, evaluationRagContext);
+            buildInterviewEvaluationContext(session), session.getJobPosition(), session.getInterviewLevel().name(), questionAnswers, evaluationRagContext);
 
     // --- BƯỚC 3: Tính điểm (logic thuần túy, không cần DB) ---
     for (InterviewAnswer answer : answers) {
@@ -352,6 +359,14 @@ public class AIInterviewService {
       saveAndIndexNewQuestionsToBank(questions, session);
     } catch (Exception ex) {
       log.error("Failed to automatically save generated questions to bank for session: {}", session.getId(), ex);
+    }
+
+    if (session.getJob() != null) {
+      try {
+        notificationService.sendInterviewApplyPromptNotification(session.getUser(), session.getJob().getId());
+      } catch (Exception ex) {
+        log.warn("Failed to send interview apply prompt notification for session {}: {}", session.getId(), ex.getMessage());
+      }
     }
 
     return toInterviewResults(session, evaluationRagDebug);
@@ -437,6 +452,62 @@ public class AIInterviewService {
     return defaultValue;
   }
 
+  private CVJobAnalysis resolveCvJobAnalysis(User user, InterviewStartRequest request) {
+    CVJobAnalysis analysis;
+    if (request.cvJobAnalysisId() != null) {
+      analysis = cvJobAnalysisRepository.findByIdAndCvUserId(request.cvJobAnalysisId(), user.getId()).orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please analyze this CV with the selected JD before starting a mock interview."));
+    } else {
+      analysis = cvJobAnalysisRepository.findByCvIdAndJobId(request.cvId(), request.jobId()).filter(a -> a.getCv().getUser().getId().equals(user.getId())).orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please analyze this CV with the selected JD before starting a mock interview."));
+    }
+    if (analysis.getStatus() != CVJobAnalysisStatus.COMPLETED) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The CV-JD analysis is not completed yet.");
+    }
+    return analysis;
+  }
+
+  private String buildInterviewGenerationContext(CV cv, CVJobAnalysis analysis, InterviewLevel level) {
+    return """
+            Candidate CV Context:
+            %s
+
+            Saved CV-JD Analysis:
+            Score: %d
+            Match Score: %d
+            Summary: %s
+            Strengths: %s
+            Improvements/Gaps: %s
+
+            Target JD Context:
+            %s
+            """.formatted(
+            cvContextBuilder.buildGenerationContext(cv, level), analysis.getScore(), analysis.getMatchScore(), trimToMaxChars(analysis.getSummary(), 1000), trimToMaxChars(analysis.getStrengths(), 1000), trimToMaxChars(firstNonBlank(analysis.getImprovements(), "") + "\n" + firstNonBlank(analysis.getMatchReasoning(), ""), 1600), trimToMaxChars(firstNonBlank(analysis.getJobSnapshot(), analysis.getJob().getDescription()), 3500));
+  }
+
+  private String buildInterviewEvaluationContext(InterviewSession session) {
+    return """
+            Candidate CV:
+            %s
+
+            Target JD:
+            %s
+
+            Saved CV-JD Analysis:
+            %s
+            """.formatted(
+            trimToMaxChars(session.getCv().getExtractedText(), 3500), trimToMaxChars(firstNonBlank(session.getJobSnapshot(), session.getJobPosition()), 2500), session.getCvJobAnalysis() == null ? "" : trimToMaxChars(session.getCvJobAnalysis().getSummary(), 1200));
+  }
+
+  private String firstNonBlank(String... values) {
+    for (String value : values) {
+      if (value != null && !value.isBlank()) {
+        return value.trim();
+      }
+    }
+    return "";
+  }
+
   private String trimToMaxChars(String text, int maxChars) {
     if (text == null) {
       return "";
@@ -450,8 +521,8 @@ public class AIInterviewService {
   private String buildEvaluationQuery(
                                       InterviewSession session, List<GeminiService.InterviewQuestionAnswerDraft> questionAnswers) {
     String transcriptSnippet = questionAnswers.stream().map(item -> item.questionText() + " | " + trimToMaxChars(item.answerText(), 300)).reduce("", (left, right) -> left.isBlank() ? right : left + "\n" + right);
-    return "Position: %s\nLevel: %s\nTranscript:\n%s".formatted(
-            session.getJobPosition(), session.getInterviewLevel().name(), trimToMaxChars(transcriptSnippet, 2500));
+    return "Position: %s\nLevel: %s\nJD:\n%s\nTranscript:\n%s".formatted(
+            session.getJobPosition(), session.getInterviewLevel().name(), trimToMaxChars(session.getJobSnapshot(), 1200), trimToMaxChars(transcriptSnippet, 2500));
   }
 
   private void enforceDailyMockInterviewLimit(User user) {

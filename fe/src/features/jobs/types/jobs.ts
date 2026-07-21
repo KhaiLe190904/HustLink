@@ -20,6 +20,10 @@ export interface JobResponse {
   createdAt: string;
   publishedAt: string | null;
   applicationDeadline: string | null;
+  sourceType?: string | null;
+  sourceUrl?: string | null;
+  sourcePlatform?: string | null;
+  assignedRecruiterId?: number | null;
 }
 
 export interface JobApplicationResponse {

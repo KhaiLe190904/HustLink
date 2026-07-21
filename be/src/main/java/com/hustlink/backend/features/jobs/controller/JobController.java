@@ -4,6 +4,7 @@ import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.authentication.security.RequireRole;
 import com.hustlink.backend.features.jobs.dto.*;
+import com.hustlink.backend.features.jobs.service.JobImportService;
 import com.hustlink.backend.features.jobs.service.JobService;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -14,12 +15,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class JobController {
   private final JobService jobService;
+  private final JobImportService jobImportService;
 
   @PostMapping("/jobs")
   @RequireRole(UserRole.RECRUITER)
@@ -27,6 +30,37 @@ public class JobController {
                                                @Valid @RequestBody JobRequest request, @RequestAttribute("authenticationUser") User user) {
     JobResponse job = jobService.createJob(request, user);
     return ResponseEntity.ok(job);
+  }
+
+  @PostMapping("/jobs/import/url")
+  public ResponseEntity<JobResponse> importJobFromUrl(
+                                                      @Valid @RequestBody JobImportUrlRequest request, @RequestAttribute("authenticationUser") User user) {
+    return ResponseEntity.ok(jobImportService.importFromUrl(request.url(), user));
+  }
+
+  @PostMapping("/jobs/import/pdf")
+  public ResponseEntity<JobResponse> importJobFromPdf(
+                                                      @RequestParam("file") MultipartFile file, @RequestAttribute("authenticationUser") User user) {
+    return ResponseEntity.ok(jobImportService.importFromPdf(file, user));
+  }
+
+  @GetMapping("/admin/jobs/imported")
+  @RequireRole(UserRole.ADMIN)
+  public ResponseEntity<List<JobResponse>> getImportedJobs() {
+    return ResponseEntity.ok(jobImportService.getImportedJobs());
+  }
+
+  @DeleteMapping("/admin/jobs/imported/{id}")
+  @RequireRole(UserRole.ADMIN)
+  public ResponseEntity<Void> deleteImportedJob(@PathVariable Long id) {
+    jobImportService.deleteImportedJob(id);
+    return ResponseEntity.noContent().build();
+  }
+
+  @PatchMapping("/admin/jobs/{id}/assign-recruiter")
+  @RequireRole(UserRole.ADMIN)
+  public ResponseEntity<JobResponse> assignImportedJob(@PathVariable Long id, @RequestParam Long recruiterId) {
+    return ResponseEntity.ok(jobImportService.assignImportedJob(id, recruiterId));
   }
 
   @PatchMapping("/jobs/{id}")
@@ -70,8 +104,8 @@ public class JobController {
 
   @GetMapping("/jobs/recommended")
   public ResponseEntity<List<JobResponse>> getRecommendedJobs(
-                                                              @RequestAttribute("authenticationUser") User user) {
-    List<JobResponse> jobs = jobService.getRecommendedJobs(user);
+                                                              @RequestAttribute("authenticationUser") User user, @RequestParam(required = false) Long cvId) {
+    List<JobResponse> jobs = jobService.getRecommendedJobs(user, cvId);
     return ResponseEntity.ok(jobs);
   }
 

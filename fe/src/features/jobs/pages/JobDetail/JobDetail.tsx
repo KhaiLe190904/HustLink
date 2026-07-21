@@ -1,5 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import {
+  useParams,
+  Link,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { toast } from "react-toastify";
 import { request } from "@/utils/api";
 import { Button } from "@/features/authentication/components/Button/Button";
@@ -26,6 +31,7 @@ interface CvSummary {
 export function JobDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuthentication();
 
   const [job, setJob] = useState<JobResponse | null>(null);
@@ -88,6 +94,18 @@ export function JobDetail() {
       onFailure: (err) => toast.error("Could not load CV list: " + err),
     });
   };
+
+  useEffect(() => {
+    if (
+      searchParams.get("apply") === "1" &&
+      job?.status === "PUBLISHED" &&
+      user?.role === "USER" &&
+      !application
+    ) {
+      setShowApplyModal(true);
+      void loadMyCvs();
+    }
+  }, [application, job, searchParams, user?.role]);
 
   const handleOpenApplyModal = () => {
     if (!user) {
@@ -586,6 +604,14 @@ export function JobDetail() {
                     {getAppStatusBadge(application.status)}
                   </div>
                 </div>
+              ) : job.status !== "PUBLISHED" ? (
+                <Button
+                  type="button"
+                  disabled
+                  className="my-0 w-full bg-slate-100 text-slate-400 border border-slate-200 font-bold py-3.5 rounded-2xl cursor-not-allowed text-center"
+                >
+                  Pending Recruiter Review
+                </Button>
               ) : isExpired ? (
                 <Button
                   type="button"
