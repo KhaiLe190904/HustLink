@@ -9,7 +9,6 @@ import {
   FiCalendar,
   FiMapPin,
   FiPlus,
-  FiChevronRight,
   FiSearch,
   FiSliders,
   FiUsers,
@@ -380,9 +379,6 @@ export function EventList() {
                   <FiUsers className="text-slate-400" />
                   <span>{event.goingCount} participants</span>
                 </div>
-                <span className="flex items-center gap-1 text-xs font-semibold text-red-700 group-hover:underline">
-                  View details <FiChevronRight />
-                </span>
               </div>
             </Link>
           ))}

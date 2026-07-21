@@ -46,28 +46,6 @@ public class CV {
   @Column(nullable = false, columnDefinition = "nvarchar(max)")
   private String extractedText;
 
-  private Integer analysisScore;
-
-  @Lob
-  @Column(columnDefinition = "nvarchar(max)")
-  private String analysisSummary;
-
-  @Lob
-  @Column(columnDefinition = "nvarchar(max)")
-  private String analysisStrengths;
-
-  @Lob
-  @Column(columnDefinition = "nvarchar(max)")
-  private String analysisImprovements;
-
-  @Lob
-  @Column(columnDefinition = "nvarchar(max)")
-  private String recommendedQuestions;
-
-  @Lob
-  @Column(columnDefinition = "nvarchar(max)")
-  private String extractedSkills;
-
   @Column(nullable = false)
   private LocalDateTime uploadedAt;
 

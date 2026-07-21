@@ -20,7 +20,7 @@ public class StorageConfiguration {
 
   @Bean
   public S3Presigner s3Presigner(StorageProperties properties) {
-    return S3Presigner.builder().endpointOverride(URI.create(properties.endpointOrDefault())).region(Region.of(properties.regionOrDefault())).credentialsProvider(StaticCredentialsProvider.create(
+    return S3Presigner.builder().endpointOverride(URI.create(properties.publicBaseUrlOrDefault())).region(Region.of(properties.regionOrDefault())).credentialsProvider(StaticCredentialsProvider.create(
             AwsBasicCredentials.create(accessKeyOrDefault(properties), secretKeyOrDefault(properties)))).serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(properties.pathStyleAccess()).build()).build();
   }
 

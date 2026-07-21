@@ -4,18 +4,24 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hustlink.backend.features.ai.dto.AIConfigResponse;
-import com.hustlink.backend.features.ai.dto.CVAnalysisResponse;
 import com.hustlink.backend.features.ai.dto.CVContextDebugResponse;
+import com.hustlink.backend.features.ai.dto.CVJobAnalysisResponse;
 import com.hustlink.backend.features.ai.dto.CVSummaryResponse;
 import com.hustlink.backend.features.ai.dto.CVUploadResponse;
 import com.hustlink.backend.features.ai.model.InterviewLevel;
 import com.hustlink.backend.features.ai.model.AIUsageLog;
 import com.hustlink.backend.features.ai.model.AIUsageType;
 import com.hustlink.backend.features.ai.model.CV;
+import com.hustlink.backend.features.ai.model.CVJobAnalysis;
+import com.hustlink.backend.features.ai.model.CVJobAnalysisStatus;
 import com.hustlink.backend.features.ai.repository.AIUsageLogRepository;
+import com.hustlink.backend.features.ai.repository.CVJobAnalysisRepository;
 import com.hustlink.backend.features.ai.repository.CVRepository;
 import com.hustlink.backend.features.ai.repository.InterviewSessionRepository;
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.jobs.model.Job;
+import com.hustlink.backend.features.jobs.repository.JobRepository;
+import com.hustlink.backend.features.jobs.service.JobMatchingService;
 import com.hustlink.backend.features.storage.model.StorageScope;
 import com.hustlink.backend.features.storage.model.StoredObject;
 import com.hustlink.backend.features.storage.service.ObjectStorageService;
@@ -23,11 +29,13 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -40,11 +48,16 @@ public class CVService {
   private final CVRepository cvRepository;
   private final AIUsageLogRepository aiUsageLogRepository;
   private final InterviewSessionRepository interviewSessionRepository;
+  private final CVJobAnalysisRepository cvJobAnalysisRepository;
   private final CVParserService cvParserService;
   private final GeminiService geminiService;
   private final CVContextBuilder cvContextBuilder;
+  private final JobRepository jobRepository;
+  private final JobMatchingService jobMatchingService;
   private final ObjectStorageService objectStorageService;
   private final ObjectMapper objectMapper;
+  private final TransactionTemplate transactionTemplate;
+  private final CVAnalysisAsyncService cvAnalysisAsyncService;
 
   @Value("${ai.daily-analysis-limit:2}")
   private int dailyAnalysisLimit;
@@ -85,7 +98,7 @@ public class CVService {
 
   public List<CVSummaryResponse> getMyCvs(User user) {
     return cvRepository.findByUserIdOrderByUploadedAtDesc(user.getId()).stream().map(cv -> new CVSummaryResponse(
-            cv.getId(), cv.getFileName(), cv.getOriginalFileName(), cv.getMimeType(), objectStorageService.getAccessUrl(cv.getStoredObject()), cv.getAnalysisScore(), cv.getAnalysisScore() != null, cv.getUploadedAt())).toList();
+            cv.getId(), cv.getFileName(), cv.getOriginalFileName(), cv.getMimeType(), objectStorageService.getAccessUrl(cv.getStoredObject()), cv.getUploadedAt())).toList();
   }
 
   @Transactional
@@ -103,36 +116,95 @@ public class CVService {
     }
   }
 
-  public CVAnalysisResponse analyzeCv(User user, Long cvId) {
-    CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
-
-    if (cv.getAnalysisScore() != null) {
-      return toAnalysisResponse(cv);
+  private CVJobAnalysis handleTimeoutAndSave(CVJobAnalysis analysis) {
+    if ((analysis.getStatus() == CVJobAnalysisStatus.ANALYZING || analysis.getStatus() == CVJobAnalysisStatus.PENDING) && analysis.getUpdatedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+      analysis.setStatus(CVJobAnalysisStatus.FAILED);
+      return cvJobAnalysisRepository.save(analysis);
     }
-
-    enforceDailyAnalysisLimit(user);
-
-    GeminiService.CVInsight insight = geminiService.analyzeCv(cv.getExtractedText());
-    cv.setAnalysisScore(insight.score());
-    cv.setAnalysisSummary(insight.summary());
-    cv.setAnalysisStrengths(writeList(insight.strengths()));
-    cv.setAnalysisImprovements(writeList(insight.improvements()));
-    cv.setExtractedSkills(writeList(insight.skills()));
-    cv.setRecommendedQuestions(null);
-
-    CV savedCv = cvRepository.save(cv);
-    recordAiUsage(user, AIUsageType.CV_ANALYSIS);
-    return toAnalysisResponse(savedCv);
+    return analysis;
   }
 
-  public CVAnalysisResponse getAnalysis(User user, Long cvId) {
-    CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+  public CVJobAnalysisResponse getJobAnalysisByCvAndJob(User user, Long cvId, Long jobId) {
+    return cvJobAnalysisRepository.findByCvIdAndJobId(cvId, jobId).filter(a -> a.getCv().getUser().getId().equals(user.getId())).map(this::handleTimeoutAndSave).map(this::toJobAnalysisResponse).orElse(null);
+  }
 
-    if (cv.getAnalysisScore() == null) {
-      throw new IllegalArgumentException("This CV has not been analyzed yet.");
+  public CVJobAnalysisResponse analyzeCvForJob(User user, Long cvId, Long jobId) {
+    CV cv = cvRepository.findByIdAndUserId(cvId, user.getId()).orElseThrow(() -> new IllegalArgumentException("CV not found."));
+    Job job = jobRepository.findById(jobId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Job not found."));
+
+    AnalysisStartDecision decision = transactionTemplate.execute(status -> {
+      Optional<CVJobAnalysis> existingOpt = cvJobAnalysisRepository.findByCvIdAndJobId(cvId, jobId);
+
+      if (existingOpt.isPresent()) {
+        CVJobAnalysis existing = existingOpt.get();
+        if (existing.getStatus() == CVJobAnalysisStatus.COMPLETED) {
+          return new AnalysisStartDecision(refreshSkillMatchIfNeeded(existing), false);
+        } else
+          if (existing.getStatus() == CVJobAnalysisStatus.ANALYZING || existing.getStatus() == CVJobAnalysisStatus.PENDING) {
+            if (existing.getUpdatedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+              enforceDailyAnalysisLimit(user);
+              existing.setStatus(CVJobAnalysisStatus.ANALYZING);
+              existing.setUpdatedAt(LocalDateTime.now());
+              return new AnalysisStartDecision(cvJobAnalysisRepository.save(existing), true);
+            }
+            return new AnalysisStartDecision(existing, false);
+          } else { // FAILED
+            enforceDailyAnalysisLimit(user);
+            existing.setStatus(CVJobAnalysisStatus.ANALYZING);
+            existing.setUpdatedAt(LocalDateTime.now());
+            return new AnalysisStartDecision(cvJobAnalysisRepository.save(existing), true);
+          }
+      }
+
+      enforceDailyAnalysisLimit(user);
+      CVJobAnalysis analysis = new CVJobAnalysis();
+      analysis.setCv(cv);
+      analysis.setJob(job);
+      analysis.setStatus(CVJobAnalysisStatus.ANALYZING);
+      analysis.setScore(0);
+      analysis.setMatchScore(0);
+      return new AnalysisStartDecision(cvJobAnalysisRepository.save(analysis), true);
+    });
+
+    if (decision.startAsync()) {
+      cvAnalysisAsyncService.runAnalysis(decision.analysis().getId(), user.getId());
     }
 
-    return toAnalysisResponse(cv);
+    return toJobAnalysisResponse(decision.analysis());
+  }
+
+  private CVJobAnalysis refreshSkillMatchIfNeeded(CVJobAnalysis analysis) {
+    List<String> jdAnalysisSkills = readList(analysis.getExtractedSkills());
+    if (jdAnalysisSkills.isEmpty() || !hasZeroSkillBreakdown(analysis.getMatchBreakdown())) {
+      return analysis;
+    }
+    JobMatchingService.MatchResult matchResult = jobMatchingService.computeMatch(analysis.getCv(), analysis.getJob(), jdAnalysisSkills);
+    analysis.setMatchScore(matchResult.score());
+    analysis.setMatchBreakdown(matchResult.breakdown());
+    analysis.setMatchReasoning(matchResult.reasoning());
+    return cvJobAnalysisRepository.save(analysis);
+  }
+
+  private boolean hasZeroSkillBreakdown(String breakdownJson) {
+    if (breakdownJson == null || breakdownJson.isBlank()) {
+      return false;
+    }
+    try {
+      return objectMapper.readTree(breakdownJson).path("skills").asInt(-1) == 0;
+    } catch (JsonProcessingException exception) {
+      return false;
+    }
+  }
+
+  public CVJobAnalysisResponse getJobAnalysis(User user, Long analysisId) {
+    CVJobAnalysis analysis = cvJobAnalysisRepository.findByIdAndCvUserId(analysisId, user.getId()).orElseThrow(
+            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CV-JD analysis not found."));
+    return toJobAnalysisResponse(handleTimeoutAndSave(analysis));
+  }
+
+  public List<CVJobAnalysisResponse> getJobAnalyses(User user, Long cvId) {
+    List<CVJobAnalysis> analyses = cvId == null ? cvJobAnalysisRepository.findByCvUserIdOrderByUpdatedAtDesc(user.getId()) : cvJobAnalysisRepository.findByCvIdAndCvUserIdOrderByUpdatedAtDesc(cvId, user.getId());
+    return analyses.stream().filter(analysis -> analysis.getStatus() == CVJobAnalysisStatus.COMPLETED).map(this::toJobAnalysisResponse).toList();
   }
 
   public CVContextDebugResponse debugContext(User user, Long cvId, String jobPosition, String level) {
@@ -175,9 +247,9 @@ public class CVService {
             geminiService.isConfigured(), dailyAnalysisLimit, getRemainingAnalysesToday(user));
   }
 
-  private CVAnalysisResponse toAnalysisResponse(CV cv) {
-    return new CVAnalysisResponse(
-            cv.getId(), cv.getOriginalFileName(), cv.getAnalysisScore(), cv.getAnalysisSummary(), readList(cv.getAnalysisStrengths()), readList(cv.getAnalysisImprovements()), cv.getUpdatedAt());
+  private CVJobAnalysisResponse toJobAnalysisResponse(CVJobAnalysis analysis) {
+    return CVJobAnalysisResponse.fromEntity(
+            analysis, readList(analysis.getStrengths()), readList(analysis.getImprovements()), readList(analysis.getExtractedSkills()));
   }
 
   private void validatePdf(MultipartFile file) {
@@ -254,5 +326,8 @@ public class CVService {
       GeminiService.clearLastTokenUsage();
     }
     aiUsageLogRepository.save(usageLog);
+  }
+
+  private record AnalysisStartDecision(CVJobAnalysis analysis, boolean startAsync) {
   }
 }

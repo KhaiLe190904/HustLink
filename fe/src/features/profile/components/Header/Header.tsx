@@ -12,7 +12,7 @@ import {
 } from "@/utils/storage";
 
 import { Button } from "@/features/authentication/components/Button/Button";
-import { FiSave, FiX } from "react-icons/fi";
+import { FiCamera } from "react-icons/fi";
 import { ReportContentModal } from "@/features/feed/components/ReportContentModal/ReportContentModal";
 interface ILocationSuggestion {
   locationDisplay: string;
@@ -38,6 +38,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
   });
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [profilePreviewUrl, setProfilePreviewUrl] = useState<string | null>(
     null
   );
@@ -135,6 +136,8 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
   }, [editingInfo, locationQuery]);
 
   async function updateInfo() {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
       if (!(info.locationDisplay || "").trim()) {
         throw new Error("Please choose your location.");
@@ -206,35 +209,101 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
       toast.error(message);
       setProfileImageFile(null);
       setCoverImageFile(null);
+    } finally {
+      setIsSaving(false);
     }
   }
 
   return (
     <div className="overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-      <img
-        className="h-52 w-full object-cover"
-        src={
-          editingInfo
-            ? coverPreviewUrl ||
-              resolveMediaUrl(info.coverPicture) ||
-              "/cover.jpeg"
-            : resolveMediaUrl(user?.coverPicture) || "/cover.jpeg"
-        }
-        alt="Cover"
-      />
+      {editingInfo ? (
+        <div className="relative h-52 w-full group">
+          <input
+            type="file"
+            id="cover-picture-upload"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => setCoverImageFile(e.target.files?.[0] ?? null)}
+          />
+          <label
+            htmlFor="cover-picture-upload"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                document.getElementById("cover-picture-upload")?.click();
+              }
+            }}
+            className="cursor-pointer block h-full w-full relative focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          >
+            <img
+              className="h-full w-full object-cover"
+              src={
+                coverPreviewUrl ||
+                resolveMediaUrl(info.coverPicture) ||
+                "/cover.jpeg"
+              }
+              alt="Cover"
+            />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 text-white text-sm font-semibold gap-2">
+              <FiCamera className="w-8 h-8" />
+              <span>Change Cover Photo</span>
+            </div>
+          </label>
+        </div>
+      ) : (
+        <img
+          className="h-52 w-full object-cover"
+          src={resolveMediaUrl(user?.coverPicture) || "/cover.jpeg"}
+          alt="Cover"
+        />
+      )}
 
       <div className="relative -mt-16 ml-6 mb-4">
-        <img
-          className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-lg"
-          src={
-            editingInfo
-              ? profilePreviewUrl ||
-                resolveMediaUrl(info.profilePicture) ||
-                "/doc1.png"
-              : resolveMediaUrl(user?.profilePicture) || "/doc1.png"
-          }
-          alt="Profile"
-        />
+        {editingInfo ? (
+          <div className="relative h-32 w-32 group">
+            <input
+              type="file"
+              id="profile-picture-upload"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => setProfileImageFile(e.target.files?.[0] ?? null)}
+            />
+            <label
+              htmlFor="profile-picture-upload"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  document.getElementById("profile-picture-upload")?.click();
+                }
+              }}
+              className="cursor-pointer block h-full w-full relative rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <img
+                className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-lg"
+                src={
+                  profilePreviewUrl ||
+                  resolveMediaUrl(info.profilePicture) ||
+                  "/doc1.png"
+                }
+                alt="Profile"
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition duration-200 text-white text-xs font-semibold gap-1 border-4 border-white">
+                <FiCamera className="w-6 h-6" />
+                <span>Change</span>
+              </div>
+            </label>
+          </div>
+        ) : (
+          <img
+            className="h-32 w-32 rounded-full border-4 border-white object-cover shadow-lg"
+            src={resolveMediaUrl(user?.profilePicture) || "/doc1.png"}
+            alt="Profile"
+          />
+        )}
       </div>
 
       <div className="relative px-6 pb-6">
@@ -359,37 +428,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
                   </div>
                 ) : null}
               </div>
-              <div className="mb-2 flex justify-end gap-4">
-                <button
-                  className="grid h-9 w-9 place-items-center rounded-full text-slate-500 transition hover:bg-slate-100"
-                  onClick={() => {
-                    setEditingInfo(false);
-                    setInfo({
-                      firstName: user?.firstName || "",
-                      lastName: user?.lastName || "",
-                      company: user?.company || "",
-                      position: user?.position || "",
-                      locationDisplay: user?.locationDisplay || "",
-                      locationKey: user?.locationKey || "",
-                      profilePicture: user?.profilePicture || "",
-                      coverPicture: user?.coverPicture || "",
-                    });
-                    setLocationQuery(user?.locationDisplay || "");
-                    setShowLocationSuggestions(false);
-                    setLocationError("");
-                    setProfileImageFile(null);
-                    setCoverImageFile(null);
-                  }}
-                >
-                  <FiX className="h-7 w-7" />
-                </button>
-                <button
-                  className="grid h-9 w-9 place-items-center rounded-full text-emerald-600 transition hover:bg-emerald-50"
-                  onClick={updateInfo}
-                >
-                  <FiSave className="h-7 w-7" />
-                </button>
-              </div>
+
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <Input
                   value={info?.firstName}
@@ -488,33 +527,40 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
               {locationError ? (
                 <p className="mt-2 text-sm text-red-500">{locationError}</p>
               ) : null}
-              <div className="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2">
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
-                  <label className="text-sm font-medium text-gray-700">
-                    Profile image
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="mt-2 block w-full text-sm text-gray-600"
-                    onChange={(e) =>
-                      setProfileImageFile(e.target.files?.[0] ?? null)
-                    }
-                  />
-                </div>
-                <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-3">
-                  <label className="text-sm font-medium text-gray-700">
-                    Cover image
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="mt-2 block w-full text-sm text-gray-600"
-                    onChange={(e) =>
-                      setCoverImageFile(e.target.files?.[0] ?? null)
-                    }
-                  />
-                </div>
+              <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition cursor-pointer"
+                  onClick={() => {
+                    setEditingInfo(false);
+                    setInfo({
+                      firstName: user?.firstName || "",
+                      lastName: user?.lastName || "",
+                      company: user?.company || "",
+                      position: user?.position || "",
+                      locationDisplay: user?.locationDisplay || "",
+                      locationKey: user?.locationKey || "",
+                      profilePicture: user?.profilePicture || "",
+                      coverPicture: user?.coverPicture || "",
+                    });
+                    setLocationQuery(user?.locationDisplay || "");
+                    setShowLocationSuggestions(false);
+                    setLocationError("");
+                    setProfileImageFile(null);
+                    setCoverImageFile(null);
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/10 transition cursor-pointer"
+                  onClick={updateInfo}
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
               </div>
             </div>
           )}
@@ -526,7 +572,7 @@ export function Header({ user, authUser, onUpdate }: ITopProps) {
           showModal={showReportModal}
           setShowModal={setShowReportModal}
           targetType="USER"
-          targetId={user.id}
+          targetId={Number(user.id)}
         />
       )}
     </div>

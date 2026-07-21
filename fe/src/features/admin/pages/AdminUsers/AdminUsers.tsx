@@ -21,6 +21,7 @@ interface User {
   suspensionExpiresAt: string | null;
   profilePicture: string | null;
   associatedCompanyName?: string | null;
+  emailVerified: boolean;
 }
 
 interface PageResponse<T> {
@@ -97,6 +98,24 @@ function CustomSelect<T extends string | number>({
       )}
     </div>
   );
+}
+
+function getPaginationRange(current: number, total: number) {
+  const range: (number | string)[] = [];
+  const delta = 1;
+
+  for (let i = 0; i < total; i++) {
+    if (
+      i === 0 ||
+      i === total - 1 ||
+      (i >= current - delta && i <= current + delta)
+    ) {
+      range.push(i);
+    } else if (range[range.length - 1] !== "...") {
+      range.push("...");
+    }
+  }
+  return range;
 }
 
 export function AdminUsers() {
@@ -347,6 +366,13 @@ export function AdminUsers() {
         );
       }
     }
+    if (user.emailVerified === false) {
+      return (
+        <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">
+          Inactive
+        </span>
+      );
+    }
     return (
       <span className="rounded-full bg-green-50 border border-green-200 px-2.5 py-0.5 text-[10px] font-extrabold text-green-700 uppercase tracking-wider">
         Active
@@ -402,6 +428,7 @@ export function AdminUsers() {
               options={[
                 { value: "ALL", label: "All Statuses" },
                 { value: "ACTIVE", label: "Active Users" },
+                { value: "INACTIVE", label: "Inactive Users" },
                 { value: "SUSPENDED", label: "Suspended Users" },
                 { value: "BANNED", label: "Banned Users" },
               ]}
@@ -543,19 +570,32 @@ export function AdminUsers() {
               Previous
             </button>
 
-            {Array.from({ length: totalPages }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentPage(i)}
-                className={`rounded-xl px-4 py-2 text-sm font-bold transition cursor-pointer ${
-                  currentPage === i
-                    ? "bg-red-700 text-white shadow-md"
-                    : "border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {getPaginationRange(currentPage, totalPages).map((p, index) => {
+              if (p === "...") {
+                return (
+                  <span
+                    key={`ellipsis-${index}`}
+                    className="px-3 py-2 text-slate-400 text-sm font-bold"
+                  >
+                    ...
+                  </span>
+                );
+              }
+              const pageIndex = p as number;
+              return (
+                <button
+                  key={pageIndex}
+                  onClick={() => setCurrentPage(pageIndex)}
+                  className={`rounded-xl px-4 py-2 text-sm font-bold transition cursor-pointer ${
+                    currentPage === pageIndex
+                      ? "bg-red-700 text-white shadow-md"
+                      : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {pageIndex + 1}
+                </button>
+              );
+            })}
 
             <button
               onClick={() =>

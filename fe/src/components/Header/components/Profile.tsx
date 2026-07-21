@@ -142,13 +142,13 @@ export function Profile({
                 className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-50 hover:text-red-700"
                 onClick={() => {
                   setShowProfileMenu(false);
-                  navigate("/ai/cv");
+                  navigate("/ai/cv/history");
                 }}
               >
                 <span className="grid h-9 w-9 place-items-center rounded-2xl bg-slate-100 text-slate-700">
                   <FiFileText className="h-4 w-4" />
                 </span>
-                AI CV
+                AI CV History
               </button>
             )}
 

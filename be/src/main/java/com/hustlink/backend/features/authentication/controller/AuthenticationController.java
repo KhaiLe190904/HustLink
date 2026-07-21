@@ -39,8 +39,9 @@ public class AuthenticationController {
   }
 
   @PostMapping("/oauth/google/login")
-  public AuthenticationResponseBody googleLogin(@RequestBody AuthenticationOauthRequestBody oauth2RequestBody) {
-    return authenticationService.googleLoginOrSignup(oauth2RequestBody.code(), oauth2RequestBody.page());
+  public AuthenticationResponseBody googleLogin(
+                                                @RequestBody AuthenticationOauthRequestBody oauth2RequestBody, @RequestHeader(value = "Origin", required = false) String origin) {
+    return authenticationService.googleLoginOrSignup(oauth2RequestBody.code(), oauth2RequestBody.page(), origin);
   }
 
   @PostMapping("/login")

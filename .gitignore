@@ -75,5 +75,5 @@ build/
 
 ### VS Code ###
 .vscode
-
+.env
 lucene

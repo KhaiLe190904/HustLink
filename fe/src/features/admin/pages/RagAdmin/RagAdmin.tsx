@@ -38,6 +38,10 @@ interface VectorStoreResetResponse {
   message: string;
 }
 
+interface JobReindexResponse {
+  indexedCount: number;
+}
+
 export function RagAdmin() {
   const [stats, setStats] = useState<RagStatsResponse | null>(null);
   const [parsedItems, setParsedItems] = useState<RagImportItem[]>([]);
@@ -45,6 +49,7 @@ export function RagAdmin() {
   const [isImporting, setIsImporting] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [isReindexingProfiles, setIsReindexingProfiles] = useState(false);
+  const [isReindexingJobs, setIsReindexingJobs] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetConfirmations, setResetConfirmations] = useState({
@@ -167,6 +172,20 @@ export function RagAdmin() {
       onFailure: (error) => toast.error(error),
     });
     setIsReindexingProfiles(false);
+  };
+
+  const reindexJobs = async () => {
+    setIsReindexingJobs(true);
+    await request<JobReindexResponse>({
+      endpoint: "/api/v1/admin/jobs/reindex",
+      method: "POST",
+      body: JSON.stringify({}),
+      onSuccess: (data) => {
+        toast.success(`Reindexed ${data.indexedCount} job(s).`);
+      },
+      onFailure: (error) => toast.error(error),
+    });
+    setIsReindexingJobs(false);
   };
 
   const resetInterviewQuestionBank = async () => {
@@ -294,6 +313,23 @@ export function RagAdmin() {
                   type="button"
                   outline
                   className="my-0 sm:w-fit"
+                  onClick={() =>
+                    setShowConfirmModal({
+                      show: true,
+                      title: "Reindex Jobs",
+                      message:
+                        "Are you sure you want to reindex all jobs? This will generate embeddings for every existing job and update job recommendations.",
+                      onConfirm: () => reindexJobs(),
+                    })
+                  }
+                  disabled={isReindexingJobs}
+                >
+                  {isReindexingJobs ? "Reindexing..." : "Reindex Jobs"}
+                </Button>
+                <Button
+                  type="button"
+                  outline
+                  className="my-0 sm:w-fit"
                   onClick={initVectorStore}
                   disabled={isInitializing}
                 >
@@ -317,6 +353,11 @@ export function RagAdmin() {
                     toàn bộ hồ sơ ứng viên (hoàn thiện) lên Qdrant collection{" "}
                     <code>user_profile</code> phục vụ tìm kiếm ứng viên Hybrid
                     (Semantic + BM25).
+                  </li>
+                  <li>
+                    <strong>Reindex Jobs:</strong> Nhúng và đồng bộ toàn bộ job
+                    hiện có lên Qdrant collection <code>job_description</code>,
+                    hữu ích sau khi seed hoặc khởi tạo dự án mới.
                   </li>
                 </ul>
               </div>

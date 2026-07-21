@@ -8,12 +8,16 @@ import com.hustlink.backend.features.ai.model.*;
 import com.hustlink.backend.features.ai.rag.dto.RagQuestionContext;
 import com.hustlink.backend.features.ai.repository.AIUsageLogRepository;
 import com.hustlink.backend.features.ai.repository.CVRepository;
+import com.hustlink.backend.features.ai.repository.CVJobAnalysisRepository;
 import com.hustlink.backend.features.ai.repository.InterviewAnswerRepository;
 import com.hustlink.backend.features.ai.repository.InterviewQuestionRepository;
 import com.hustlink.backend.features.ai.repository.InterviewSessionRepository;
+import com.hustlink.backend.features.ai.repository.InterviewQuestionBankRepository;
 import com.hustlink.backend.features.ai.rag.RagInterviewService;
 import com.hustlink.backend.features.ai.util.LanguageUtils;
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.authentication.repository.UserRepository;
+import com.hustlink.backend.features.notifications.service.NotificationService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -24,16 +28,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AIInterviewService {
   private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {
   };
@@ -44,16 +51,21 @@ public class AIInterviewService {
   private final InterviewSessionRepository interviewSessionRepository;
   private final InterviewQuestionRepository interviewQuestionRepository;
   private final InterviewAnswerRepository interviewAnswerRepository;
+  private final InterviewQuestionBankRepository interviewQuestionBankRepository;
   private final CVRepository cvRepository;
+  private final CVJobAnalysisRepository cvJobAnalysisRepository;
+  private final UserRepository userRepository;
+  private final NotificationService notificationService;
   private final GeminiService geminiService;
   private final RagInterviewService ragInterviewService;
   private final CVContextBuilder cvContextBuilder;
   private final ObjectMapper objectMapper;
+  private final TransactionTemplate transactionTemplate;
 
   @Value("${ai.interview.question-count:5}")
   private int questionCount;
 
-  @Value("${ai.interview.answer-time-limit-seconds:120}")
+  @Value("${ai.interview.answer-time-limit-seconds:300}")
   private int answerTimeLimitSeconds;
 
   @Value("${ai.daily-mock-interview-limit:2}")
@@ -62,21 +74,22 @@ public class AIInterviewService {
   @Value("${app.features.rag.enabled:true}")
   private boolean ragEnabled;
 
-  @Transactional
   public InterviewStartResponse startInterview(User user, InterviewStartRequest request) {
     if (!geminiService.isConfigured()) {
       throw new ResponseStatusException(
               HttpStatus.SERVICE_UNAVAILABLE, "Gemini API key is not configured.");
     }
 
-    if (request.cvId() == null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please select a CV.");
+    if (request.cvJobAnalysisId() == null && (request.cvId() == null || request.jobId() == null)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please analyze this CV with a JD before starting a mock interview.");
     }
 
-    // Check for active in-progress session within 15 minutes
     Optional<InterviewSession> latestSessionOpt = interviewSessionRepository.findFirstByUserIdOrderByStartedAtDesc(user.getId());
     if (latestSessionOpt.isPresent()) {
       InterviewSession latestSession = latestSessionOpt.get();
+      if (latestSession.getStatus() == InterviewSessionStatus.CREATING && latestSession.getStartedAt().plusMinutes(5).isAfter(LocalDateTime.now())) {
+        throw new ResponseStatusException(HttpStatus.CONFLICT, "An interview session is currently being created. Please wait a moment.");
+      }
       if (latestSession.getStatus() == InterviewSessionStatus.IN_PROGRESS && latestSession.getStartedAt().plusMinutes(15).isAfter(LocalDateTime.now())) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You have an active interview session in progress. Please resume it.");
       }
@@ -84,65 +97,104 @@ public class AIInterviewService {
 
     enforceDailyMockInterviewLimit(user);
 
-    CV cv = cvRepository.findByIdAndUserId(request.cvId(), user.getId()).orElseThrow(
-            () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "CV not found."));
-
-    String jobPosition = normalizeJobPosition(request.jobPosition(), user.getPosition(), "Software Engineer");
+    CVJobAnalysis cvJobAnalysis = resolveCvJobAnalysis(user, request);
+    CV cv = cvJobAnalysis.getCv();
+    String jobContext = firstNonBlank(cvJobAnalysis.getJobSnapshot(), cvJobAnalysis.getJob().getTitle());
+    String jobPosition = normalizeJobPosition(request.jobPosition(), cvJobAnalysis.getJob().getTitle(), user.getPosition());
     List<String> requestedStacks = request.stacks() == null ? List.of() : request.stacks();
     InterviewLevel interviewLevel = request.level() == null || request.level().isBlank() ? InterviewLevel.inferFromText(jobPosition) : InterviewLevel.fromValue(request.level());
 
-    String languageCode = geminiService.resolveInterviewLanguageCode(cv.getExtractedText());
-    List<RagQuestionContext> questionContexts = ragEnabled ? ragInterviewService.retrieveRelevantQuestionContexts(
-            cvContextBuilder.buildRetrievalQuery(cv, jobPosition, interviewLevel), jobPosition, requestedStacks, interviewLevel, languageCode, Math.max(12, questionCount)) : List.of();
-    List<String> ragContext = questionContexts.stream().map(this::formatRagContext).toList();
-    RagDebugResponse questionRagDebug = buildRagDebug("question_generation", questionContexts, languageCode);
+    InterviewSession sessionPlaceholder = transactionTemplate.execute(status -> {
+      userRepository.findByIdForUpdate(user.getId()).orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found."));
+      Optional<InterviewSession> raceCheckSession = interviewSessionRepository.findFirstByUserIdOrderByStartedAtDesc(user.getId());
+      if (raceCheckSession.isPresent()) {
+        InterviewSession raceSession = raceCheckSession.get();
+        if (raceSession.getStatus() == InterviewSessionStatus.CREATING && raceSession.getStartedAt().plusMinutes(5).isAfter(LocalDateTime.now())) {
+          throw new ResponseStatusException(HttpStatus.CONFLICT, "An interview session is currently being created. Please wait a moment.");
+        }
+        if (raceSession.getStatus() == InterviewSessionStatus.IN_PROGRESS && raceSession.getStartedAt().plusMinutes(15).isAfter(LocalDateTime.now())) {
+          throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You have an active interview session in progress. Please resume it.");
+        }
+      }
 
-    List<GeminiService.InterviewQuestionDraft> drafts = geminiService.generateInterviewQuestions(
-            cvContextBuilder.buildGenerationContext(cv, interviewLevel), jobPosition, interviewLevel.name(), questionCount, ragContext);
+      InterviewSession session = new InterviewSession();
+      session.setUser(user);
+      session.setCv(cv);
+      session.setJob(cvJobAnalysis.getJob());
+      session.setCvJobAnalysis(cvJobAnalysis);
+      session.setJobPosition(jobPosition);
+      session.setJobSnapshot(jobContext);
+      session.setInterviewLevel(interviewLevel);
+      session.setLanguageCode("UNKNOWN");
+      session.setStatus(InterviewSessionStatus.CREATING);
+      session.setTotalQuestions(questionCount);
+      session.setCurrentQuestionIndex(0);
+      session.setAnswerTimeLimitSeconds(answerTimeLimitSeconds);
+      return interviewSessionRepository.save(session);
+    });
 
-    if (drafts.isEmpty()) {
-      throw new ResponseStatusException(
-              HttpStatus.INTERNAL_SERVER_ERROR, "Could not generate interview questions.");
+    List<GeminiService.InterviewQuestionDraft> drafts;
+    String languageCode;
+    List<RagQuestionContext> questionContexts;
+    try {
+      languageCode = geminiService.resolveInterviewLanguageCode(cv.getExtractedText());
+      questionContexts = ragEnabled ? ragInterviewService.retrieveRelevantQuestionContexts(
+              cvContextBuilder.buildRetrievalQuery(cv, jobPosition + "\n" + jobContext, interviewLevel), jobPosition, requestedStacks, interviewLevel, languageCode, Math.max(12, questionCount)) : List.of();
+
+      List<String> ragContext = questionContexts.stream().map(this::formatRagContext).toList();
+
+      drafts = geminiService.generateInterviewQuestions(
+              buildInterviewGenerationContext(cv, cvJobAnalysis, interviewLevel), jobPosition, interviewLevel.name(), questionCount, ragContext);
+
+      if (drafts.isEmpty()) {
+        throw new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR, "Could not generate interview questions.");
+      }
+    } catch (Exception e) {
+      transactionTemplate.execute(status -> {
+        interviewSessionRepository.delete(sessionPlaceholder);
+        return null;
+      });
+      throw e;
     }
 
     List<GeminiService.InterviewQuestionDraft> selectedDrafts = drafts.stream().limit(questionCount).toList();
+    List<String> ragContext = questionContexts.stream().map(this::formatRagContext).toList();
+    RagDebugResponse questionRagDebug = buildRagDebug("question_generation", questionContexts, languageCode);
 
-    InterviewSession session = new InterviewSession();
-    session.setUser(user);
-    session.setCv(cv);
-    session.setJobPosition(jobPosition);
-    session.setInterviewLevel(interviewLevel);
-    session.setLanguageCode(languageCode);
-    session.setStatus(InterviewSessionStatus.IN_PROGRESS);
-    session.setTotalQuestions(selectedDrafts.size());
-    session.setCurrentQuestionIndex(0);
-    session.setAnswerTimeLimitSeconds(answerTimeLimitSeconds);
+    InterviewSession savedSession = transactionTemplate.execute(status -> {
+      InterviewSession session = interviewSessionRepository.findById(sessionPlaceholder.getId()).orElseThrow();
+      session.setLanguageCode(languageCode);
+      session.setStatus(InterviewSessionStatus.IN_PROGRESS);
+      session.setTotalQuestions(selectedDrafts.size());
 
-    InterviewSession savedSession = interviewSessionRepository.save(session);
+      List<InterviewQuestion> questions = selectedDrafts.stream().map(
+              draft -> {
+                InterviewQuestion question = new InterviewQuestion();
+                question.setSession(session);
+                question.setQuestionOrder(draft.questionOrder());
+                question.setCategory(InterviewQuestionCategory.fromValue(draft.category()));
+                question.setQuestionText(draft.text());
+                question.setExpectedPoints(writeList(draft.expectedPoints()));
+                return question;
+              }).toList();
+      interviewQuestionRepository.saveAll(questions);
 
-    List<InterviewQuestion> questions = selectedDrafts.stream().map(
-            draft -> {
-              InterviewQuestion question = new InterviewQuestion();
-              question.setSession(savedSession);
-              question.setQuestionOrder(draft.questionOrder());
-              question.setCategory(InterviewQuestionCategory.fromValue(draft.category()));
-              question.setQuestionText(draft.text());
-              question.setExpectedPoints(writeList(draft.expectedPoints()));
-              return question;
-            }).toList();
+      recordInterviewUsage(user);
+      if (!ragContext.isEmpty()) {
+        recordAiUsage(user, AIUsageType.RAG_RETRIEVE);
+      }
+      return interviewSessionRepository.save(session);
+    });
 
-    interviewQuestionRepository.saveAll(questions);
-    recordInterviewUsage(user);
-    if (!ragContext.isEmpty()) {
-      recordAiUsage(user, AIUsageType.RAG_RETRIEVE);
-    }
-    InterviewQuestion firstQuestion = questions.stream().min(Comparator.comparingInt(InterviewQuestion::getQuestionOrder)).orElseThrow();
+    List<InterviewQuestion> savedQuestions = interviewQuestionRepository.findBySessionIdOrderByQuestionOrderAsc(savedSession.getId());
+    InterviewQuestion firstQuestion = savedQuestions.stream().min(Comparator.comparingInt(InterviewQuestion::getQuestionOrder)).orElseThrow();
 
     return new InterviewStartResponse(
             savedSession.getId(), cv.getId(), cv.getOriginalFileName(), savedSession.getJobPosition(), savedSession.getInterviewLevel().name(), savedSession.getLanguageCode(), savedSession.getTotalQuestions(), savedSession.getAnswerTimeLimitSeconds(), toQuestionResponse(firstQuestion, savedSession), questionRagDebug);
   }
 
-  @Transactional
   public InterviewSubmitAnswerResponse submitAnswer(
                                                     User user, Long sessionId, InterviewAnswerRequest request) {
     InterviewSession session = interviewSessionRepository.findByIdAndUserId(sessionId, user.getId()).orElseThrow(
@@ -161,20 +213,30 @@ public class AIInterviewService {
     InterviewQuestion question = interviewQuestionRepository.findByIdAndSessionId(request.questionId(), sessionId).orElseThrow(
             () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found."));
 
+    if (session.getCurrentQuestionIndex() >= session.getTotalQuestions() && question.getQuestionOrder() == session.getTotalQuestions()) {
+      InterviewResultResponse results = completeInterview(session);
+      return new InterviewSubmitAnswerResponse(
+              session.getId(), true, session.getCurrentQuestionIndex(), session.getTotalQuestions(), null, results);
+    }
+
     int expectedQuestionOrder = session.getCurrentQuestionIndex() + 1;
     if (question.getQuestionOrder() != expectedQuestionOrder) {
       throw new ResponseStatusException(
               HttpStatus.BAD_REQUEST, "Please answer the current question in order.");
     }
 
-    InterviewAnswer answer = interviewAnswerRepository.findByQuestionId(question.getId()).orElseGet(InterviewAnswer::new);
-    answer.setSession(session);
-    answer.setQuestion(question);
-    answer.setAnswerText(normalizeAnswerText(request.answerText()));
-    answer.setDurationSeconds(clampDuration(request.durationSeconds(), session.getAnswerTimeLimitSeconds()));
-    interviewAnswerRepository.save(answer);
+    transactionTemplate.execute(status -> {
+      InterviewAnswer answer = interviewAnswerRepository.findByQuestionId(question.getId()).orElseGet(InterviewAnswer::new);
+      answer.setSession(session);
+      answer.setQuestion(question);
+      answer.setAnswerText(normalizeAnswerText(request.answerText()));
+      answer.setDurationSeconds(clampDuration(request.durationSeconds(), session.getAnswerTimeLimitSeconds()));
+      interviewAnswerRepository.save(answer);
 
-    session.setCurrentQuestionIndex(question.getQuestionOrder());
+      session.setCurrentQuestionIndex(question.getQuestionOrder());
+      interviewSessionRepository.save(session);
+      return null;
+    });
 
     if (question.getQuestionOrder() >= session.getTotalQuestions()) {
       InterviewResultResponse results = completeInterview(session);
@@ -186,7 +248,6 @@ public class AIInterviewService {
             () -> new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR, "Next question not found."));
 
-    interviewSessionRepository.save(session);
     return new InterviewSubmitAnswerResponse(
             session.getId(), false, session.getCurrentQuestionIndex(), session.getTotalQuestions(), toQuestionResponse(nextQuestion, session), null);
   }
@@ -207,7 +268,8 @@ public class AIInterviewService {
 
   @Transactional(readOnly = true)
   public Page<InterviewSessionSummaryResponse> getHistory(User user, Pageable pageable) {
-    return interviewSessionRepository.findByUserIdOrderByStartedAtDesc(user.getId(), pageable).map(
+    List<InterviewSessionStatus> statuses = List.of(InterviewSessionStatus.IN_PROGRESS, InterviewSessionStatus.COMPLETED);
+    return interviewSessionRepository.findByUserIdAndStatusInOrderByStartedAtDesc(user.getId(), statuses, pageable).map(
             session -> new InterviewSessionSummaryResponse(
                     session.getId(), session.getCv().getId(), session.getCv().getOriginalFileName(), session.getJobPosition(), session.getLanguageCode(), session.getStatus().name(), session.getTotalQuestions(), session.getCurrentQuestionIndex(), session.getOverallScore(), session.getStartedAt(), session.getCompletedAt()));
   }
@@ -235,7 +297,10 @@ public class AIInterviewService {
     );
   }
 
+  // completeInterview: gọi Gemini TRƯỚC (ngoài transaction), rồi ghi kết quả
+  // vào DB trong một transaction ngắn riêng.
   private InterviewResultResponse completeInterview(InterviewSession session) {
+    // --- BƯỚC 1: Đọc dữ liệu câu hỏi/trả lời (không cần transaction dài) ---
     List<InterviewQuestion> questions = interviewQuestionRepository.findBySessionIdOrderByQuestionOrderAsc(session.getId());
     List<InterviewAnswer> answers = interviewAnswerRepository.findBySessionIdOrderByQuestionQuestionOrderAsc(session.getId());
 
@@ -251,14 +316,16 @@ public class AIInterviewService {
                       question.getQuestionOrder(), question.getQuestionText(), question.getCategory().name(), readList(question.getExpectedPoints()), answer.getAnswerText());
             }).toList();
 
+    // --- BƯỚC 2: Gọi RAG + Gemini để đánh giá (NGOÀI transaction DB) ---
     List<RagQuestionContext> evaluationContexts = ragEnabled ? ragInterviewService.retrieveRelevantQuestionContexts(
             buildEvaluationQuery(session, questionAnswers), session.getJobPosition(), List.of(), session.getInterviewLevel(), session.getLanguageCode(), 10) : List.of();
     List<String> evaluationRagContext = evaluationContexts.stream().map(this::formatRagContext).toList();
     RagDebugResponse evaluationRagDebug = buildRagDebug("evaluation", evaluationContexts, session.getLanguageCode());
 
     GeminiService.InterviewEvaluation evaluation = geminiService.evaluateInterview(
-            session.getCv().getExtractedText(), session.getJobPosition(), session.getInterviewLevel().name(), questionAnswers, evaluationRagContext);
+            buildInterviewEvaluationContext(session), session.getJobPosition(), session.getInterviewLevel().name(), questionAnswers, evaluationRagContext);
 
+    // --- BƯỚC 3: Tính điểm (logic thuần túy, không cần DB) ---
     for (InterviewAnswer answer : answers) {
       evaluation.answerReviews().stream().filter(review -> review.questionOrder() == answer.getQuestion().getQuestionOrder()).findFirst().ifPresent(
               review -> {
@@ -271,18 +338,82 @@ public class AIInterviewService {
               });
     }
 
-    interviewAnswerRepository.saveAll(answers);
-    session.setStatus(InterviewSessionStatus.COMPLETED);
-    session.setCompletedAt(java.time.LocalDateTime.now());
     int calibratedOverallScore = blendOverallScore(
             evaluation.overallScore(), answers.stream().map(InterviewAnswer::getScore).filter(score -> score != null).toList());
-    session.setOverallScore(calibratedOverallScore);
-    session.setOverallSummary(evaluation.summary());
-    session.setOverallStrengths(writeList(evaluation.strengths()));
-    session.setOverallImprovements(writeList(evaluation.improvements()));
-    interviewSessionRepository.save(session);
+
+    // --- BƯỚC 4: Ghi kết quả vào DB trong transaction CỰC NGẮN ---
+    transactionTemplate.execute(status -> {
+      interviewAnswerRepository.saveAll(answers);
+      session.setStatus(InterviewSessionStatus.COMPLETED);
+      session.setCompletedAt(java.time.LocalDateTime.now());
+      session.setOverallScore(calibratedOverallScore);
+      session.setOverallSummary(evaluation.summary());
+      session.setOverallStrengths(writeList(evaluation.strengths()));
+      session.setOverallImprovements(writeList(evaluation.improvements()));
+      interviewSessionRepository.save(session);
+      return null;
+    });
+
+    // --- BƯỚC 5: Tự động lưu và index câu hỏi mới vào Question Bank ---
+    try {
+      saveAndIndexNewQuestionsToBank(questions, session);
+    } catch (Exception ex) {
+      log.error("Failed to automatically save generated questions to bank for session: {}", session.getId(), ex);
+    }
+
+    if (session.getJob() != null) {
+      try {
+        notificationService.sendInterviewApplyPromptNotification(session.getUser(), session.getJob().getId());
+      } catch (Exception ex) {
+        log.warn("Failed to send interview apply prompt notification for session {}: {}", session.getId(), ex.getMessage());
+      }
+    }
 
     return toInterviewResults(session, evaluationRagDebug);
+  }
+
+  private void saveAndIndexNewQuestionsToBank(List<InterviewQuestion> questions, InterviewSession session) {
+    for (InterviewQuestion question : questions) {
+      String normalizedQuestionText = question.getQuestionText().trim();
+      String normalizedPosition = session.getJobPosition().trim();
+      boolean exists = interviewQuestionBankRepository.existsByQuestionTextAndTargetPositionAndLevel(
+              normalizedQuestionText, normalizedPosition, session.getInterviewLevel());
+      if (!exists) {
+        // Lưu DB trong transaction ngắn riêng biệt
+        InterviewQuestionBank bankQuestion = transactionTemplate.execute(status -> {
+          // Double check in transaction
+          boolean existsInTx = interviewQuestionBankRepository.existsByQuestionTextAndTargetPositionAndLevel(
+                  normalizedQuestionText, normalizedPosition, session.getInterviewLevel());
+          if (existsInTx) {
+            return null;
+          }
+          InterviewQuestionBank entity = new InterviewQuestionBank();
+          entity.setQuestionText(normalizedQuestionText);
+          entity.setTargetPosition(normalizedPosition);
+          entity.setLevel(session.getInterviewLevel());
+          entity.setCategory(question.getCategory() == null ? InterviewQuestionCategory.GENERAL : question.getCategory());
+          entity.setDifficulty(session.getInterviewLevel().name());
+          entity.setExpectedPoints(question.getExpectedPoints());
+          entity.setSource("AI_GENERATED_SESSION_" + session.getId());
+          entity.setLanguageCode(LanguageUtils.normalize(session.getLanguageCode()));
+          return interviewQuestionBankRepository.save(entity);
+        });
+
+        // Index lên Qdrant ngoài transaction vì có thực hiện gọi Gemini Embedding API (chậm/mạng)
+        if (bankQuestion != null) {
+          try {
+            ragInterviewService.indexQuestion(bankQuestion);
+            transactionTemplate.execute(status -> {
+              interviewQuestionBankRepository.save(bankQuestion);
+              return null;
+            });
+            log.info("op=auto_save_bank status=success questionId={} vectorId={}", bankQuestion.getId(), bankQuestion.getVectorId());
+          } catch (Exception e) {
+            log.error("op=auto_save_bank status=fail_indexing questionId={} error={}", bankQuestion.getId(), e.getMessage(), e);
+          }
+        }
+      }
+    }
   }
 
   private InterviewResultResponse toInterviewResults(InterviewSession session, RagDebugResponse ragDebug) {
@@ -304,7 +435,7 @@ public class AIInterviewService {
     if (durationSeconds == null) {
       return 0;
     }
-    return Math.max(0, Math.min(durationSeconds, maxDurationSeconds == null ? 120 : maxDurationSeconds));
+    return Math.max(0, Math.min(durationSeconds, maxDurationSeconds == null ? 300 : maxDurationSeconds));
   }
 
   private String normalizeAnswerText(String answerText) {
@@ -321,6 +452,62 @@ public class AIInterviewService {
     return defaultValue;
   }
 
+  private CVJobAnalysis resolveCvJobAnalysis(User user, InterviewStartRequest request) {
+    CVJobAnalysis analysis;
+    if (request.cvJobAnalysisId() != null) {
+      analysis = cvJobAnalysisRepository.findByIdAndCvUserId(request.cvJobAnalysisId(), user.getId()).orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please analyze this CV with the selected JD before starting a mock interview."));
+    } else {
+      analysis = cvJobAnalysisRepository.findByCvIdAndJobId(request.cvId(), request.jobId()).filter(a -> a.getCv().getUser().getId().equals(user.getId())).orElseThrow(
+              () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Please analyze this CV with the selected JD before starting a mock interview."));
+    }
+    if (analysis.getStatus() != CVJobAnalysisStatus.COMPLETED) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The CV-JD analysis is not completed yet.");
+    }
+    return analysis;
+  }
+
+  private String buildInterviewGenerationContext(CV cv, CVJobAnalysis analysis, InterviewLevel level) {
+    return """
+            Candidate CV Context:
+            %s
+
+            Saved CV-JD Analysis:
+            Score: %d
+            Match Score: %d
+            Summary: %s
+            Strengths: %s
+            Improvements/Gaps: %s
+
+            Target JD Context:
+            %s
+            """.formatted(
+            cvContextBuilder.buildGenerationContext(cv, level), analysis.getScore(), analysis.getMatchScore(), trimToMaxChars(analysis.getSummary(), 1000), trimToMaxChars(analysis.getStrengths(), 1000), trimToMaxChars(firstNonBlank(analysis.getImprovements(), "") + "\n" + firstNonBlank(analysis.getMatchReasoning(), ""), 1600), trimToMaxChars(firstNonBlank(analysis.getJobSnapshot(), analysis.getJob().getDescription()), 3500));
+  }
+
+  private String buildInterviewEvaluationContext(InterviewSession session) {
+    return """
+            Candidate CV:
+            %s
+
+            Target JD:
+            %s
+
+            Saved CV-JD Analysis:
+            %s
+            """.formatted(
+            trimToMaxChars(session.getCv().getExtractedText(), 3500), trimToMaxChars(firstNonBlank(session.getJobSnapshot(), session.getJobPosition()), 2500), session.getCvJobAnalysis() == null ? "" : trimToMaxChars(session.getCvJobAnalysis().getSummary(), 1200));
+  }
+
+  private String firstNonBlank(String... values) {
+    for (String value : values) {
+      if (value != null && !value.isBlank()) {
+        return value.trim();
+      }
+    }
+    return "";
+  }
+
   private String trimToMaxChars(String text, int maxChars) {
     if (text == null) {
       return "";
@@ -334,8 +521,8 @@ public class AIInterviewService {
   private String buildEvaluationQuery(
                                       InterviewSession session, List<GeminiService.InterviewQuestionAnswerDraft> questionAnswers) {
     String transcriptSnippet = questionAnswers.stream().map(item -> item.questionText() + " | " + trimToMaxChars(item.answerText(), 300)).reduce("", (left, right) -> left.isBlank() ? right : left + "\n" + right);
-    return "Position: %s\nLevel: %s\nTranscript:\n%s".formatted(
-            session.getJobPosition(), session.getInterviewLevel().name(), trimToMaxChars(transcriptSnippet, 2500));
+    return "Position: %s\nLevel: %s\nJD:\n%s\nTranscript:\n%s".formatted(
+            session.getJobPosition(), session.getInterviewLevel().name(), trimToMaxChars(session.getJobSnapshot(), 1200), trimToMaxChars(transcriptSnippet, 2500));
   }
 
   private void enforceDailyMockInterviewLimit(User user) {

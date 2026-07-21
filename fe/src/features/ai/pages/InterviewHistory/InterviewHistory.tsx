@@ -213,7 +213,9 @@ export function InterviewHistory() {
                       type="button"
                       className="my-0 sm:w-fit bg-amber-600 hover:bg-amber-700 text-white border-none animate-pulse"
                       onClick={() =>
-                        navigate(`/ai/interview?cvId=${session.cvId}`)
+                        navigate(
+                          `/ai/jd-workspace?cvId=${session.cvId}&mode=interview`
+                        )
                       }
                     >
                       Resume
@@ -224,7 +226,9 @@ export function InterviewHistory() {
                       outline
                       className="my-0 sm:w-fit"
                       onClick={() =>
-                        navigate(`/ai/interview?cvId=${session.cvId}`)
+                        navigate(
+                          `/ai/jd-workspace?cvId=${session.cvId}&mode=interview`
+                        )
                       }
                     >
                       Practice Again

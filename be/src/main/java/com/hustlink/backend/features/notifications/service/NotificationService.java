@@ -152,6 +152,12 @@ public class NotificationService {
     messagingTemplate.convertAndSend("/topic/users/" + recruiter.getId() + "/notifications", notification);
   }
 
+  public void sendInterviewApplyPromptNotification(User user, Long jobId) {
+    Notification notification = new Notification(user, user, NotificationType.INTERVIEW_APPLY_PROMPT, jobId);
+    notificationRepository.save(notification);
+    messagingTemplate.convertAndSend("/topic/users/" + user.getId() + "/notifications", notification);
+  }
+
   @Transactional
   public void deleteLikeNotification(User author, User recipient, Long resourceId) {
     String key = author.getId() + "_" + recipient.getId() + "_LIKE_" + resourceId;
@@ -222,5 +228,11 @@ public class NotificationService {
 
   public void sendConnectionSeenNotification(Long id, Connection connection) {
     messagingTemplate.convertAndSend("/topic/users/" + id + "/connections/seen", connection);
+  }
+
+  public void sendCvJdAnalysisSuccessNotification(User user, Long cvId) {
+    Notification notification = new Notification(user, user, NotificationType.CV_JD_ANALYSIS_SUCCESS, cvId);
+    notificationRepository.save(notification);
+    messagingTemplate.convertAndSend("/topic/users/" + user.getId() + "/notifications", notification);
   }
 }

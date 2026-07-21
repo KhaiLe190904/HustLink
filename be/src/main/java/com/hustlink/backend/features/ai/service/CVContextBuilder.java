@@ -45,7 +45,6 @@ public class CVContextBuilder {
 
   public CVContextDebugResponse debug(CV cv, String jobPosition, InterviewLevel level) {
     String extractedText = cv.getExtractedText() == null ? "" : cv.getExtractedText();
-    String summary = cv.getAnalysisSummary() == null ? "" : cv.getAnalysisSummary();
     List<String> lines = splitLines(extractedText);
     boolean isMarkdown = extractedText.contains("## ");
     List<CVSectionDebugResponse> sections = PRIORITIZED_CV_SECTIONS.stream().map(sectionKey -> {
@@ -55,14 +54,12 @@ public class CVContextBuilder {
     }).toList();
     boolean hasAnySection = sections.stream().anyMatch(CVSectionDebugResponse::found);
     String fallbackExcerpt = hasAnySection ? "" : trimToMaxChars(cleanWhitespace(extractedText), 3200);
-    String summaryBooster = summary.isBlank() ? "" : trimToMaxChars(cleanWhitespace(summary), 1200);
     return new CVContextDebugResponse(
-            cv.getOriginalFileName(), extractedText.length(), !summary.isBlank(), sections, fallbackExcerpt, summaryBooster, buildRetrievalQuery(cv, jobPosition, level), buildGenerationContext(cv, level));
+            cv.getOriginalFileName(), extractedText.length(), sections, fallbackExcerpt, buildRetrievalQuery(cv, jobPosition, level), buildGenerationContext(cv, level));
   }
 
   public String buildStructuredCvContext(CV cv, int extractedTextBudget, int summaryBudget) {
     String extractedText = cv.getExtractedText() == null ? "" : cv.getExtractedText();
-    String summary = cv.getAnalysisSummary() == null ? "" : cv.getAnalysisSummary();
     String prioritizedSections = extractPrioritizedCvSections(extractedText, extractedTextBudget);
     String fallbackExcerpt = prioritizedSections.isBlank() ? trimToMaxChars(cleanWhitespace(extractedText), extractedTextBudget) : "";
 
@@ -72,9 +69,6 @@ public class CVContextBuilder {
     }
     if (!fallbackExcerpt.isBlank()) {
       parts.add("CV excerpt:\n" + fallbackExcerpt);
-    }
-    if (!summary.isBlank()) {
-      parts.add("Analysis summary booster:\n" + trimToMaxChars(cleanWhitespace(summary), summaryBudget));
     }
     return String.join("\n\n", parts);
   }

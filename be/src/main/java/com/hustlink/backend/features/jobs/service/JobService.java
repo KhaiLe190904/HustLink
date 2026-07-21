@@ -5,7 +5,10 @@ import com.hustlink.backend.features.ai.embedding.EmbeddingService;
 import com.hustlink.backend.features.ai.embedding.VectorStoreClient;
 import com.hustlink.backend.features.ai.embedding.dto.SimilarPoint;
 import com.hustlink.backend.features.ai.model.CV;
+import com.hustlink.backend.features.ai.model.CVJobAnalysis;
 import com.hustlink.backend.features.ai.repository.CVRepository;
+import com.hustlink.backend.features.ai.repository.CVJobAnalysisRepository;
+import com.hustlink.backend.features.ai.service.CVContextBuilder;
 import com.hustlink.backend.features.authentication.model.User;
 import com.hustlink.backend.features.authentication.model.UserRole;
 import com.hustlink.backend.features.companies.model.Company;
@@ -41,6 +44,7 @@ public class JobService {
   private final CompanyMemberRepository companyMemberRepository;
   private final CompanyService companyService;
   private final CVRepository cvRepository;
+  private final CVJobAnalysisRepository cvJobAnalysisRepository;
   private final JobMatchingService jobMatchingService;
   private final EmbeddingService embeddingService;
   private final VectorStoreClient vectorStoreClient;
@@ -48,6 +52,7 @@ public class JobService {
   private final ObjectStorageService objectStorageService;
   private final EmailService emailService;
   private final NotificationService notificationService;
+  private final CVContextBuilder cvContextBuilder;
 
   private static final String JOB_DESCRIPTION_COLLECTION = "job_description";
 
@@ -74,9 +79,6 @@ public class JobService {
     Job job = Job.builder().company(company).postedBy(user).title(request.title()).description(request.description()).requirements(request.requirements()).responsibilities(request.responsibilities()).location(request.location()).jobType(request.jobType()).workMode(request.workMode()).salaryMin(request.salaryMin()).salaryMax(request.salaryMax()).salaryCurrency(request.salaryCurrency()).experienceLevel(request.experienceLevel()).skills(request.skills() != null ? request.skills() : new HashSet<>()).applicationDeadline(request.applicationDeadline()).status(JobStatus.DRAFT).build();
 
     Job savedJob = jobRepository.save(job);
-
-    // Embed and upsert to Qdrant asynchronously/synchronously
-    indexJobInVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -106,7 +108,7 @@ public class JobService {
     }
 
     Job savedJob = jobRepository.save(job);
-    indexJobInVectorStore(savedJob);
+    syncJobVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -119,6 +121,7 @@ public class JobService {
     job.setStatus(JobStatus.PUBLISHED);
     job.setPublishedAt(LocalDateTime.now());
     Job savedJob = jobRepository.save(job);
+    indexJobInVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -131,6 +134,7 @@ public class JobService {
     job.setStatus(JobStatus.CLOSED);
     job.setClosedAt(LocalDateTime.now());
     Job savedJob = jobRepository.save(job);
+    removeJobFromVectorStore(savedJob);
 
     return JobResponse.fromEntity(savedJob);
   }
@@ -240,11 +244,13 @@ public class JobService {
 
     CV cv = cvRepository.findByIdAndUserId(request.cvId(), user.getId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No valid CV found"));
 
-    if (cv.getAnalysisScore() == null) {
-      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV has not been analyzed yet. Please analyze the CV first.");
+    Optional<CVJobAnalysis> savedAnalysis = cvJobAnalysisRepository.findByCvIdAndJobId(cv.getId(), job.getId());
+    if (savedAnalysis.isEmpty()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV has not been analyzed for this JD yet. Please analyze the CV with this JD first.");
     }
 
-    JobMatchingService.MatchResult matchResult = jobMatchingService.computeMatch(cv, job);
+    JobMatchingService.MatchResult matchResult = savedAnalysis.filter(analysis -> analysis.getMatchScore() != null).map(analysis -> new JobMatchingService.MatchResult(
+            analysis.getMatchScore(), analysis.getMatchBreakdown(), analysis.getMatchReasoning())).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "This CV-JD analysis is missing match results. Please analyze the CV with this JD again."));
 
     JobApplication app = JobApplication.builder().job(job).applicant(user).cv(cv).coverLetter(request.coverLetter()).matchScore(matchResult.score()).matchBreakdown(matchResult.breakdown()).matchReasoning(matchResult.reasoning()).status(ApplicationStatus.APPLIED).build();
 
@@ -252,12 +258,13 @@ public class JobService {
 
     try {
       List<CompanyMember> currentMembers = companyMemberRepository.findByCompanyId(job.getCompany().getId());
-      boolean postedByStillMember = currentMembers.stream().anyMatch(member -> member.getUser().getId().equals(job.getPostedBy().getId()));
 
-      if (postedByStillMember || currentMembers.isEmpty()) {
-        notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
-      } else {
-        for (CompanyMember member : currentMembers) {
+      // Always notify the recruiter who posted the job
+      notificationService.sendJobApplicationNotification(user, job.getPostedBy(), job.getId());
+
+      // Also notify all other company members (excluding the job poster to avoid duplicate)
+      for (CompanyMember member : currentMembers) {
+        if (!member.getUser().getId().equals(job.getPostedBy().getId())) {
           notificationService.sendJobApplicationNotification(user, member.getUser(), job.getId());
         }
       }
@@ -325,17 +332,19 @@ public class JobService {
   }
 
   public List<JobResponse> getRecommendedJobs(User user) {
+    return getRecommendedJobs(user, null);
+  }
+
+  public List<JobResponse> getRecommendedJobs(User user, Long cvId) {
     List<CV> userCvs = cvRepository.findByUserIdOrderByUploadedAtDesc(user.getId());
     if (userCvs.isEmpty()) {
       return List.of();
     }
-    CV latestCv = userCvs.getFirst();
-    if (latestCv.getAnalysisScore() == null) {
-      return List.of();
-    }
+    CV latestCv = cvId == null ? userCvs.getFirst() : cvRepository.findByIdAndUserId(cvId, user.getId()).orElse(userCvs.getFirst());
 
     try {
-      float[] cvVector = embeddingService.embed(latestCv.getExtractedText());
+      String cleanCvContext = cvContextBuilder.buildStructuredCvContext(latestCv, 3200, 1000);
+      float[] cvVector = embeddingService.embed(cleanCvContext);
       List<SimilarPoint> similarPoints = vectorStoreClient.search(JOB_DESCRIPTION_COLLECTION, cvVector, 10, Map.of());
 
       List<Long> ids = similarPoints.stream().map(point -> {
@@ -350,13 +359,20 @@ public class JobService {
         return List.of();
       }
 
-      List<Job> jobs = jobRepository.findAllById(ids);
-      Map<Long, Job> jobMap = jobs.stream().collect(Collectors.toMap(Job::getId, j -> j));
-      return ids.stream().map(jobMap::get).filter(Objects::nonNull).filter(j -> j.getStatus() == JobStatus.PUBLISHED).map(JobResponse::fromEntity).toList();
+      return mapRecommendationIdsToResponses(ids);
     } catch (Exception e) {
       log.warn("Failed to retrieve recommendations from Qdrant: {}. Falling back to default list.", e.getMessage());
       return jobRepository.findByStatus(JobStatus.PUBLISHED).stream().limit(10).map(JobResponse::fromEntity).toList();
     }
+  }
+
+  private List<JobResponse> mapRecommendationIdsToResponses(List<Long> ids) {
+    if (ids == null || ids.isEmpty()) {
+      return List.of();
+    }
+    List<Job> jobs = jobRepository.findAllById(ids);
+    Map<Long, Job> jobMap = jobs.stream().collect(Collectors.toMap(Job::getId, j -> j));
+    return ids.stream().map(jobMap::get).filter(Objects::nonNull).filter(j -> j.getStatus() == JobStatus.PUBLISHED).map(JobResponse::fromEntity).toList();
   }
 
   @Transactional
@@ -382,6 +398,21 @@ public class JobService {
     return jobApplicationRepository.findByApplicantId(user.getId()).stream().map(JobApplicationResponse::fromEntity).toList();
   }
 
+  public int reindexAllJobsInVectorStore() {
+    vectorStoreClient.ensureCollection(JOB_DESCRIPTION_COLLECTION, embeddingService.dimension());
+    int indexedCount = 0;
+
+    for (Job job : jobRepository.findAll()) {
+      if (job.getStatus() == JobStatus.PUBLISHED && indexJobInVectorStore(job)) {
+        indexedCount++;
+      } else if (job.getStatus() != JobStatus.PUBLISHED) {
+        removeJobFromVectorStore(job);
+      }
+    }
+
+    return indexedCount;
+  }
+
   private void validateJobOwner(Job job, User user) {
     if (user.getRole() == UserRole.RECRUITER) {
       Company recruiterCompany = companyService.getMyCompany(user).orElse(null);
@@ -392,9 +423,9 @@ public class JobService {
     throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You do not have permission to manage this job posting");
   }
 
-  private void indexJobInVectorStore(Job job) {
+  private boolean indexJobInVectorStore(Job job) {
     try {
-      float[] vector = embeddingService.embed(job.getTitle() + "\n" + job.getDescription());
+      float[] vector = embeddingService.embed(buildJobAnalysisContext(job));
       Map<String, Object> payload = new LinkedHashMap<>();
       payload.put("jobId", job.getId());
       payload.put("companyId", job.getCompany().getId());
@@ -404,8 +435,53 @@ public class JobService {
       vectorStoreClient.upsert(JOB_DESCRIPTION_COLLECTION, job.getId().toString(), vector, payload);
       job.setVectorId(job.getId().toString());
       jobRepository.save(job);
+      return true;
     } catch (Exception e) {
       log.warn("Failed to index job in Qdrant: {}", e.getMessage());
+      return false;
+    }
+  }
+
+  private void syncJobVectorStore(Job job) {
+    if (job.getStatus() == JobStatus.PUBLISHED) {
+      indexJobInVectorStore(job);
+    } else {
+      removeJobFromVectorStore(job);
+    }
+  }
+
+  public String buildJobAnalysisContext(Job job) {
+    StringBuilder builder = new StringBuilder();
+    appendContext(builder, "Title", job.getTitle());
+    appendContext(builder, "Company", job.getCompany() == null ? "" : job.getCompany().getName());
+    appendContext(builder, "Description", job.getDescription());
+    appendContext(builder, "Requirements", job.getRequirements());
+    appendContext(builder, "Responsibilities and benefits", job.getResponsibilities());
+    appendContext(builder, "Location", job.getLocation());
+    appendContext(builder, "Experience level", job.getExperienceLevel());
+    if (job.getSkills() != null && !job.getSkills().isEmpty()) {
+      appendContext(builder, "Skills", String.join(", ", job.getSkills()));
+    }
+    appendContext(builder, "Imported JD raw content", job.getRawImportedContent());
+    return builder.toString().trim();
+  }
+
+  private void appendContext(StringBuilder builder, String label, String value) {
+    if (value == null || value.isBlank()) {
+      return;
+    }
+    builder.append(label).append(":\n").append(value.trim()).append("\n\n");
+  }
+
+  private void removeJobFromVectorStore(Job job) {
+    try {
+      vectorStoreClient.delete(JOB_DESCRIPTION_COLLECTION, job.getId().toString());
+      if (job.getVectorId() != null) {
+        job.setVectorId(null);
+        jobRepository.save(job);
+      }
+    } catch (Exception e) {
+      log.warn("Failed to remove unpublished job from Qdrant: {}", e.getMessage());
     }
   }
 }

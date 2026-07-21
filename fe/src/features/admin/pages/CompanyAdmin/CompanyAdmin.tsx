@@ -3,7 +3,15 @@ import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { request } from "@/utils/api";
 import { Button } from "@/features/authentication/components/Button/Button";
-import { FiCheck, FiX, FiSearch, FiSliders, FiEye } from "react-icons/fi";
+import {
+  FiCheck,
+  FiX,
+  FiSearch,
+  FiSliders,
+  FiEye,
+  FiTrash2,
+} from "react-icons/fi";
+import { JobResponse } from "@/features/jobs/types/jobs";
 
 interface Company {
   id: number;
@@ -16,7 +24,7 @@ interface Company {
   headquarters: string;
   logoUrl: string | null;
   coverUrl: string | null;
-  status: "PENDING" | "ACTIVE";
+  status: "PENDING" | "ACTIVE" | "SUSPENDED";
   createdAt: string;
 }
 
@@ -28,8 +36,18 @@ interface PageResponse<T> {
   size: number;
 }
 
+interface UserOption {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: string;
+}
+
 export function CompanyAdmin() {
-  const [activeTab, setActiveTab] = useState<"pending" | "all">("pending");
+  const [activeTab, setActiveTab] = useState<"pending" | "all" | "imported">(
+    "pending"
+  );
 
   // Pending State
   const [pendingCompanies, setPendingCompanies] = useState<Company[]>([]);
@@ -43,6 +61,16 @@ export function CompanyAdmin() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [importedJobs, setImportedJobs] = useState<JobResponse[]>([]);
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [selectedRecruiters, setSelectedRecruiters] = useState<
+    Record<number, number>
+  >({});
+  const [confirmImportedJob, setConfirmImportedJob] =
+    useState<JobResponse | null>(null);
+  const [deletingImportedJobId, setDeletingImportedJobId] = useState<
+    number | null
+  >(null);
 
   const [showConfirmModal, setShowConfirmModal] = useState<{
     show: boolean;
@@ -96,13 +124,62 @@ export function CompanyAdmin() {
     });
   }, [appliedSearchQuery, statusFilter, currentPage]);
 
+  const fetchImportedJobs = useCallback(async () => {
+    await request<JobResponse[]>({
+      endpoint: "/api/v1/admin/jobs/imported",
+      onSuccess: setImportedJobs,
+      onFailure: (err) =>
+        toast.error(err || "Could not retrieve imported jobs"),
+    });
+    await request<PageResponse<UserOption>>({
+      endpoint: "/api/v1/admin/users?role=USER&size=200",
+      onSuccess: (data) =>
+        setUsers(data.content.filter((user) => user.role === "USER")),
+      onFailure: (err) => toast.error(err || "Could not retrieve users"),
+    });
+  }, []);
+
   useEffect(() => {
     if (activeTab === "pending") {
       fetchPendingCompanies();
-    } else {
+    } else if (activeTab === "all") {
       fetchAllCompanies();
+    } else {
+      fetchImportedJobs();
     }
-  }, [activeTab, fetchPendingCompanies, fetchAllCompanies]);
+  }, [activeTab, fetchPendingCompanies, fetchAllCompanies, fetchImportedJobs]);
+
+  const handleAssignRecruiter = async (jobId: number) => {
+    const recruiterId = selectedRecruiters[jobId];
+    if (!recruiterId) {
+      toast.error("Please select a user to assign.");
+      return;
+    }
+    await request<JobResponse>({
+      endpoint: `/api/v1/admin/jobs/${jobId}/assign-recruiter?recruiterId=${recruiterId}`,
+      method: "PATCH",
+      onSuccess: () => {
+        toast.success("Recruiter assigned successfully.");
+        fetchImportedJobs();
+      },
+      onFailure: (err) => toast.error(err),
+    });
+  };
+
+  const handleDeleteImportedJob = async (job: JobResponse) => {
+    setDeletingImportedJobId(job.id);
+    await request<void>({
+      endpoint: `/api/v1/admin/jobs/imported/${job.id}`,
+      method: "DELETE",
+      onSuccess: () => {
+        toast.success("Imported job deleted successfully.");
+        setConfirmImportedJob(null);
+        fetchImportedJobs();
+      },
+      onFailure: (err) => toast.error(err || "Could not delete imported job"),
+    });
+    setDeletingImportedJobId(null);
+  };
 
   const handleApprove = async (id: number) => {
     await request({
@@ -203,6 +280,16 @@ export function CompanyAdmin() {
         >
           All Directory
         </button>
+        <button
+          onClick={() => setActiveTab("imported")}
+          className={`rounded-2xl px-5 py-2.5 text-sm font-semibold transition ${
+            activeTab === "imported"
+              ? "bg-red-700 text-white shadow-md shadow-red-700/10"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          Imported Jobs ({importedJobs.length})
+        </button>
       </div>
 
       {/* Contents */}
@@ -274,6 +361,98 @@ export function CompanyAdmin() {
                     >
                       <FiX className="h-5 w-5 stroke-[2.5]" />
                     </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : activeTab === "imported" ? (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-900 mb-6">
+            Imported Jobs
+          </h2>
+          {importedJobs.length === 0 ? (
+            <div className="py-12 text-center text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+              No imported jobs are waiting for review.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {importedJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="overflow-hidden rounded-2xl border border-slate-200 p-5"
+                >
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-start gap-2">
+                        <h3 className="min-w-0 flex-1 break-words text-lg font-bold leading-6 text-slate-900">
+                          {job.title}
+                        </h3>
+                        <span
+                          className={`rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider ${
+                            job.status === "PUBLISHED"
+                              ? "border-green-200 bg-green-50 text-green-700"
+                              : job.status === "CLOSED"
+                                ? "border-slate-200 bg-slate-50 text-slate-500"
+                                : "border-amber-200 bg-amber-50 text-amber-700"
+                          }`}
+                        >
+                          {job.status}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-slate-600">
+                        {job.companyName} - {job.location || "No location"} -{" "}
+                        {job.sourcePlatform || job.sourceType || "Imported"}
+                      </p>
+                      <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">
+                        {job.requirements || job.description}
+                      </p>
+                    </div>
+                    <div className="grid min-w-0 gap-2">
+                      {job.status === "DRAFT" ? (
+                        <>
+                          <select
+                            value={selectedRecruiters[job.id] || ""}
+                            onChange={(event) =>
+                              setSelectedRecruiters((current) => ({
+                                ...current,
+                                [job.id]: Number(event.target.value),
+                              }))
+                            }
+                            className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-red-500"
+                          >
+                            <option value="">Assign regular user...</option>
+                            {users.map((user) => (
+                              <option key={user.id} value={user.id}>
+                                {user.firstName} {user.lastName} - {user.email}{" "}
+                                ({user.role})
+                              </option>
+                            ))}
+                          </select>
+                          <Button
+                            type="button"
+                            className="my-0 w-full"
+                            onClick={() => handleAssignRecruiter(job.id)}
+                          >
+                            Assign Recruiter
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+                          This imported job has already moved out of draft.
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 text-sm font-bold text-red-700 transition hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={deletingImportedJobId === job.id}
+                        onClick={() => setConfirmImportedJob(job)}
+                      >
+                        <FiTrash2 className="h-4 w-4" />
+                        Delete imported job
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -544,6 +723,39 @@ export function CompanyAdmin() {
                 {showConfirmModal.action === "reject"
                   ? "Confirm Reject"
                   : "Confirm Close"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmImportedJob && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-slate-900">
+              Delete Imported Job
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Delete "{confirmImportedJob.title}" from imported jobs? If its
+              company was only created for this import and has no other jobs,
+              that company shell will be deleted too.
+            </p>
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <Button
+                type="button"
+                outline
+                className="my-0 px-4 py-2 border-slate-200 text-slate-700 hover:bg-slate-50 w-auto"
+                onClick={() => setConfirmImportedJob(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                className="my-0 px-4 py-2 bg-red-600 hover:bg-red-700 text-white w-auto font-bold"
+                onClick={() => handleDeleteImportedJob(confirmImportedJob)}
+                disabled={deletingImportedJobId === confirmImportedJob.id}
+              >
+                Delete
               </Button>
             </div>
           </div>

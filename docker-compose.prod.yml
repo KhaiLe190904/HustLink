@@ -1,0 +1,86 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: hustlink_mssql
+    user: root
+    ports:
+      - "1444:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=HustLink@
+    entrypoint:
+      - /bin/bash
+      - -c
+      - |
+        /opt/mssql/bin/sqlservr &
+        for i in {1..50}; do
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P HustLink@ -C -Q "SELECT 1" &>/dev/null
+          if [ $$? -eq 0 ]; then
+            echo "SQL Server is ready, creating database hust_link..."
+            /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P HustLink@ -C -Q "IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'hust_link') CREATE DATABASE hust_link;"
+            break
+          fi
+          echo "Waiting for SQL Server to boot..."
+          sleep 2
+        done
+        wait
+    volumes:
+      - mssql_data:/var/opt/mssql/data
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.11.0
+    container_name: hustlink_qdrant
+    expose:
+      - "6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+
+  unstructured:
+    image: downloads.unstructured.io/unstructured-io/unstructured-api:latest
+    environment:
+      - UNSTRUCTURED_MIN_FREE_MEMORY_MB=0 
+    container_name: hustlink_unstructured
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./be
+      dockerfile: Dockerfile
+    container_name: hustlink_backend
+    expose:
+      - "8080"
+    depends_on:
+      - mssql
+      - qdrant
+      - unstructured
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://mssql:1433;databaseName=hust_link;encrypt=false;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=HustLink@
+      - QDRANT_URL=http://qdrant:6333
+      - UNSTRUCTURED_API_URL=http://unstructured:8000/general/v0/general
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./fe
+      dockerfile: Dockerfile
+    container_name: hustlink_frontend
+    ports:
+      - '3000:80'
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mssql_data:
+  qdrant_storage:

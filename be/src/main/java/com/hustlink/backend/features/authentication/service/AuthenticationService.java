@@ -13,6 +13,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import java.security.SecureRandom;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.server.ResponseStatusException;
 
 import org.springframework.context.ApplicationEventPublisher;
 import com.hustlink.backend.features.search.event.UserProfileUpdatedEvent;
@@ -162,9 +164,10 @@ public class AuthenticationService {
     return userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
   }
 
-  public AuthenticationResponseBody googleLoginOrSignup(String code, String page) {
+  public AuthenticationResponseBody googleLoginOrSignup(String code, String page, String origin) {
     String tokenEndpoint = "https://oauth2.googleapis.com/token";
-    String redirectUri = frontendUrl + "/authentication/" + page;
+    String resolvedFrontendUrl = resolveTrustedFrontendUrl(origin);
+    String redirectUri = resolvedFrontendUrl + "/authentication/" + page;
     MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
 
     body.add("code", code);
@@ -205,6 +208,39 @@ public class AuthenticationService {
     } else {
       throw new IllegalArgumentException("Failed to exchange code for ID token.");
     }
+  }
+
+  private String resolveTrustedFrontendUrl(String origin) {
+    String configuredUrl;
+    try {
+      configuredUrl = normalizeFrontendUrl(frontendUrl);
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Frontend URL is invalid.", exception);
+    }
+    if (origin == null || origin.isBlank()) {
+      return configuredUrl;
+    }
+
+    String normalizedOrigin;
+    try {
+      normalizedOrigin = normalizeFrontendUrl(origin);
+    } catch (IllegalArgumentException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Untrusted OAuth origin.", exception);
+    }
+    if (!configuredUrl.equals(normalizedOrigin)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Untrusted OAuth origin.");
+    }
+    return configuredUrl;
+  }
+
+  private String normalizeFrontendUrl(String value) {
+    URI uri = URI.create(value == null ? "" : value.trim());
+    String scheme = uri.getScheme();
+    String host = uri.getHost();
+    if (scheme == null || host == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https")) || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null || (uri.getPath() != null && !uri.getPath().isBlank() && !"/".equals(uri.getPath()))) {
+      throw new IllegalArgumentException("Invalid frontend URL.");
+    }
+    return scheme.toLowerCase() + "://" + host.toLowerCase() + (uri.getPort() < 0 ? "" : ":" + uri.getPort());
   }
 
   public AuthenticationResponseBody register(AuthenticationRequestBody registerRequestBody) {
@@ -330,6 +366,10 @@ public class AuthenticationService {
     User user = userRepository.findByEmail(loginRequestBody.getEmail()).orElseThrow(() -> new IllegalArgumentException("User not found"));
     if (!encoder.matches(loginRequestBody.getPassword(), user.getPassword())) {
       throw new IllegalArgumentException("Wrong password");
+    }
+    if (encoder.needsUpgrade(user.getPassword())) {
+      user.setPassword(encoder.encode(loginRequestBody.getPassword()));
+      userRepository.save(user);
     }
     String token = jsonWebToken.generateToken(loginRequestBody.getEmail());
     return new AuthenticationResponseBody(token, "User successfully logged in");

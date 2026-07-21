@@ -2,6 +2,7 @@ package com.hustlink.backend.features.ai.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.hustlink.backend.features.authentication.model.User;
+import com.hustlink.backend.features.jobs.model.Job;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -28,8 +29,22 @@ public class InterviewSession {
   @JsonIgnore
   private CV cv;
 
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "job_id")
+  @JsonIgnore
+  private Job job;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "cv_job_analysis_id")
+  @JsonIgnore
+  private CVJobAnalysis cvJobAnalysis;
+
   @Column(nullable = false)
   private String jobPosition;
+
+  @Lob
+  @Column(columnDefinition = "nvarchar(max)")
+  private String jobSnapshot;
 
   @Column(nullable = false)
   private String languageCode;

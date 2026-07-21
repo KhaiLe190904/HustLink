@@ -33,6 +33,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-mail")
+	implementation("org.springframework.security:spring-security-crypto")
 
 	// jwt
 	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
@@ -53,6 +54,7 @@ dependencies {
 	// PDF Processing
 	implementation("org.apache.pdfbox:pdfbox:3.0.3")
 	implementation("net.coobird:thumbnailator:0.4.20")
+	implementation("com.microsoft.playwright:playwright:1.49.0")
 
 	// Object storage (MinIO via S3 API)
 	implementation("software.amazon.awssdk:s3:2.30.38")

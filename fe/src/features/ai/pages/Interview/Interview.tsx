@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { request } from "@/utils/api";
-import { useAuthentication } from "@/features/authentication/context/AuthenticationContextProvider";
 
 interface InterviewQuestionResponse {
   id: number;
@@ -24,6 +23,20 @@ interface InterviewStartResponse {
   totalQuestions: number;
   answerTimeLimitSeconds: number;
   currentQuestion: InterviewQuestionResponse;
+}
+
+interface CVJobAnalysisResponse {
+  id: number;
+  cvId: number;
+  cvFileName: string;
+  job: {
+    id: number;
+    title: string;
+    companyName: string;
+  };
+  score: number;
+  matchScore: number;
+  summary: string;
 }
 
 interface InterviewAnswerReviewResponse {
@@ -90,6 +103,35 @@ declare global {
     webkitSpeechRecognition?: new () => RecognitionInstance;
   }
 }
+
+const VIETNAMESE_CHARACTER_REGEX =
+  /[\u0103\u00e2\u0111\u00ea\u00f4\u01a1\u01b0\u00e1\u00e0\u1ea3\u00e3\u1ea1\u1eaf\u1eb1\u1eb3\u1eb5\u1eb7\u1ea5\u1ea7\u1ea9\u1eab\u1ead\u00e9\u00e8\u1ebb\u1ebd\u1eb9\u1ebf\u1ec1\u1ec3\u1ec5\u1ec7\u00ed\u00ec\u1ec9\u0129\u1ecb\u00f3\u00f2\u1ecf\u00f5\u1ecd\u1ed1\u1ed3\u1ed5\u1ed7\u1ed9\u1edb\u1edd\u1edf\u1ee1\u1ee3\u00fa\u00f9\u1ee7\u0169\u1ee5\u1ee9\u1eeb\u1eed\u1eef\u1ef1\u00fd\u1ef3\u1ef7\u1ef9\u1ef5]/i;
+const VIETNAMESE_WORD_REGEX =
+  /\b(cau|hoi|ban|hay|mo|ta|kinh|nghiem|du|an|ky|nang|cong|viec|vi|tri|ung|vien|phong|van|tai|sao)\b/i;
+
+const normalizeSpeechLanguageCode = (languageCode?: string | null) => {
+  const normalized = languageCode?.trim().toLowerCase() ?? "";
+  if (normalized.startsWith("vi")) {
+    return "vi-VN";
+  }
+  if (normalized.startsWith("en")) {
+    return "en-US";
+  }
+  return languageCode?.trim() || "en-US";
+};
+
+const inferSpeechLanguageCode = (
+  text: string,
+  fallbackLanguageCode?: string | null
+) => {
+  if (
+    VIETNAMESE_CHARACTER_REGEX.test(text) ||
+    VIETNAMESE_WORD_REGEX.test(text)
+  ) {
+    return "vi-VN";
+  }
+  return normalizeSpeechLanguageCode(fallbackLanguageCode);
+};
 
 interface CustomSelectProps<T> {
   value: T;
@@ -162,13 +204,59 @@ function CustomSelect<T extends string | number>({
   );
 }
 
+function ProgressModal({
+  title,
+  message,
+  steps,
+}: {
+  title: string;
+  message: string;
+  steps: string[];
+}) {
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-3xl border border-red-100 bg-white p-6 shadow-2xl">
+        <div className="flex items-center gap-4">
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+            <div className="absolute h-14 w-14 animate-spin rounded-full border-4 border-red-200 border-t-red-700" />
+            <div className="h-3 w-3 rounded-full bg-red-700" />
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-700">
+              Please wait
+            </p>
+            <h2 className="mt-1 text-xl font-black text-slate-900">{title}</h2>
+          </div>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-slate-600">{message}</p>
+        <div className="mt-5 grid gap-2">
+          {steps.map((step) => (
+            <div
+              key={step}
+              className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700"
+            >
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-600" />
+              {step}
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full w-2/3 animate-[pulse_1.4s_ease-in-out_infinite] rounded-full bg-red-700" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Interview() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuthentication();
   const selectedCvId = Number(searchParams.get("cvId") ?? "");
-  const [jobPosition, setJobPosition] = useState(user?.position ?? "");
+  const selectedAnalysisId = Number(searchParams.get("analysisId") ?? "");
+  const [jobPosition, setJobPosition] = useState("");
   const [interviewLevel, setInterviewLevel] = useState("JUNIOR");
+  const [selectedAnalysis, setSelectedAnalysis] =
+    useState<CVJobAnalysisResponse | null>(null);
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [session, setSession] = useState<InterviewStartResponse | null>(null);
@@ -177,6 +265,20 @@ export function Interview() {
   const [result, setResult] = useState<InterviewResultResponse | null>(null);
   const [answerText, setAnswerText] = useState("");
   const [checkingActive, setCheckingActive] = useState(true);
+
+  useEffect(() => {
+    if (!selectedAnalysisId) {
+      return;
+    }
+    request<CVJobAnalysisResponse>({
+      endpoint: `/api/v1/ai/cvs/jd-analyses/${selectedAnalysisId}`,
+      onSuccess: (data) => {
+        setSelectedAnalysis(data);
+        setJobPosition(data.job.title);
+      },
+      onFailure: (error) => toast.error(error),
+    });
+  }, [selectedAnalysisId]);
 
   useEffect(() => {
     const checkActiveSession = async () => {
@@ -203,6 +305,21 @@ export function Interview() {
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [voicesReady, setVoicesReady] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => {
+    const saved = localStorage.getItem("interview_speech_muted");
+    return saved ? saved === "true" : true; // Default to true (muted)
+  });
+
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      localStorage.setItem("interview_speech_muted", String(next));
+      if (next && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      return next;
+    });
+  };
   const recognitionRef = useRef<RecognitionInstance | null>(null);
   const timeoutSubmittedRef = useRef<number | null>(null);
   const answerTextRef = useRef("");
@@ -291,7 +408,10 @@ export function Interview() {
       return;
     }
 
-    recognitionRef.current.lang = session?.languageCode ?? "en-US";
+    recognitionRef.current.lang = inferSpeechLanguageCode(
+      currentQuestion.text,
+      session?.languageCode
+    );
     listeningBaseTextRef.current = answerTextRef.current.trim();
     try {
       recognitionRef.current.start();
@@ -307,6 +427,8 @@ export function Interview() {
   }, []);
 
   const pickVoice = useCallback((languageCode: string) => {
+    const speechLanguageCode = normalizeSpeechLanguageCode(languageCode);
+    const languagePrefix = speechLanguageCode.slice(0, 2).toLowerCase();
     const voices = window.speechSynthesis?.getVoices() ?? [];
     if (voices.length === 0) {
       return null;
@@ -315,28 +437,35 @@ export function Interview() {
     return (
       voices.find(
         (voice) =>
-          voice.lang?.toLowerCase() === languageCode.toLowerCase() &&
+          voice.lang?.toLowerCase() === speechLanguageCode.toLowerCase() &&
           voice.name.toLowerCase().includes("google")
       ) ||
+      voices.find(
+        (voice) =>
+          voice.lang?.toLowerCase().startsWith(languagePrefix) &&
+          voice.name.toLowerCase().includes("google")
+      ) ||
+      voices.find(
+        (voice) => voice.lang?.toLowerCase() === speechLanguageCode.toLowerCase()
+      ) ||
       voices.find((voice) =>
-        voice.lang
-          ?.toLowerCase()
-          .startsWith(languageCode.slice(0, 2).toLowerCase())
+        voice.lang?.toLowerCase().startsWith(languagePrefix)
       ) ||
       voices[0]
     );
   }, []);
 
   const speakQuestion = useCallback(
-    (text: string, languageCode: string) => {
+    (text: string, languageCode?: string | null) => {
       if (!window.speechSynthesis || !text.trim()) {
         return;
       }
 
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = languageCode;
-      const selectedVoice = pickVoice(languageCode);
+      const speechLanguageCode = inferSpeechLanguageCode(text, languageCode);
+      utterance.lang = speechLanguageCode;
+      const selectedVoice = pickVoice(speechLanguageCode);
       if (selectedVoice) {
         utterance.voice = selectedVoice;
       }
@@ -357,18 +486,45 @@ export function Interview() {
     listeningBaseTextRef.current = "";
     timeoutSubmittedRef.current = null;
     stopListening();
-    speakQuestion(currentQuestion.text, session?.languageCode ?? "en-US");
+  }, [
+    currentQuestion,
+    result,
+    stopListening,
+  ]);
+
+  useEffect(() => {
+    if (!currentQuestion || result || isMuted) {
+      return;
+    }
+
+    speakQuestion(currentQuestion.text, session?.languageCode);
   }, [
     currentQuestion,
     result,
     session?.languageCode,
     speakQuestion,
-    stopListening,
+    isMuted,
   ]);
 
+  useEffect(() => {
+    if (isMuted && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, [isMuted]);
+
   const handleStartInterview = async () => {
-    if (!selectedCvId) {
-      toast.error("Please start the mock interview from a CV first.");
+    if (!selectedAnalysisId && !selectedCvId) {
+      toast.error(
+        "Please start the mock interview from a CV-JD analysis first."
+      );
+      return;
+    }
+    if (!selectedAnalysisId && !jobPosition.trim()) {
+      toast.error("Please enter a target job position.");
+      return;
+    }
+    if (!interviewLevel) {
+      toast.error("Please select a candidate level.");
       return;
     }
 
@@ -381,8 +537,12 @@ export function Interview() {
       endpoint: "/api/v1/ai/interviews/start",
       method: "POST",
       body: JSON.stringify({
-        cvId: selectedCvId,
-        jobPosition,
+        cvId: selectedAnalysis?.cvId || selectedCvId,
+        jobId: selectedAnalysis?.job.id,
+        cvJobAnalysisId: selectedAnalysisId || undefined,
+        jobPosition: selectedAnalysis
+          ? selectedAnalysis.job.title
+          : jobPosition,
         level: interviewLevel,
       }),
       onSuccess: (data) => {
@@ -520,63 +680,6 @@ export function Interview() {
     );
   }
 
-  if (starting) {
-    return (
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] animate-pulse">
-        <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm md:p-8 space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="h-6 bg-slate-200 rounded w-24"></div>
-              <div className="h-8 bg-slate-200 rounded w-48 mt-3"></div>
-              <div className="h-4 bg-slate-100 rounded w-36 mt-1"></div>
-            </div>
-            <div className="rounded-2xl px-4 py-3 bg-slate-100 h-16 w-28 flex flex-col justify-center">
-              <div className="h-3 bg-slate-200 rounded w-3/4"></div>
-              <div className="h-6 bg-slate-200 rounded w-1/2 mt-1"></div>
-            </div>
-          </div>
-          <div className="rounded-3xl border border-red-50 bg-gradient-to-br from-red-50/30 to-white/50 p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="h-6 bg-red-100/50 rounded-full w-20"></div>
-              <div className="h-9 bg-slate-100 rounded-xl w-32 border border-slate-200/50"></div>
-            </div>
-            <div className="space-y-2">
-              <div className="h-7 bg-slate-200 rounded w-full"></div>
-              <div className="h-7 bg-slate-200 rounded w-5/6"></div>
-            </div>
-            <div className="h-4 bg-slate-100 rounded w-2/3"></div>
-          </div>
-          <div className="space-y-4">
-            <div className="flex gap-3">
-              <div className="h-10 bg-slate-200 rounded-xl w-32"></div>
-              <div className="h-10 bg-slate-100 rounded-xl w-32 border border-slate-200/40"></div>
-            </div>
-            <div className="h-10 bg-slate-100 rounded-xl w-full"></div>
-            <div className="h-40 bg-slate-100 rounded-3xl w-full"></div>
-            <div className="flex gap-3">
-              <div className="h-10 bg-red-100/50 rounded-xl w-32"></div>
-              <div className="h-10 bg-slate-100 rounded-xl w-32 border border-slate-200/40"></div>
-            </div>
-          </div>
-        </section>
-        <aside className="grid gap-6">
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-            <div className="h-6 bg-slate-200 rounded w-1/3"></div>
-            <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
-            <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
-            <div className="h-12 bg-slate-50 rounded-xl w-full"></div>
-          </div>
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
-            <div className="h-6 bg-slate-200 rounded w-1/3"></div>
-            <div className="h-16 bg-slate-50 rounded-xl w-full"></div>
-            <div className="h-12 bg-amber-50/50 rounded-xl w-full border border-amber-100/40"></div>
-            <div className="h-12 bg-red-50/50 rounded-xl w-full border border-red-100/40"></div>
-          </div>
-        </aside>
-      </div>
-    );
-  }
-
   if (submitting && isFinalQuestion) {
     return (
       <div className="grid gap-6 animate-pulse">
@@ -651,7 +754,9 @@ export function Interview() {
             <Button
               type="button"
               className="my-0 sm:w-fit"
-              onClick={() => navigate(`/ai/interview?cvId=${result.cvId}`)}
+              onClick={() =>
+                navigate(`/ai/jd-workspace?cvId=${result.cvId}&mode=interview`)
+              }
             >
               Practice Again
             </Button>
@@ -795,13 +900,23 @@ export function Interview() {
             Practice a realistic 5-question interview with voice input
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
-            We will generate 5 personalized questions from your CV, read each
-            question aloud, give you up to 2 minutes to answer, convert your mic
-            response to text, then evaluate the whole interview with Gemini at
-            the end.
+            We will generate 5 personalized questions from your saved CV-JD
+            analysis, read each question aloud, give you up to 5 minutes to
+            answer, convert your mic response to text, then evaluate the whole
+            interview with Gemini at the end.
           </p>
 
           <div className="mt-6 grid gap-4 rounded-3xl border border-white/70 bg-white/80 p-5">
+            {selectedAnalysis ? (
+              <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-950">
+                <p className="font-bold">{selectedAnalysis.job.title}</p>
+                <p className="mt-1">
+                  {selectedAnalysis.job.companyName} · CV score{" "}
+                  {selectedAnalysis.score}/100 · Match{" "}
+                  {selectedAnalysis.matchScore}%
+                </p>
+              </div>
+            ) : null}
             <div>
               <label
                 htmlFor="job-position"
@@ -813,6 +928,7 @@ export function Interview() {
                 id="job-position"
                 value={jobPosition}
                 onChange={(event) => setJobPosition(event.target.value)}
+                disabled={!!selectedAnalysis}
                 placeholder="Junior Software Engineer"
                 className="mt-2 w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-red-300 focus:ring-2 focus:ring-red-100"
               />
@@ -827,6 +943,7 @@ export function Interview() {
               <CustomSelect
                 value={interviewLevel}
                 onChange={setInterviewLevel}
+                placeholder="Select level..."
                 options={[
                   { value: "INTERN", label: "Intern" },
                   { value: "FRESHER", label: "Fresher" },
@@ -841,7 +958,12 @@ export function Interview() {
                 type="button"
                 className="my-0 sm:w-fit"
                 onClick={handleStartInterview}
-                disabled={starting || !selectedCvId}
+                disabled={
+                  starting ||
+                  (!selectedAnalysisId && !selectedCvId) ||
+                  (!selectedAnalysisId && !jobPosition.trim()) ||
+                  !interviewLevel
+                }
               >
                 {starting ? "Preparing..." : "Start Mock Interview"}
               </Button>
@@ -900,13 +1022,27 @@ export function Interview() {
             <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-900">
               Selected CV:{" "}
               <strong>
-                {selectedCvId
-                  ? `CV #${selectedCvId}`
-                  : "Please choose from AI CV page"}
+                {selectedAnalysis
+                  ? selectedAnalysis.cvFileName
+                  : selectedCvId
+                    ? `CV #${selectedCvId}`
+                    : "Please choose from AI CV page"}
               </strong>
             </div>
           </div>
         </aside>
+
+        {starting ? (
+          <ProgressModal
+            title="Preparing mock interview"
+            message="The system is loading the saved CV-JD analysis, retrieving relevant interview context, and generating your 5-question session."
+            steps={[
+              "Loading CV-JD analysis context",
+              "Retrieving relevant RAG question signals",
+              "Generating tailored interview questions",
+            ]}
+          />
+        ) : null}
       </div>
     );
   }
@@ -942,17 +1078,44 @@ export function Interview() {
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-red-700">
               {currentQuestion.category}
             </span>
-            <Button
-              type="button"
-              outline
-              className="my-0 sm:w-fit"
-              onClick={() =>
-                speakQuestion(currentQuestion.text, session.languageCode)
-              }
-              disabled={!voicesReady}
-            >
-              Replay Question
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                outline
+                className="my-0 sm:w-fit flex items-center gap-1.5"
+                onClick={toggleMute}
+              >
+                {isMuted ? (
+                  <>
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M3.63 3.63L2.22 5.04l4.69 4.69H3v6h4l5 5V13.8L18.42 20c-.72.48-1.53.84-2.42 1.05v-2.05c1.44-.31 2.76-.94 3.86-1.81l2.09 2.09 1.41-1.41L3.63 3.63zM12 4L9.91 6.09 12 8.18V4z" />
+                    </svg>
+                    <span>Muted</span>
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 fill-current text-red-700 animate-pulse"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                    </svg>
+                    <span>Auto-read</span>
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                outline
+                className="my-0 sm:w-fit"
+                onClick={() =>
+                  speakQuestion(currentQuestion.text, session.languageCode)
+                }
+                disabled={!voicesReady}
+              >
+                Replay Question
+              </Button>
+            </div>
           </div>
           <h2 className="mt-4 text-2xl font-bold leading-9 text-gray-900">
             {currentQuestion.text}

@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { request } from "@/utils/api";
 import { Button } from "@/features/authentication/components/Button/Button";
 import { JobApplicationResponse } from "../../types/jobs";
+import type { IConversation } from "@/features/messaging/components/Conversations/Conversations";
 import {
   FiMail,
   FiFileText,

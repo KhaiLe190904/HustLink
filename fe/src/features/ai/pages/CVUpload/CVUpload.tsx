@@ -13,8 +13,6 @@ interface CvSummary {
   originalFileName: string;
   mimeType: string;
   downloadUrl: string;
-  analysisScore: number | null;
-  analyzed: boolean;
   uploadedAt: string;
 }
 
@@ -28,16 +26,6 @@ interface CvUploadResponse {
   extractedTextPreview: string;
   uploadedAt: string;
   message: string;
-}
-
-interface CvAnalysisResponse {
-  id: number;
-  originalFileName: string;
-  score: number;
-  summary: string;
-  strengths: string[];
-  improvements: string[];
-  updatedAt: string;
 }
 
 interface CvConfigResponse {
@@ -79,12 +67,10 @@ export function CVUpload() {
   const [fileInputKey, setFileInputKey] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [analyzingId, setAnalyzingId] = useState<number | null>(null);
-  const [geminiConfigured, setGeminiConfigured] = useState(false);
+  const analyzingId: number | null = null;
   const [dailyAnalysisLimit, setDailyAnalysisLimit] = useState(2);
   const [remainingAnalysesToday, setRemainingAnalysesToday] = useState(0);
   const [cvs, setCvs] = useState<CvSummary[]>([]);
-  const [analysis, setAnalysis] = useState<CvAnalysisResponse | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmDeleteCv, setConfirmDeleteCv] = useState<CvSummary | null>(
     null
@@ -93,12 +79,7 @@ export function CVUpload() {
   const loadConfig = useCallback(() => {
     request<CvConfigResponse>({
       endpoint: "/api/v1/ai/cvs/config",
-      onSuccess: ({
-        geminiConfigured,
-        dailyAnalysisLimit,
-        remainingAnalysesToday,
-      }) => {
-        setGeminiConfigured(geminiConfigured);
+      onSuccess: ({ dailyAnalysisLimit, remainingAnalysesToday }) => {
         setDailyAnalysisLimit(dailyAnalysisLimit);
         setRemainingAnalysesToday(remainingAnalysesToday);
       },
@@ -170,9 +151,6 @@ export function CVUpload() {
         endpoint: `/api/v1/ai/cvs/${cvId}`,
         method: "DELETE",
         onSuccess: () => {
-          if (analysis?.id === cvId) {
-            setAnalysis(null);
-          }
           toast.success("CV deleted successfully.");
           loadCvs();
         },
@@ -182,57 +160,12 @@ export function CVUpload() {
       setDeletingId(null);
     }
   };
-
-  const handleAnalyze = async (cvId: number) => {
-    const loadingToastId = toast.loading(
-      "AI is analyzing your CV. This may take a little while."
-    );
-    setAnalyzingId(cvId);
-    try {
-      await request<CvAnalysisResponse>({
-        endpoint: `/api/v1/ai/cvs/${cvId}/analysis`,
-        method: "POST",
-        onSuccess: (data) => {
-          setAnalysis(data);
-          toast.update(loadingToastId, {
-            render: "CV analysis is ready.",
-            type: "success",
-            isLoading: false,
-            autoClose: 3000,
-            closeOnClick: true,
-          });
-          loadCvs();
-          loadConfig();
-        },
-        onFailure: (error) => {
-          toast.update(loadingToastId, {
-            render: error,
-            type: "error",
-            isLoading: false,
-            autoClose: 4000,
-            closeOnClick: true,
-          });
-        },
-      });
-    } finally {
-      setAnalyzingId(null);
-    }
-  };
-
-  const handleViewAnalysis = async (cvId: number) => {
-    await request<CvAnalysisResponse>({
-      endpoint: `/api/v1/ai/cvs/${cvId}/analysis`,
-      onSuccess: setAnalysis,
-      onFailure: (error) => toast.error(error),
-    });
-  };
-
   const totalPages = Math.max(1, Math.ceil(cvs.length / CVS_PER_PAGE));
   const pageStart = (currentPage - 1) * CVS_PER_PAGE;
   const paginatedCvs = cvs.slice(pageStart, pageStart + CVS_PER_PAGE);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
+    <div className="grid gap-6">
       <section className="grid gap-6">
         <div className="overflow-hidden rounded-3xl border border-red-100 bg-gradient-to-br from-white via-red-50 to-amber-50 shadow-sm">
           <div className="grid gap-6 p-6 md:p-8">
@@ -246,6 +179,8 @@ export function CVUpload() {
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-gray-600">
                   Upload your PDF CV, then run AI analysis when you are ready.
+                  For the best analysis quality, please make sure the CV content
+                  inside the PDF is text-based, not images of the CV.
                 </p>
               </div>
             </div>
@@ -296,14 +231,6 @@ export function CVUpload() {
                   {uploading ? "Uploading..." : "Upload CV"}
                 </Button>
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                  <div>
-                    Gemini status:{" "}
-                    <strong>
-                      {geminiConfigured
-                        ? "API key configured"
-                        : "API key missing"}
-                    </strong>
-                  </div>
                   <div className="mt-1">
                     Daily AI analysis limit:{" "}
                     <strong>
@@ -324,14 +251,24 @@ export function CVUpload() {
                 View previous uploads and open analysis when available.
               </p>
             </div>
-            <Button
-              type="button"
-              outline
-              className="my-0 sm:w-fit"
-              onClick={() => navigate("/ai/interview/history")}
-            >
-              Interview History
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                outline
+                className="my-0 sm:w-fit"
+                onClick={() => navigate("/ai/cv/history")}
+              >
+                AI CV History
+              </Button>
+              <Button
+                type="button"
+                outline
+                className="my-0 sm:w-fit"
+                onClick={() => navigate("/ai/interview/history")}
+              >
+                Interview History
+              </Button>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-4">
@@ -362,9 +299,7 @@ export function CVUpload() {
                       </a>
                     </div>
                     <p className="text-sm text-gray-600">
-                      {cv.analyzed
-                        ? `Analyzed • Score ${cv.analysisScore}/100`
-                        : "Uploaded • Waiting for analysis"}
+                      Uploaded - choose a JD to analyze this CV.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2 lg:justify-end">
@@ -378,58 +313,30 @@ export function CVUpload() {
                     >
                       {deletingId === cv.id ? "Deleting..." : "Delete"}
                     </Button>
-                    {cv.analyzed ? (
-                      <>
-                        <Button
-                          type="button"
-                          outline
-                          size="medium"
-                          className="my-0 px-4 sm:w-fit"
-                          onClick={() => handleViewAnalysis(cv.id)}
-                        >
-                          View
-                        </Button>
-                        <Button
-                          type="button"
-                          size="medium"
-                          className="my-0 px-4 sm:w-fit"
-                          onClick={() =>
-                            navigate(`/ai/interview?cvId=${cv.id}`)
-                          }
-                          disabled={!geminiConfigured}
-                        >
-                          Mock Interview
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          type="button"
-                          size="medium"
-                          className="my-0 px-4 sm:w-fit"
-                          onClick={() => handleAnalyze(cv.id)}
-                          disabled={
-                            !geminiConfigured ||
-                            analyzingId === cv.id ||
-                            remainingAnalysesToday <= 0
-                          }
-                        >
-                          {analyzingId === cv.id ? "Analyzing..." : "Analyze"}
-                        </Button>
-                        <Button
-                          type="button"
-                          outline
-                          size="medium"
-                          className="my-0 px-4 sm:w-fit"
-                          onClick={() =>
-                            navigate(`/ai/interview?cvId=${cv.id}`)
-                          }
-                          disabled={!geminiConfigured}
-                        >
-                          Mock Interview
-                        </Button>
-                      </>
-                    )}
+                    <Button
+                      type="button"
+                      size="medium"
+                      className="my-0 px-4 sm:w-fit"
+                      onClick={() =>
+                        navigate(`/ai/jd-workspace?cvId=${cv.id}&mode=analysis`)
+                      }
+                      disabled={analyzingId === cv.id}
+                    >
+                      Analyze with JD
+                    </Button>
+                    <Button
+                      type="button"
+                      outline
+                      size="medium"
+                      className="my-0 px-4 sm:w-fit"
+                      onClick={() =>
+                        navigate(
+                          `/ai/jd-workspace?cvId=${cv.id}&mode=interview`
+                        )
+                      }
+                    >
+                      Mock Interview
+                    </Button>
                   </div>
                 </article>
               ))
@@ -470,88 +377,6 @@ export function CVUpload() {
           </div>
         </div>
       </section>
-
-      <aside className="grid gap-6">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900">Latest Analysis</h2>
-          {analyzingId !== null ? (
-            <div className="mt-4 grid gap-5 animate-pulse">
-              <div className="rounded-2xl bg-red-50/50 p-4 h-28 flex flex-col justify-center border border-red-100/50">
-                <div className="h-4 bg-red-200/60 rounded w-1/3"></div>
-                <div className="h-8 bg-red-200/80 rounded w-1/4 mt-2"></div>
-                <div className="h-3 bg-red-200/40 rounded w-1/2 mt-2"></div>
-              </div>
-              <div className="space-y-2">
-                <div className="h-5 bg-slate-200 rounded w-1/4"></div>
-                <div className="h-3.5 bg-slate-100 rounded w-full"></div>
-                <div className="h-3.5 bg-slate-100 rounded w-5/6"></div>
-              </div>
-              <div className="space-y-3">
-                <div className="h-5 bg-slate-200 rounded w-1/3"></div>
-                <div className="h-10 bg-emerald-50/60 rounded-xl w-full border border-emerald-100/40"></div>
-                <div className="h-10 bg-emerald-50/60 rounded-xl w-full border border-emerald-100/40"></div>
-              </div>
-              <div className="space-y-3">
-                <div className="h-5 bg-slate-200 rounded w-1/3"></div>
-                <div className="h-10 bg-amber-50/60 rounded-xl w-full border border-amber-100/40"></div>
-                <div className="h-10 bg-amber-50/60 rounded-xl w-full border border-amber-100/40"></div>
-              </div>
-            </div>
-          ) : !analysis ? (
-            <p className="mt-3 text-sm text-gray-500">
-              No analysis is open yet. Upload a CV or choose one that has
-              already been analyzed to review the result.
-            </p>
-          ) : (
-            <div className="mt-4 grid gap-5">
-              <div className="rounded-2xl bg-red-50 p-4">
-                <p className="text-sm text-red-700">Overall CV score</p>
-                <p className="mt-1 text-3xl font-bold text-red-800">
-                  {analysis.score}/100
-                </p>
-                <p className="mt-2 text-sm text-red-900">
-                  {analysis.originalFileName}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">Summary</h3>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  {analysis.summary}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">Strengths</h3>
-                <ul className="mt-2 grid gap-2 text-sm text-gray-600">
-                  {analysis.strengths.map((item) => (
-                    <li
-                      key={item}
-                      className="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800"
-                    >
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900">Improvements</h3>
-                <ul className="mt-2 grid gap-2 text-sm text-gray-600">
-                  {analysis.improvements.map((item) => (
-                    <li
-                      key={item}
-                      className="rounded-xl bg-amber-50 px-3 py-2 text-amber-900"
-                    >
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-        </div>
-      </aside>
       {confirmDeleteCv ? (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">

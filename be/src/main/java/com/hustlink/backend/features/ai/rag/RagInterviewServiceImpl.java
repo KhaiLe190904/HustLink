@@ -115,7 +115,7 @@ public class RagInterviewServiceImpl implements RagInterviewService {
     for (SimilarPoint point : multilingualFallback) {
       merged.putIfAbsent(point.id(), point);
     }
-    List<SimilarPoint> strictPositionResults = merged.values().stream().limit(Math.max(topK * 2, topK)).toList();
+    List<SimilarPoint> strictPositionResults = merged.values().stream().sorted(Comparator.comparingDouble(SimilarPoint::score).reversed()).limit(Math.max(topK * 2, topK)).toList();
     if (!strictPositionResults.isEmpty()) {
       return strictPositionResults;
     }

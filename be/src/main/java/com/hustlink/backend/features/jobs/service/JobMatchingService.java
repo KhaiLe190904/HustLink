@@ -1,11 +1,10 @@
 package com.hustlink.backend.features.jobs.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hustlink.backend.features.ai.embedding.EmbeddingService;
 import com.hustlink.backend.features.ai.model.CV;
-import com.hustlink.backend.features.ai.service.GeminiService;
+import com.hustlink.backend.features.ai.service.CVContextBuilder;
 import com.hustlink.backend.features.jobs.model.Job;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
@@ -18,31 +17,39 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class JobMatchingService {
   private final EmbeddingService embeddingService;
-  private final GeminiService geminiService;
   private final ObjectMapper objectMapper;
-  private static final TypeReference<List<String>> STRING_LIST = new TypeReference<>() {
-  };
+  private final CVContextBuilder cvContextBuilder;
 
   public record MatchResult(int score, String breakdown, String reasoning) {
   }
 
-  @Cacheable(value = "jobMatchingCache", key = "{#cv.id, #job.id}")
+  @Cacheable(value = "jobMatchingCache", key = "{#cv.id, #cv.updatedAt, #job.id, #job.title, #job.description, #job.requirements, #job.responsibilities, #job.experienceLevel, #job.skills == null ? 0 : #job.skills.hashCode()}")
   public MatchResult computeMatch(CV cv, Job job) {
+    return computeMatch(cv, job, extractJobSkillsPresentInCv(cv.getExtractedText(), job.getSkills()));
+  }
+
+  public MatchResult computeMatch(CV cv, Job job, List<String> cvSkills) {
+    return computeMatch(cv, job, cvSkills, List.of(), List.of());
+  }
+
+  public MatchResult computeMatch(CV cv, Job job, List<String> cvSkills, List<String> matchReasons, List<String> matchGaps) {
     log.info("op=computeMatch cvId={} jobId={}", cv.getId(), job.getId());
 
-    // 1. Semantic Score (50%)
-    float[] cvVector = embeddingService.embed(cv.getExtractedText());
-    float[] jobVector = embeddingService.embed(job.getTitle() + "\n" + job.getDescription());
+    // 1. Semantic Score (60%)
+    String cleanCvContext = cvContextBuilder.buildStructuredCvContext(cv, 3200, 1000);
+    String jobContext = buildJobContext(job);
+    float[] cvVector = embeddingService.embed(cleanCvContext);
+    float[] jobVector = embeddingService.embed(jobContext);
     double similarity = cosineSimilarity(cvVector, jobVector);
     int semanticScore = (int) Math.max(0, Math.min(100, similarity * 100));
 
-    // 2. Skill Overlap (30%)
-    int skillScore = calculateSkillOverlap(cv.getExtractedSkills(), job.getSkills());
+    // 2. Skill Overlap (20%)
+    int skillScore = calculateSkillOverlap(cvSkills, job.getSkills());
 
-    // 3. Experience Match (15%)
+    // 3. Experience Match (10%)
     int experienceScore = calculateExperienceScore(cv.getExtractedText(), job.getExperienceLevel());
 
-    // 4. Keyword Boost (5%)
+    // 4. Keyword Boost (10%)
     int keywordScore = calculateKeywordBoost(cv.getExtractedText(), job.getSkills());
 
     // Compute aggregate score
@@ -63,14 +70,9 @@ public class JobMatchingService {
       breakdownJson = "{}";
     }
 
-    // Gemini Match Reasoning
-    GeminiService.JobMatchInsight insight = geminiService.generateMatchReasoning(
-            cv.getExtractedText(), job.getTitle(), job.getDescription(), job.getSkills()
-    );
-
     Map<String, List<String>> reasoningMap = new LinkedHashMap<>();
-    reasoningMap.put("reasons", insight.reasons());
-    reasoningMap.put("gaps", insight.gaps());
+    reasoningMap.put("reasons", matchReasons == null ? List.of() : matchReasons);
+    reasoningMap.put("gaps", matchGaps == null ? List.of() : matchGaps);
     String reasoningJson;
     try {
       reasoningJson = objectMapper.writeValueAsString(reasoningMap);
@@ -79,6 +81,29 @@ public class JobMatchingService {
     }
 
     return new MatchResult(totalScore, breakdownJson, reasoningJson);
+  }
+
+  public String buildJobContext(Job job) {
+    StringBuilder builder = new StringBuilder();
+    append(builder, "Title", job.getTitle());
+    append(builder, "Company", job.getCompany() == null ? "" : job.getCompany().getName());
+    append(builder, "Description", job.getDescription());
+    append(builder, "Requirements", job.getRequirements());
+    append(builder, "Responsibilities and benefits", job.getResponsibilities());
+    append(builder, "Location", job.getLocation());
+    append(builder, "Experience level", job.getExperienceLevel());
+    if (job.getSkills() != null && !job.getSkills().isEmpty()) {
+      append(builder, "Skills", String.join(", ", job.getSkills()));
+    }
+    append(builder, "Raw imported JD", job.getRawImportedContent());
+    return builder.toString().trim();
+  }
+
+  private void append(StringBuilder builder, String label, String value) {
+    if (value == null || value.isBlank()) {
+      return;
+    }
+    builder.append(label).append(":\n").append(value.trim()).append("\n\n");
   }
 
   private double cosineSimilarity(float[] vectorA, float[] vectorB) {
@@ -99,11 +124,10 @@ public class JobMatchingService {
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
-  private int calculateSkillOverlap(String cvSkillsJson, Set<String> jobSkills) {
+  private int calculateSkillOverlap(List<String> cvSkills, Set<String> jobSkills) {
     if (jobSkills == null || jobSkills.isEmpty()) {
       return 100;
     }
-    List<String> cvSkills = readList(cvSkillsJson);
     if (cvSkills.isEmpty()) {
       return 0;
     }
@@ -153,14 +177,12 @@ public class JobMatchingService {
     return (int) (((double) count / jobSkills.size()) * 100);
   }
 
-  private List<String> readList(String value) {
-    if (value == null || value.isBlank()) {
+  private List<String> extractJobSkillsPresentInCv(String cvText, Set<String> jobSkills) {
+    if (cvText == null || cvText.isBlank() || jobSkills == null || jobSkills.isEmpty()) {
       return List.of();
     }
-    try {
-      return objectMapper.readValue(value, STRING_LIST);
-    } catch (JsonProcessingException exception) {
-      return List.of();
-    }
+    String text = cvText.toLowerCase();
+    return jobSkills.stream().filter(skill -> skill != null && !skill.isBlank()).filter(skill -> text.contains(skill.toLowerCase())).toList();
   }
+
 }

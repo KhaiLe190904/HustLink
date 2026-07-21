@@ -1,8 +1,10 @@
 package com.hustlink.backend.features.ai.repository;
 
 import com.hustlink.backend.features.ai.model.InterviewSession;
+import com.hustlink.backend.features.ai.model.InterviewSessionStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -13,7 +15,11 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
 
   Page<InterviewSession> findByUserIdOrderByStartedAtDesc(Long userId, Pageable pageable);
 
+  Page<InterviewSession> findByUserIdAndStatusInOrderByStartedAtDesc(Long userId, List<InterviewSessionStatus> statuses, Pageable pageable);
+
   Optional<InterviewSession> findFirstByUserIdOrderByStartedAtDesc(Long userId);
+
+  boolean existsByJobId(Long jobId);
 
   boolean existsByCvId(Long cvId);
 }

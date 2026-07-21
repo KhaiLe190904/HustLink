@@ -70,22 +70,41 @@ public class GeminiService {
                     You are an expert recruiter and interview coach.
                     Analyze the following CV text and return valid JSON only with this exact schema:
                     {
-                      "score": number,
+                      "scoreBreakdown": {
+                        "experienceMatch": number,
+                        "skillsMatch": number,
+                        "evidence": number,
+                        "educationAndDomain": number,
+                        "cvClarity": number
+                      },
                       "summary": "string",
                       "strengths": ["string"],
                       "improvements": ["string"],
-                      "skills": ["string"]
+                      "skills": ["string"],
+                      "matchReasons": ["string"],
+                      "matchGaps": ["string"]
                     }
 
             Rules:
-            - score must be between 0 and 100.
+            - This is a JD-specific review, not a generic CV review.
+            - The system calculates the CV score as the sum of scoreBreakdown. Use this fixed rubric:
+              experienceMatch: 0-30 for years, seniority, and relevant responsibilities against the JD;
+              skillsMatch: 0-25 for required technologies, tools, and capabilities;
+              evidence: 0-20 for projects and achievements that prove the requirements;
+              educationAndDomain: 0-15 for education, certifications, and relevant domain knowledge;
+              cvClarity: 0-10 for clear, targeted, ATS-friendly evidence in the CV.
+            - Do not award points for a JD requirement that the CV does not explicitly support.
             - strengths should contain 3 to 5 concise bullet-style strings.
-            - improvements should contain 3 to 5 concise but specific bullet-style strings.
+            - improvements should contain 3 to 5 detailed, actionable CV rewrite recommendations.
             - skills should contain up to 20 key technical and soft skills extracted from the CV (prefer Vietnamese/English as appropriate).
-            - Each improvement must follow the structure: [Action Verb] + [Specific Weak Point] + [Practical Fix].
+            - Every improvement must follow this structure: [What is missing or weak in the CV] + [Why it matters for this exact JD] + [How to rewrite it, including a short example phrase when possible].
+            - Do not invent achievements, metrics, technologies, employers, or projects. When evidence is missing, tell the candidate to add it only if truthful.
+            - Prefer concrete rewrites such as which experience/project section to edit, which JD keyword to use naturally, and what evidence or metric to add.
             - Use professional tone and active verbs (e.g., "Optimize", "Quantify", "Refine", "Standardize").
             - Focus on professional impact rather than just pointing out mistakes.
-            - Limit each improvement to maximum 3 concise sentences.
+            - Each improvement may use up to 3 concise sentences, but must remain readable in a CV feedback panel.
+            - matchReasons should contain 3 concise, JD-specific reasons the candidate matches.
+            - matchGaps should contain 3 concise, JD-specific missing or weak requirements.
             - Keep the JSON keys exactly as provided above.
             - Write summary, strengths, and improvements in %s.
             - Do not wrap JSON in markdown.
@@ -111,8 +130,11 @@ public class GeminiService {
 
     try {
       JsonNode analysis = objectMapper.readTree(textNode.asText());
+      JsonNode scoreBreakdown = analysis.path("scoreBreakdown");
+      int score = clampScore(
+              clampRange(scoreBreakdown.path("experienceMatch").asInt(0), 0, 30) + clampRange(scoreBreakdown.path("skillsMatch").asInt(0), 0, 25) + clampRange(scoreBreakdown.path("evidence").asInt(0), 0, 20) + clampRange(scoreBreakdown.path("educationAndDomain").asInt(0), 0, 15) + clampRange(scoreBreakdown.path("cvClarity").asInt(0), 0, 10));
       return new CVInsight(
-              clampScore(analysis.path("score").asInt(0)), analysis.path("summary").asText(""), toList(analysis.path("strengths")), toList(analysis.path("improvements")), toList(analysis.path("skills")));
+              score, analysis.path("summary").asText(""), toList(analysis.path("strengths")), toList(analysis.path("improvements")), toList(analysis.path("skills")), toList(analysis.path("matchReasons")), toList(analysis.path("matchGaps")));
     } catch (JsonProcessingException exception) {
       throw new IllegalStateException("Gemini returned invalid JSON analysis.", exception);
     }
@@ -157,7 +179,13 @@ public class GeminiService {
             - For INTERN, avoid deep architecture, large-scale system design, or production incident ownership questions.
             - For FRESHER, avoid senior-level trade-off or large-scale architecture questions unless they are simplified to fundamentals.
             - Balance the questions across technical skill, past experience, project work, and communication.
-            - expectedPoints should contain 3 to 5 concise points.
+            - expectedPoints are an answer rubric used later for deterministic answer-coverage scoring, not generic discussion prompts.
+            - expectedPoints must contain 3 to 5 atomic, factual answer criteria for this exact question.
+            - Every point must state a core idea a good candidate should explain, using a short complete assertion or a precise technical concept.
+            - Never use generic labels such as "use case", "key features", "example", "impact", "validation", "edge cases", or a restatement of the question.
+            - Do not make optional framework names, libraries, vendors, or tools mandatory expected points. Keep examples such as TensorRT, OpenVINO, AWS, or React only in the question or expected answer explanation when truly necessary; score the underlying concept instead.
+            - A candidate who explains the correct core concept using an equivalent technology, vocabulary, or example must still be considered correct.
+            - For comparison questions, cover each side of the comparison and the important trade-off. For behavioral/project questions, cover situation, candidate action, reasoning, and measurable outcome where applicable.
             - questionOrder must start from 1 and increase by 1.
             - Write all question text and expectedPoints in %s.
             - Do not wrap JSON in markdown.
@@ -318,6 +346,10 @@ public class GeminiService {
     return Math.max(0, Math.min(100, score));
   }
 
+  private int clampRange(int value, int min, int max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   private AnalysisLanguage detectLanguage(String cvText) {
     if (cvText == null || cvText.isBlank()) {
       return AnalysisLanguage.ENGLISH;
@@ -367,12 +399,12 @@ public class GeminiService {
             int completionTokens = usageNode.path("candidatesTokenCount").asInt(0);
             double cost = (promptTokens * priceInput + completionTokens * priceOutput) / 1000000.0;
             BigDecimal costBd = BigDecimal.valueOf(cost).setScale(6, RoundingMode.HALF_UP);
-            lastTokenUsage.set(new TokenUsage(promptTokens, completionTokens, costBd));
+            addTokenUsage(new TokenUsage(promptTokens, completionTokens, costBd));
           } else {
-            lastTokenUsage.set(new TokenUsage(0, 0, BigDecimal.ZERO));
+            addTokenUsage(new TokenUsage(0, 0, BigDecimal.ZERO));
           }
         } else {
-          lastTokenUsage.set(new TokenUsage(0, 0, BigDecimal.ZERO));
+          addTokenUsage(new TokenUsage(0, 0, BigDecimal.ZERO));
         }
         return responseBody;
       } catch (RestClientResponseException exception) {
@@ -392,6 +424,16 @@ public class GeminiService {
     log.error("Gemini {} exhausted all fallback models={}", operation, attemptedModels);
     throw new IllegalStateException(
             "No supported Gemini model was available for generateContent. Tried: %s".formatted(String.join(", ", attemptedModels)));
+  }
+
+  private void addTokenUsage(TokenUsage usage) {
+    TokenUsage current = lastTokenUsage.get();
+    if (current == null) {
+      lastTokenUsage.set(usage);
+      return;
+    }
+    lastTokenUsage.set(new TokenUsage(
+            current.promptTokens() + usage.promptTokens(), current.completionTokens() + usage.completionTokens(), current.estimatedCostUsd().add(usage.estimatedCostUsd())));
   }
 
   private String trimToMaxChars(String text, int maxChars) {
@@ -511,7 +553,7 @@ public class GeminiService {
   }
 
   public record CVInsight(Integer score, String summary, List<String> strengths, List<String> improvements,
-                          List<String> skills) {
+                          List<String> skills, List<String> matchReasons, List<String> matchGaps) {
   }
 
   public record JobMatchInsight(List<String> reasons, List<String> gaps) {

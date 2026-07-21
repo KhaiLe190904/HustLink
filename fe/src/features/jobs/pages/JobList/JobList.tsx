@@ -12,9 +12,15 @@ import {
   FiDollarSign,
   FiCpu,
   FiPlus,
-  FiChevronRight,
 } from "react-icons/fi";
 import { CompanyRegister } from "@/features/companies/pages/CompanyRegister/CompanyRegister";
+
+interface CvSummary {
+  id: number;
+  originalFileName: string;
+  analyzed: boolean;
+  uploadedAt: string;
+}
 
 export function JobList() {
   const { user } = useAuthentication();
@@ -42,6 +48,8 @@ export function JobList() {
   const [tempMinSalary, setTempMinSalary] = useState<number | "">("");
 
   const [savedJobIds, setSavedJobIds] = useState<number[]>([]);
+  const [cvs, setCvs] = useState<CvSummary[]>([]);
+  const [selectedCvId, setSelectedCvId] = useState<number | "">("");
 
   const fetchSavedJobs = useCallback(async () => {
     if (!user) return;
@@ -59,7 +67,11 @@ export function JobList() {
     let endpoint = "/api/v1/jobs";
 
     if (viewMode === "recommended") {
-      endpoint = "/api/v1/jobs/recommended";
+      const params = new URLSearchParams();
+      if (selectedCvId) {
+        params.append("cvId", String(selectedCvId));
+      }
+      endpoint = `/api/v1/jobs/recommended${params.toString() ? `?${params.toString()}` : ""}`;
     } else if (viewMode === "saved") {
       endpoint = "/api/v1/jobs/saved";
     } else {
@@ -100,7 +112,15 @@ export function JobList() {
         },
       });
     }
-  }, [viewMode, searchQuery, location, skill, minSalary, currentPage]);
+  }, [
+    viewMode,
+    searchQuery,
+    location,
+    skill,
+    minSalary,
+    currentPage,
+    selectedCvId,
+  ]);
 
   const handleSearch = () => {
     setSearchQuery(tempSearchQuery);
@@ -121,6 +141,20 @@ export function JobList() {
   useEffect(() => {
     fetchSavedJobs();
   }, [fetchSavedJobs]);
+
+  useEffect(() => {
+    if (!user) return;
+    request<CvSummary[]>({
+      endpoint: "/api/v1/ai/cvs/mine",
+      onSuccess: (data) => {
+        setCvs(data);
+        if (data.length > 0 && !selectedCvId) {
+          setSelectedCvId(data[0].id);
+        }
+      },
+      onFailure: () => {},
+    });
+  }, [user, selectedCvId]);
 
   useEffect(() => {
     if (user) {
@@ -375,6 +409,39 @@ export function JobList() {
         </div>
       )}
 
+      {viewMode === "recommended" && (
+        <div className="mb-8 rounded-3xl border border-red-100 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Recommend jobs by CV
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Choose a CV to view the same AI recommendations used in JD
+                Workspace.
+              </p>
+            </div>
+            <select
+              value={selectedCvId}
+              onChange={(event) => {
+                setSelectedCvId(
+                  event.target.value === "" ? "" : Number(event.target.value)
+                );
+                setCurrentPage(1);
+              }}
+              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 md:min-w-80"
+            >
+              <option value="">Latest uploaded CV</option>
+              {cvs.map((cv) => (
+                <option key={cv.id} value={cv.id}>
+                  {cv.originalFileName}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       {(() => {
         if (loading && jobs.length === 0) {
@@ -574,9 +641,6 @@ export function JobList() {
                           </span>
                         </div>
                       </div>
-                      <span className="flex items-center gap-1 text-xs font-semibold text-red-700 group-hover:underline shrink-0">
-                        View details <FiChevronRight />
-                      </span>
                     </div>
                   </Link>
                 );
